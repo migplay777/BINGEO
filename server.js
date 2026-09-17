@@ -7,7 +7,7 @@ const TMDB_READ_TOKEN = process.env.TMDB_READ_TOKEN;
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/api/tmdb/*', async (req, res) => {
+app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
   if (!TMDB_READ_TOKEN) {
     return res.status(500).json({ error: 'TMDB não configurado no servidor.' });
   }
