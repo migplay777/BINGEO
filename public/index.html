@@ -636,6 +636,7 @@
   var tmdbHydrationPromises={};
   var tmdbSearchTimer=null;
   var TMDB_CACHE_KEY='bingeo-tmdb-cache-v1';
+  var tmdbCacheMemory=null;
   var expandedSeasons = {};
   var top5EditorOpen = false;
 
@@ -717,7 +718,7 @@
     var letter=(cat.title||'?').trim().charAt(0).toUpperCase();
     var hasPoster=!!(cat && (cat.poster_path || (cat.tmdbData&&cat.tmdbData.poster_path)));
     var cls='poster' + (extraClass?(' '+extraClass):'') + (hasPoster?' tmdb-poster':'');
-    var size=(extraClass&&extraClass.indexOf('modal-poster')>-1)?'original':'w500';
+    var size=(extraClass&&extraClass.indexOf('modal-poster')>-1)?'original':'w342';
     return '<div class="'+cls+'" style="'+posterBackgroundStyle(cat,size)+'">'+(hasPoster?'':genreIconSvg(cat.genre))+(hasPoster?'':'<span class="monogram">'+escapeHtml(letter)+'</span>')+(extra||'')+'</div>';
   }
 
@@ -747,10 +748,30 @@
 
   /* ---------------- TMDB API ---------------- */
   function tmdbConfigured(){return true;}
-  function tmdbCacheRead(){try{var raw=localStorage.getItem(TMDB_CACHE_KEY);return raw?JSON.parse(raw):{};}catch(e){return {};}}
-  function tmdbCacheWrite(cache){try{localStorage.setItem(TMDB_CACHE_KEY,JSON.stringify(cache));}catch(e){}}
-  function tmdbCacheGet(key,maxAgeMs){var cache=tmdbCacheRead(),item=cache[key];if(!item||!item.savedAt)return null;if(maxAgeMs&&Date.now()-item.savedAt>maxAgeMs)return null;return item.value||null;}
-  function tmdbCacheSet(key,value){var cache=tmdbCacheRead();cache[key]={savedAt:Date.now(),value:value};var keys=Object.keys(cache);if(keys.length>120){keys.sort(function(a,b){return cache[a].savedAt-cache[b].savedAt;}).slice(0,keys.length-120).forEach(function(k){delete cache[k];});}tmdbCacheWrite(cache);}
+  function tmdbCacheRead(){
+    if(tmdbCacheMemory)return tmdbCacheMemory;
+    try{var raw=localStorage.getItem(TMDB_CACHE_KEY);tmdbCacheMemory=raw?JSON.parse(raw):{};}
+    catch(e){tmdbCacheMemory={};}
+    return tmdbCacheMemory;
+  }
+  function tmdbCacheWrite(cache){
+    tmdbCacheMemory=cache;
+    try{
+      // Mantém o cache persistente pequeno. Respostas grandes (como créditos completos)
+      // continuam em memória durante a sessão sem travar o navegador com localStorage enorme.
+      var compact={},total=0;
+      Object.keys(cache).sort(function(a,b){return (cache[b].savedAt||0)-(cache[a].savedAt||0);}).forEach(function(k){
+        if(Object.keys(compact).length>=40)return;
+        var item=cache[k],serialized='';
+        try{serialized=JSON.stringify(item);}catch(e){return;}
+        if(serialized.length>90000||total+serialized.length>1500000)return;
+        compact[k]=item;total+=serialized.length;
+      });
+      localStorage.setItem(TMDB_CACHE_KEY,JSON.stringify(compact));
+    }catch(e){}
+  }
+  function tmdbCacheGet(key,maxAgeMs){var cache=tmdbCacheRead(),item=cache[key];if(!item||!item.savedAt)return null;if(maxAgeMs&&Date.now()-item.savedAt>maxAgeMs){delete cache[key];return null;}return item.value||null;}
+  function tmdbCacheSet(key,value){var cache=tmdbCacheRead();cache[key]={savedAt:Date.now(),value:value};var keys=Object.keys(cache);if(keys.length>60){keys.sort(function(a,b){return cache[a].savedAt-cache[b].savedAt;}).slice(0,keys.length-60).forEach(function(k){delete cache[k];});}tmdbCacheWrite(cache);}
   async function tmdbFetch(path,params){params=params||{};var qs=[];Object.keys(params).forEach(function(k){if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));});var url='/api/tmdb'+path+(qs.length?'?'+qs.join('&'):'');var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);try{var res=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});if(!res.ok){var msg='TMDB HTTP '+res.status;try{var body=await res.json();if(body&&(body.status_message||body.error))msg=body.status_message||body.error;}catch(e){}throw new Error(msg);}return await res.json();}catch(err){if(err&&err.name==='AbortError')throw new Error('A TMDB demorou para responder. Tente novamente.');throw err;}finally{clearTimeout(timer);}}
   function chooseTmdbMatch(results,cat){if(!results||!results.length)return null;var target=(cat.title||'').toLowerCase().trim(),year=Number(cat.year)||0,best=null,bestScore=-Infinity;results.forEach(function(r){var score=0,name=(r.name||r.original_name||'').toLowerCase().trim();if(name===target)score+=100;else if(name.indexOf(target)>-1||target.indexOf(name)>-1)score+=50;var y=parseInt((r.first_air_date||'').slice(0,4),10);if(year&&y){if(y===year)score+=30;else if(Math.abs(y-year)<=1)score+=10;}score+=Number(r.vote_count||0)/100000;if(score>bestScore){bestScore=score;best=r;}});return best;}
   function mergeTmdbResult(r){var existing=CATALOG.find(function(c){return Number(c.tmdbId)===Number(r.id)||(c.title||'').toLowerCase()===(r.name||r.original_name||'').toLowerCase();});if(existing){existing.tmdbId=r.id;existing.poster_path=r.poster_path||existing.poster_path;existing.backdrop_path=r.backdrop_path||existing.backdrop_path;return existing;}var cat={id:'tmdb-'+r.id,tmdbId:r.id,title:r.name||r.original_name||'Série',type:'serie',genre:'Série',year:parseInt((r.first_air_date||'').slice(0,4),10)||null,platform:'',seasons:[],poster_path:r.poster_path||null,backdrop_path:r.backdrop_path||null,tmdbSource:true};CATALOG.push(cat);return cat;}
@@ -761,7 +782,16 @@
   function tmdbCrewChips(crew,department,jobMatcher){var list=[];(crew||[]).forEach(function(p){if(department&&p.department!==department)return;var jobs=(p.jobs||[]).map(function(j){return j.job||'';}),job=p.job||'';if(jobMatcher&&!jobMatcher(job,jobs))return;if(!list.some(function(x){return x.id===p.id;}))list.push(p);});return list.slice(0,12).map(function(p){return '<span class="tmdb-credit-chip">'+escapeHtml(p.name||'')+'</span>';}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';}
   function tmdbSeriesInfoHtml(cat){if(!tmdbConfigured())return '';if(!cat.tmdbLoaded){return '<div class="tmdb-loading">Carregando dados oficiais da TMDB…</div>';}var d=cat.tmdbData||{},credits=d.aggregate_credits||{},overview=d.overview||'Sinopse não disponível.';var creators=(d.created_by||[]).map(function(p){return '<span class="tmdb-credit-chip">'+escapeHtml(p.name||'')+'</span>';}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';var directors=tmdbCrewChips(credits.crew,'Directing',function(job,jobs){return /director/i.test(job)||jobs.some(function(x){return /director/i.test(x);});});var writers=tmdbCrewChips(credits.crew,'Writing',function(job,jobs){return /writer|screenplay|teleplay/i.test(job)||jobs.some(function(x){return /writer|screenplay|teleplay/i.test(x);});});var producers=tmdbCrewChips(credits.crew,'Production',function(job,jobs){return /producer/i.test(job)||jobs.some(function(x){return /producer/i.test(x);});});return '<div class="tmdb-series-header"><div class="tmdb-series-poster" style="'+posterBackgroundStyle(cat,'w500')+'"></div><div class="tmdb-series-copy"><div class="modal-title">'+escapeHtml(d.name||cat.title)+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+escapeHtml([d.first_air_date?d.first_air_date.slice(0,4):'',d.number_of_seasons?d.number_of_seasons+' temporadas':'',d.number_of_episodes?d.number_of_episodes+' episódios':''].filter(Boolean).join(' · '))+'</div><p class="tmdb-overview">'+escapeHtml(overview)+'</p></div></div><div class="tmdb-credit-grid"><div class="tmdb-credit-block"><h4>Criador(es)</h4><div class="tmdb-credit-list">'+creators+'</div></div><div class="tmdb-credit-block"><h4>Direção</h4><div class="tmdb-credit-list">'+directors+'</div></div><div class="tmdb-credit-block"><h4>Roteiro</h4><div class="tmdb-credit-list">'+writers+'</div></div><div class="tmdb-credit-block"><h4>Produção</h4><div class="tmdb-credit-list">'+producers+'</div></div><div class="tmdb-credit-block"><h4>Elenco principal</h4>'+tmdbCastHtml(credits)+'</div></div>';}
   function tmdbSearchResultsHtml(){if(!state.query.trim()||!tmdbConfigured())return '';if(state.tmdbSearchLoading)return '<div class="tmdb-loading">Buscando séries na TMDB…</div>';if(state.tmdbSearchError)return '<div class="empty"><strong>Não foi possível consultar a TMDB.</strong>'+escapeHtml(state.tmdbSearchError)+'</div>';if(!state.tmdbSearchResults.length)return '<div class="empty"><strong>Nenhuma série encontrada.</strong>Tente outro título.</div>';return '<div class="grid">'+state.tmdbSearchResults.map(function(r){var c=mergeTmdbResult(r);return '<div class="card tmdb-search-card" data-action="open-show" data-catalog="'+c.id+'">'+posterHtml(c,'<span class="type-pill">Série</span>')+'<div class="card-body"><div class="card-title">'+escapeHtml(c.title)+'</div><div class="card-meta"><span>'+(r.first_air_date?r.first_air_date.slice(0,4):'')+'</span>'+(r.vote_average?'<span class="card-stars">★ '+Number(r.vote_average).toFixed(1)+'</span>':'')+'</div></div></div>';}).join('')+'</div>';}
-  function hydrateCatalogs(cats){if(!tmdbConfigured()||!cats||!cats.length)return;cats.filter(Boolean).slice(0,8).forEach(function(cat){if(cat.tmdbLoaded||cat.tmdbError||tmdbHydrationPromises[cat.id])return;loadTmdbSeries(cat).then(function(){if(state.view==='descobrir'||state.view==='estante'||state.view==='perfil'||state.modalCatalogId===cat.id)render();}).catch(function(){});});}
+  function hydrateCatalogs(cats){
+    if(!tmdbConfigured()||!cats||!cats.length)return;
+    var pending=cats.filter(Boolean).slice(0,8).filter(function(cat){return !cat.tmdbLoaded&&!cat.tmdbError&&!tmdbHydrationPromises[cat.id];});
+    if(!pending.length)return;
+    Promise.allSettled(pending.map(function(cat){return loadTmdbSeries(cat);}))
+      .then(function(){
+        if(state.view==='descobrir'||state.view==='estante'||state.view==='perfil')render();
+        else if(state.modalCatalogId)renderModal();
+      });
+  }
 
   /* ---------------- helpers ---------------- */
   function getEntry(catalogId){ return state.entries.find(function(e){ return e.catalogId===catalogId; }); }
@@ -1443,16 +1473,40 @@
     var searchInput = document.getElementById('searchInput');
     if(searchInput){
       searchInput.value=state.query;
-      searchInput.addEventListener('input',function(){
-        state.query=searchInput.value; var pos=searchInput.selectionStart; clearTimeout(tmdbSearchTimer);
-        if(state.view==='descobrir'&&state.query.trim()&&tmdbConfigured()){
-          state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];var req=++state.tmdbSearchRequest;
-          var root=document.getElementById('viewRoot');root.innerHTML=viewDescobrir();bindFormsForCurrentView();var ni=document.getElementById('searchInput');if(ni){ni.focus();ni.setSelectionRange(pos,pos);}
-          tmdbSearchTimer=setTimeout(function(){tmdbSearchTV(state.query.trim()).then(function(results){if(req!==state.tmdbSearchRequest)return;state.tmdbSearchResults=results;state.tmdbSearchLoading=false;render();}).catch(function(err){if(req!==state.tmdbSearchRequest)return;state.tmdbSearchLoading=false;state.tmdbSearchError=err.message||'Erro ao consultar a TMDB.';render();});},280);
-        }else{
-          state.tmdbSearchLoading=false;state.tmdbSearchResults=[];state.tmdbSearchError='';var r2=document.getElementById('viewRoot');if(state.view==='descobrir')r2.innerHTML=viewDescobrir();else if(state.view==='estante')r2.innerHTML=viewEstante();else if(state.view==='listas')r2.innerHTML=viewListas();bindFormsForCurrentView();var ni2=document.getElementById('searchInput');if(ni2){ni2.focus();ni2.setSelectionRange(pos,pos);}
-        }
-      });
+      if(!searchInput.dataset.bingeoSearchBound){
+        searchInput.dataset.bingeoSearchBound='1';
+        searchInput.addEventListener('input',function(){
+          state.query=searchInput.value; var pos=searchInput.selectionStart; clearTimeout(tmdbSearchTimer);
+          if(state.view==='descobrir'&&state.query.trim()&&tmdbConfigured()){
+            state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];var req=++state.tmdbSearchRequest;
+            var root=document.getElementById('viewRoot');root.innerHTML=viewDescobrir();
+            tmdbSearchTimer=setTimeout(function(){
+              var queryAtRequest=state.query.trim();
+              tmdbSearchTV(queryAtRequest).then(function(results){
+                if(req!==state.tmdbSearchRequest)return;
+                state.tmdbSearchResults=results;state.tmdbSearchLoading=false;
+                if(state.view==='descobrir'){
+                  var searchRoot=document.getElementById('viewRoot');
+                  searchRoot.innerHTML=viewDescobrir();
+                  var ni=document.getElementById('searchInput');if(ni){ni.focus();ni.setSelectionRange(pos,pos);}
+                }
+              }).catch(function(err){
+                if(req!==state.tmdbSearchRequest)return;
+                state.tmdbSearchLoading=false;state.tmdbSearchError=err.message||'Erro ao consultar a TMDB.';
+                if(state.view==='descobrir')document.getElementById('viewRoot').innerHTML=viewDescobrir();
+              });
+            },350);
+          }else{
+            state.tmdbSearchRequest++;
+            state.tmdbSearchLoading=false;state.tmdbSearchResults=[];state.tmdbSearchError='';
+            var r2=document.getElementById('viewRoot');
+            if(state.view==='descobrir')r2.innerHTML=viewDescobrir();
+            else if(state.view==='estante')r2.innerHTML=viewEstante();
+            else if(state.view==='listas'){r2.innerHTML=viewListas();bindFormsForCurrentView();}
+            var ni2=document.getElementById('searchInput');if(ni2){ni2.focus();ni2.setSelectionRange(pos,pos);}
+          }
+        });
+      }
     }
     var avatarBtn = document.getElementById('avatarBtn');
     var avatarEditBtn = document.getElementById('avatarEditBtn');
