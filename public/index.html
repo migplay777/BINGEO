@@ -637,22 +637,14 @@
   function hasPro(){return !!(state.profile&&state.profile.plan==='pro');}
   async function loadTrending(){
     try{
-      var res = await window.storage.get(TRENDING_KEY, true);
-      if(res && res.value) state.trending = JSON.parse(res.value);
+      var raw = localStorage.getItem(TRENDING_KEY);
+      state.trending = raw ? JSON.parse(raw) : (state.trending || {});
     }catch(e){ state.trending = state.trending || {}; }
   }
   async function bumpTrending(catalogId){
     state.trending[catalogId] = (state.trending[catalogId]||0) + 1;
-    try{
-      var current = {};
-      try{
-        var res = await window.storage.get(TRENDING_KEY, true);
-        if(res && res.value) current = JSON.parse(res.value);
-      }catch(e){}
-      current[catalogId] = (current[catalogId]||0) + 1;
-      await window.storage.set(TRENDING_KEY, JSON.stringify(current), true);
-      state.trending = current;
-    }catch(e){ console.error('Erro ao atualizar tendências', e); }
+    try{ localStorage.setItem(TRENDING_KEY, JSON.stringify(state.trending)); }
+    catch(e){ console.error('Erro ao atualizar tendências', e); }
   }
 
   /* ---------------- TMDB API ---------------- */
@@ -661,7 +653,7 @@
   function tmdbCacheWrite(cache){try{localStorage.setItem(TMDB_CACHE_KEY,JSON.stringify(cache));}catch(e){}}
   function tmdbCacheGet(key,maxAgeMs){var cache=tmdbCacheRead(),item=cache[key];if(!item||!item.savedAt)return null;if(maxAgeMs&&Date.now()-item.savedAt>maxAgeMs)return null;return item.value||null;}
   function tmdbCacheSet(key,value){var cache=tmdbCacheRead();cache[key]={savedAt:Date.now(),value:value};var keys=Object.keys(cache);if(keys.length>120){keys.sort(function(a,b){return cache[a].savedAt-cache[b].savedAt;}).slice(0,keys.length-120).forEach(function(k){delete cache[k];});}tmdbCacheWrite(cache);}
-  async function tmdbFetch(path,params){params=params||{};var qs=[];Object.keys(params).forEach(function(k){if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));});var url='/api/tmdb'+path+(qs.length?'?'+qs.join('&'):'');var res=await fetch(url,{headers:{'Accept':'application/json'}});if(!res.ok){var msg='TMDB HTTP '+res.status;try{var body=await res.json();if(body&&(body.status_message||body.error))msg=body.status_message||body.error;}catch(e){}throw new Error(msg);}return await res.json();}
+  async function tmdbFetch(path,params){params=params||{};var qs=[];Object.keys(params).forEach(function(k){if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));});var url='/api/tmdb'+path+(qs.length?'?'+qs.join('&'):'');var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);try{var res=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});if(!res.ok){var msg='TMDB HTTP '+res.status;try{var body=await res.json();if(body&&(body.status_message||body.error))msg=body.status_message||body.error;}catch(e){}throw new Error(msg);}return await res.json();}catch(err){if(err&&err.name==='AbortError')throw new Error('A TMDB demorou para responder. Tente novamente.');throw err;}finally{clearTimeout(timer);}}
   function chooseTmdbMatch(results,cat){if(!results||!results.length)return null;var target=(cat.title||'').toLowerCase().trim(),year=Number(cat.year)||0,best=null,bestScore=-Infinity;results.forEach(function(r){var score=0,name=(r.name||r.original_name||'').toLowerCase().trim();if(name===target)score+=100;else if(name.indexOf(target)>-1||target.indexOf(name)>-1)score+=50;var y=parseInt((r.first_air_date||'').slice(0,4),10);if(year&&y){if(y===year)score+=30;else if(Math.abs(y-year)<=1)score+=10;}score+=Number(r.vote_count||0)/100000;if(score>bestScore){bestScore=score;best=r;}});return best;}
   function mergeTmdbResult(r){var existing=CATALOG.find(function(c){return Number(c.tmdbId)===Number(r.id)||(c.title||'').toLowerCase()===(r.name||r.original_name||'').toLowerCase();});if(existing){existing.tmdbId=r.id;existing.poster_path=r.poster_path||existing.poster_path;existing.backdrop_path=r.backdrop_path||existing.backdrop_path;return existing;}var cat={id:'tmdb-'+r.id,tmdbId:r.id,title:r.name||r.original_name||'Série',type:'serie',genre:'Série',year:parseInt((r.first_air_date||'').slice(0,4),10)||null,platform:'',seasons:[],poster_path:r.poster_path||null,backdrop_path:r.backdrop_path||null,tmdbSource:true};CATALOG.push(cat);return cat;}
   async function tmdbSearchTV(query){var key='search:'+query.toLowerCase().trim();var cached=tmdbCacheGet(key,900000);if(cached)return cached;var data=await tmdbFetch('/search/tv',{query:query,language:'pt-BR',include_adult:'false',page:1});var results=(data.results||[]).slice(0,15).map(function(r){return {id:r.id,name:r.name,original_name:r.original_name,first_air_date:r.first_air_date,poster_path:r.poster_path,backdrop_path:r.backdrop_path,overview:r.overview||'',vote_average:r.vote_average||0,vote_count:r.vote_count||0,genre_ids:r.genre_ids||[]};});tmdbCacheSet(key,results);return results;}
