@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bingeo — sua estante de séries</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='15' fill='%2311152d'/%3E%3Cpath fill='%238B5CF6' d='M18 12h19c9 0 15 5 15 13 0 5-3 9-8 11 6 2 10 6 10 13 0 9-7 15-17 15H18V12zm10 8v12h8c5 0 8-2 8-6s-3-6-8-6h-8zm0 20v16h9c6 0 9-3 9-8s-3-8-9-8h-9z'/%3E%3Cpath fill='%23b9efff' d='M32 27l13 7-13 8z'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -395,22 +396,77 @@
   .reaction-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.reaction-btn{width:42px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:19px;cursor:pointer}.reaction-btn.active{border-color:var(--violet);background:rgba(139,92,246,.16)}
   .premium-locked{margin-top:10px;color:var(--text-muted);font-size:12px;line-height:1.45}.plan-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--text-muted);font-size:11px;font-weight:700}.plan-pill.pro{border-color:rgba(139,92,246,.45);color:#c9b7ff;background:rgba(139,92,246,.10)}.profile-plan{margin-top:8px}
 
-  .auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top,rgba(139,92,246,.16),transparent 38%),var(--bg)}
-  .auth-card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 22px 70px rgba(0,0,0,.28)}
-  .auth-card .brand{font-size:30px;margin-bottom:8px}.auth-sub{color:var(--text-muted);font-size:13px;line-height:1.5;margin-bottom:22px}
-  .auth-tabs{display:flex;gap:8px;margin-bottom:18px}.auth-tabs button{flex:1}.auth-field{display:block;margin-bottom:12px}.auth-field span{display:block;color:var(--text-muted);font-size:12px;margin-bottom:6px}
-  .auth-field input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:11px 12px;outline:none}.auth-field input:focus{border-color:var(--violet)}
-  .auth-error{min-height:18px;color:#ff8f8f;font-size:12px;margin:8px 0}.auth-submit{width:100%;margin-top:4px}.auth-loading{color:var(--text-muted);font-size:13px}
+  .bingeo-logo-svg{display:block;width:100%;height:100%}
+  .brand-with-logo{display:flex;align-items:center;gap:9px}
+  .brand-logo{width:36px;height:36px;flex:0 0 36px;border-radius:10px;overflow:hidden;box-shadow:0 0 24px rgba(124,77,255,.18)}
+  .auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;background:radial-gradient(circle at 20% 0%,rgba(139,92,246,.22),transparent 34%),radial-gradient(circle at 85% 100%,rgba(76,124,240,.14),transparent 32%),var(--bg)}
+  .auth-card{width:min(460px,100%);background:rgba(26,28,37,.94);border:1px solid rgba(139,92,246,.22);border-radius:22px;padding:30px;box-shadow:0 26px 90px rgba(0,0,0,.42);backdrop-filter:blur(18px)}
+  .auth-logo{width:92px;height:92px;margin:0 auto 18px;border-radius:24px;overflow:hidden;box-shadow:0 14px 40px rgba(76,124,240,.16),0 0 30px rgba(139,92,246,.16)}
+  .auth-title{text-align:center;font-family:'Archivo Narrow',sans-serif;font-size:30px;font-weight:700;letter-spacing:.01em;margin:0 0 7px}
+  .auth-title .dot{background:linear-gradient(90deg,var(--violet),var(--blue));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .auth-sub{color:var(--text-muted);font-size:13px;line-height:1.55;margin:0 auto 24px;text-align:center;max-width:340px}
+  .auth-tabs{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:5px;background:var(--bg);border:1px solid var(--line);border-radius:12px;margin-bottom:20px}
+  .auth-tabs button{border:none;border-radius:8px;padding:10px 12px;background:transparent;color:var(--text-muted);font-weight:700;cursor:pointer}
+  .auth-tabs button.active{background:linear-gradient(135deg,rgba(139,92,246,.95),rgba(76,124,240,.95));color:#fff;box-shadow:0 5px 18px rgba(76,124,240,.18)}
+  .auth-field{display:block;margin-bottom:13px}.auth-field span{display:block;color:var(--text-muted);font-size:12px;font-weight:600;margin-bottom:7px}
+  .auth-field input{width:100%;background:#12141c;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px 13px;outline:none;transition:border-color .15s ease,box-shadow .15s ease}.auth-field input:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.10)}
+  .auth-error{min-height:20px;color:#ff8f8f;font-size:12px;line-height:1.4;margin:8px 0}.auth-submit{width:100%;margin-top:4px;padding:11px 15px}
+  .auth-foot{margin-top:16px;text-align:center;color:var(--text-dim);font-size:11.5px;line-height:1.5}
   .account-btn{background:transparent;border:1px solid var(--line);color:var(--text-muted);border-radius:18px;padding:7px 12px;cursor:pointer;font-size:12px}.account-btn:hover{color:var(--text);border-color:var(--violet)}
 </style>
 </head>
 <body>
 
-<div id="authGate" class="auth-gate"><div class="auth-card"><div class="brand">Bingeo<span class="dot">.</span></div><div class="auth-sub">Entre na sua conta para acessar sua estante, avaliações, diário e listas.</div><div class="auth-tabs"><button class="btn btn-primary btn-sm" id="authLoginTab">Entrar</button><button class="btn btn-ghost btn-sm" id="authSignupTab">Criar conta</button></div><form id="authForm"><label class="auth-field" id="authUsernameField" style="display:none"><span>Nome de usuário</span><input id="authUsername" autocomplete="username" maxlength="30"></label><label class="auth-field"><span>E-mail</span><input id="authEmail" type="email" autocomplete="email" required></label><label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label><div class="auth-error" id="authError"></div><button class="btn btn-primary auth-submit" type="submit" id="authSubmit">Entrar</button></form></div></div>
+<div id="authGate" class="auth-gate">
+  <div class="auth-card">
+    <div class="auth-logo"><svg class="bingeo-logo-svg" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <linearGradient id="bingeoBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#24134f"/><stop offset=".55" stop-color="#11152d"/><stop offset="1" stop-color="#081126"/></linearGradient>
+    <linearGradient id="bingeoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e34cff"/><stop offset=".46" stop-color="#7c4dff"/><stop offset="1" stop-color="#18c8ff"/></linearGradient>
+    <linearGradient id="bingeoPlay" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd4ff"/><stop offset="1" stop-color="#7fe8ff"/></linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bingeoBg)" stroke="#5746d8" stroke-opacity=".55"/>
+  <path fill="url(#bingeoGrad)" fill-rule="evenodd" d="M18 12h19c9 0 15 5 15 13 0 5-3 9-8 11 6 2 10 6 10 13 0 9-7 15-17 15H18V12Zm10 8v12h8c5 0 8-2 8-6s-3-6-8-6h-8Zm0 20v16h9c6 0 9-3 9-8s-3-8-9-8h-9Z"/>
+  <rect x="21" y="20" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <rect x="21" y="28" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <rect x="21" y="41" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <rect x="21" y="49" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <path d="M32 26.5 45 34 32 41.5Z" fill="url(#bingeoPlay)"/>
+</svg></div>
+    <h1 class="auth-title">Bingeo<span class="dot">.</span></h1>
+    <div class="auth-sub" id="authSubtitle">Entre para continuar acompanhando suas séries, avaliações, diário e listas.</div>
+    <div class="auth-tabs">
+      <button type="button" class="active" id="authLoginTab">Entrar</button>
+      <button type="button" id="authSignupTab">Criar conta</button>
+    </div>
+    <form id="authForm">
+      <label class="auth-field" id="authUsernameField" style="display:none"><span>Nome de usuário</span><input id="authUsername" autocomplete="username" maxlength="30" placeholder="seu_usuario"></label>
+      <label class="auth-field"><span>E-mail</span><input id="authEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
+      <label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></label>
+      <label class="auth-field" id="authConfirmField" style="display:none"><span>Confirmar senha</span><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Repita sua senha"></label>
+      <div class="auth-error" id="authError"></div>
+      <button class="btn btn-primary auth-submit" type="submit" id="authSubmit">Entrar</button>
+    </form>
+    <div class="auth-foot">Sua conta mantém seus dados separados e protegidos no Bingeo.</div>
+  </div>
+</div>
 <div id="appShell" style="display:none">
 <div class="ticker-bar" id="tickerBar"></div>
 <header class="topbar">
-  <div class="brand">Bingeo<span class="dot">.</span></div>
+  <div class="brand-with-logo"><div class="brand-logo"><svg class="bingeo-logo-svg" viewBox="0 0 64 64" aria-hidden="true">
+  <defs>
+    <linearGradient id="bingeoBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#24134f"/><stop offset=".55" stop-color="#11152d"/><stop offset="1" stop-color="#081126"/></linearGradient>
+    <linearGradient id="bingeoGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#e34cff"/><stop offset=".46" stop-color="#7c4dff"/><stop offset="1" stop-color="#18c8ff"/></linearGradient>
+    <linearGradient id="bingeoPlay" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffd4ff"/><stop offset="1" stop-color="#7fe8ff"/></linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bingeoBg)" stroke="#5746d8" stroke-opacity=".55"/>
+  <path fill="url(#bingeoGrad)" fill-rule="evenodd" d="M18 12h19c9 0 15 5 15 13 0 5-3 9-8 11 6 2 10 6 10 13 0 9-7 15-17 15H18V12Zm10 8v12h8c5 0 8-2 8-6s-3-6-8-6h-8Zm0 20v16h9c6 0 9-3 9-8s-3-8-9-8h-9Z"/>
+  <rect x="21" y="20" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <rect x="21" y="28" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <rect x="21" y="41" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <rect x="21" y="49" width="3.5" height="5" rx="1.2" fill="#160d2f" opacity=".85"/>
+  <path d="M32 26.5 45 34 32 41.5Z" fill="url(#bingeoPlay)"/>
+</svg></div><div class="brand">Bingeo<span class="dot">.</span></div></div>
   <nav class="nav" id="navLinks">
     <button class="nav-link" data-view="descobrir">Descobrir</button>
     <button class="nav-link" data-view="estante">Estante</button>
@@ -437,10 +493,53 @@
   var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
   var authMode='login', appBooted=false;
 
-  function setAuthMode(mode){authMode=mode;var signup=mode==='signup';document.getElementById('authUsernameField').style.display=signup?'block':'none';document.getElementById('authSubmit').textContent=signup?'Criar conta':'Entrar';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password';document.getElementById('authError').textContent='';}
+  function setAuthMode(mode){
+    authMode=mode;
+    var signup=mode==='signup';
+    document.getElementById('authUsernameField').style.display=signup?'block':'none';
+    document.getElementById('authConfirmField').style.display=signup?'block':'none';
+    document.getElementById('authUsername').required=signup;
+    document.getElementById('authConfirmPassword').required=signup;
+    document.getElementById('authSubmit').textContent=signup?'Criar conta':'Entrar';
+    document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password';
+    document.getElementById('authLoginTab').classList.toggle('active',!signup);
+    document.getElementById('authSignupTab').classList.toggle('active',signup);
+    document.getElementById('authSubtitle').textContent=signup?'Crie sua conta para salvar estante, avaliações, diário e listas em um só lugar.':'Entre para continuar acompanhando suas séries, avaliações, diário e listas.';
+    var err=document.getElementById('authError');err.style.color='#ff8f8f';err.textContent='';
+  }
   document.getElementById('authLoginTab').onclick=function(){setAuthMode('login');};
   document.getElementById('authSignupTab').onclick=function(){setAuthMode('signup');};
-  document.getElementById('authForm').addEventListener('submit',async function(e){e.preventDefault();var email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,err=document.getElementById('authError'),btn=document.getElementById('authSubmit');err.textContent='';btn.disabled=true;btn.textContent='Aguarde…';try{var result;if(authMode==='signup'){var username=document.getElementById('authUsername').value.trim();result=await supabaseClient.auth.signUp({email:email,password:password,options:{data:{username:username}}});}else result=await supabaseClient.auth.signInWithPassword({email:email,password:password});if(result.error)throw result.error;if(authMode==='signup'&&!result.data.session){err.style.color='var(--text-muted)';err.textContent='Conta criada. Confira seu e-mail para confirmar o cadastro.';}}catch(ex){err.style.color='#ff8f8f';err.textContent=ex.message||'Não foi possível autenticar.';}finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Criar conta':'Entrar';}});
+  document.getElementById('authForm').addEventListener('submit',async function(e){
+    e.preventDefault();
+    var email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,err=document.getElementById('authError'),btn=document.getElementById('authSubmit');
+    err.style.color='#ff8f8f';err.textContent='';
+    if(authMode==='signup'){
+      var confirmPassword=document.getElementById('authConfirmPassword').value;
+      var username=document.getElementById('authUsername').value.trim();
+      if(username.length<3){err.textContent='O nome de usuário precisa ter pelo menos 3 caracteres.';return;}
+      if(password!==confirmPassword){err.textContent='As senhas não coincidem.';return;}
+    }
+    btn.disabled=true;btn.textContent='Aguarde…';
+    try{
+      var result;
+      if(authMode==='signup'){
+        result=await supabaseClient.auth.signUp({email:email,password:password,options:{data:{username:username}}});
+      }else{
+        result=await supabaseClient.auth.signInWithPassword({email:email,password:password});
+      }
+      if(result.error)throw result.error;
+      if(authMode==='signup'&&!result.data.session){
+        err.style.color='#9ca3af';
+        err.textContent='Conta criada. Confira seu e-mail para confirmar o cadastro e depois faça login.';
+      }
+    }catch(ex){
+      err.style.color='#ff8f8f';
+      err.textContent=ex.message||'Não foi possível autenticar.';
+    }finally{
+      btn.disabled=false;
+      btn.textContent=authMode==='signup'?'Criar conta':'Entrar';
+    }
+  });
   document.getElementById('logoutBtn').onclick=async function(){await supabaseClient.auth.signOut();};
   async function applySession(session){var logged=!!(session&&session.user);document.getElementById('authGate').style.display=logged?'none':'flex';document.getElementById('appShell').style.display=logged?'block':'none';if(logged&&!appBooted){appBooted=true;await loadData();render();}if(!logged)appBooted=false;}
   supabaseClient.auth.onAuthStateChange(function(_event,session){setTimeout(function(){applySession(session);},0);});
