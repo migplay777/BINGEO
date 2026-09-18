@@ -394,10 +394,20 @@
   .berry-emoji{font-size:20px;display:block;margin-bottom:4px}.berry-name{font-size:11px;font-weight:700;display:block}.berry-score{font-size:10px;color:var(--text-dim);display:block;margin-top:2px}
   .reaction-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}.reaction-btn{width:42px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:19px;cursor:pointer}.reaction-btn.active{border-color:var(--violet);background:rgba(139,92,246,.16)}
   .premium-locked{margin-top:10px;color:var(--text-muted);font-size:12px;line-height:1.45}.plan-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border:1px solid var(--line);border-radius:999px;color:var(--text-muted);font-size:11px;font-weight:700}.plan-pill.pro{border-color:rgba(139,92,246,.45);color:#c9b7ff;background:rgba(139,92,246,.10)}.profile-plan{margin-top:8px}
+
+  .auth-gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(circle at top,rgba(139,92,246,.16),transparent 38%),var(--bg)}
+  .auth-card{width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:28px;box-shadow:0 22px 70px rgba(0,0,0,.28)}
+  .auth-card .brand{font-size:30px;margin-bottom:8px}.auth-sub{color:var(--text-muted);font-size:13px;line-height:1.5;margin-bottom:22px}
+  .auth-tabs{display:flex;gap:8px;margin-bottom:18px}.auth-tabs button{flex:1}.auth-field{display:block;margin-bottom:12px}.auth-field span{display:block;color:var(--text-muted);font-size:12px;margin-bottom:6px}
+  .auth-field input{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:8px;color:var(--text);padding:11px 12px;outline:none}.auth-field input:focus{border-color:var(--violet)}
+  .auth-error{min-height:18px;color:#ff8f8f;font-size:12px;margin:8px 0}.auth-submit{width:100%;margin-top:4px}.auth-loading{color:var(--text-muted);font-size:13px}
+  .account-btn{background:transparent;border:1px solid var(--line);color:var(--text-muted);border-radius:18px;padding:7px 12px;cursor:pointer;font-size:12px}.account-btn:hover{color:var(--text);border-color:var(--violet)}
 </style>
 </head>
 <body>
 
+<div id="authGate" class="auth-gate"><div class="auth-card"><div class="brand">Bingeo<span class="dot">.</span></div><div class="auth-sub">Entre na sua conta para acessar sua estante, avaliações, diário e listas.</div><div class="auth-tabs"><button class="btn btn-primary btn-sm" id="authLoginTab">Entrar</button><button class="btn btn-ghost btn-sm" id="authSignupTab">Criar conta</button></div><form id="authForm"><label class="auth-field" id="authUsernameField" style="display:none"><span>Nome de usuário</span><input id="authUsername" autocomplete="username" maxlength="30"></label><label class="auth-field"><span>E-mail</span><input id="authEmail" type="email" autocomplete="email" required></label><label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required></label><div class="auth-error" id="authError"></div><button class="btn btn-primary auth-submit" type="submit" id="authSubmit">Entrar</button></form></div></div>
+<div id="appShell" style="display:none">
 <div class="ticker-bar" id="tickerBar"></div>
 <header class="topbar">
   <div class="brand">Bingeo<span class="dot">.</span></div>
@@ -411,15 +421,30 @@
   <div class="search-wrap">
     <input type="text" id="searchInput" placeholder="Buscar…">
   </div>
+  <button class="account-btn" id="logoutBtn">Sair</button>
 </header>
 
 <main id="viewRoot"></main>
 <div id="modalRoot"></div>
 <input type="file" id="avatarInput" accept="image/*" hidden>
 <input type="file" id="bannerInput" accept="image/*" hidden>
-
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
+  var SUPABASE_URL='https://bazujvpppbxxiymxweiq.supabase.co';
+  var SUPABASE_PUBLISHABLE_KEY='sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
+  var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  var authMode='login', appBooted=false;
+
+  function setAuthMode(mode){authMode=mode;var signup=mode==='signup';document.getElementById('authUsernameField').style.display=signup?'block':'none';document.getElementById('authSubmit').textContent=signup?'Criar conta':'Entrar';document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password';document.getElementById('authError').textContent='';}
+  document.getElementById('authLoginTab').onclick=function(){setAuthMode('login');};
+  document.getElementById('authSignupTab').onclick=function(){setAuthMode('signup');};
+  document.getElementById('authForm').addEventListener('submit',async function(e){e.preventDefault();var email=document.getElementById('authEmail').value.trim(),password=document.getElementById('authPassword').value,err=document.getElementById('authError'),btn=document.getElementById('authSubmit');err.textContent='';btn.disabled=true;btn.textContent='Aguarde…';try{var result;if(authMode==='signup'){var username=document.getElementById('authUsername').value.trim();result=await supabaseClient.auth.signUp({email:email,password:password,options:{data:{username:username}}});}else result=await supabaseClient.auth.signInWithPassword({email:email,password:password});if(result.error)throw result.error;if(authMode==='signup'&&!result.data.session){err.style.color='var(--text-muted)';err.textContent='Conta criada. Confira seu e-mail para confirmar o cadastro.';}}catch(ex){err.style.color='#ff8f8f';err.textContent=ex.message||'Não foi possível autenticar.';}finally{btn.disabled=false;btn.textContent=authMode==='signup'?'Criar conta':'Entrar';}});
+  document.getElementById('logoutBtn').onclick=async function(){await supabaseClient.auth.signOut();};
+  async function applySession(session){var logged=!!(session&&session.user);document.getElementById('authGate').style.display=logged?'none':'flex';document.getElementById('appShell').style.display=logged?'block':'none';if(logged&&!appBooted){appBooted=true;await loadData();render();}if(!logged)appBooted=false;}
+  supabaseClient.auth.onAuthStateChange(function(_event,session){setTimeout(function(){applySession(session);},0);});
+  supabaseClient.auth.getSession().then(function(r){applySession(r.data.session);});
 
   /* ---------------- catalog (pré-cadastrado) ---------------- */
   var CATALOG = [
@@ -1609,10 +1634,7 @@
   });
 
   /* ---------------- boot ---------------- */
-  (async function(){
-    await loadData();
-    render();
-  })();
+  // O carregamento do app agora é iniciado somente após uma sessão autenticada.
 
 })();
 </script>
