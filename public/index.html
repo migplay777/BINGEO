@@ -1473,7 +1473,10 @@
       }
       entry.dateUpdated = new Date().toISOString();
       bumpTrending(entry.catalogId);
-      saveData(); renderModal(); render();
+      saveData();
+      renderModal();
+      // Não redesenha a página inteira ao avaliar. Isso evita o efeito de
+      // "recarregamento" e mantém a posição/estado atual da interface.
     }
     else if(action==='toggle-season'){
       var key=el.dataset.key; expandedSeasons[key]=!expandedSeasons[key]; renderModal(); var sc=getCatalog(state.modalCatalogId),sn=parseInt(key.split('-').pop(),10); if(expandedSeasons[key]&&sc&&tmdbConfigured()){loadTmdbSeries(sc).then(function(){return loadTmdbSeason(sc,sn);}).then(function(){if(state.modalCatalogId===sc.id)renderModal();}).catch(function(){if(state.modalCatalogId===sc.id)renderModal();});}
@@ -1487,11 +1490,11 @@
     }
     else if(action==='premium-value'){
       if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
-      var epv=getEntry(el.dataset.catalog); if(!epv) return; epv.premiumRating=epv.premiumRating||{format:'berry',value:null,reactions:[]}; epv.premiumRating.format='berry'; var berry=parseFloat(el.dataset.value); epv.premiumRating.value=(epv.premiumRating.value===berry?null:berry); saveData(); bumpTrending(epv.catalogId); renderModal(); render();
+      var epv=getEntry(el.dataset.catalog); if(!epv) return; epv.premiumRating=epv.premiumRating||{format:'berry',value:null,reactions:[]}; epv.premiumRating.format='berry'; var berry=parseFloat(el.dataset.value); epv.premiumRating.value=(epv.premiumRating.value===berry?null:berry); saveData(); bumpTrending(epv.catalogId); renderModal();
     }
     else if(action==='premium-reaction'){
       if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
-      var epr=getEntry(el.dataset.catalog); if(!epr) return; epr.premiumRating=epr.premiumRating||{format:'reactions',value:null,reactions:[]}; epr.premiumRating.format='reactions'; epr.premiumRating.reactions=Array.isArray(epr.premiumRating.reactions)?epr.premiumRating.reactions:[]; var reaction=el.dataset.reaction,ri=epr.premiumRating.reactions.indexOf(reaction); if(ri>-1)epr.premiumRating.reactions.splice(ri,1);else epr.premiumRating.reactions.push(reaction); saveData(); bumpTrending(epr.catalogId); renderModal(); render();
+      var epr=getEntry(el.dataset.catalog); if(!epr) return; epr.premiumRating=epr.premiumRating||{format:'reactions',value:null,reactions:[]}; epr.premiumRating.format='reactions'; epr.premiumRating.reactions=Array.isArray(epr.premiumRating.reactions)?epr.premiumRating.reactions:[]; var reaction=el.dataset.reaction,ri=epr.premiumRating.reactions.indexOf(reaction); if(ri>-1)epr.premiumRating.reactions.splice(ri,1);else epr.premiumRating.reactions.push(reaction); saveData(); bumpTrending(epr.catalogId); renderModal();
     }
     else if(action==='edit-profile'){ state.profile.editing=true; render(); }
     else if(action==='save-profile'){
