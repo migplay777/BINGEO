@@ -6,7 +6,18 @@ const PORT = process.env.PORT || 3000;
 const TMDB_READ_TOKEN = process.env.TMDB_READ_TOKEN;
 
 app.disable('x-powered-by');
-app.use(express.static(path.join(__dirname, 'public'), { maxAge: '1h', etag: true }));
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: true,
+  setHeaders(res, filePath) {
+    if (filePath.endsWith('.html')) {
+      // O HTML não pode ficar preso em cache, senão o usuário pode continuar
+      // vendo uma versão antiga mesmo depois de um novo deploy.
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  }
+}));
 
 app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
   if (!TMDB_READ_TOKEN) {
