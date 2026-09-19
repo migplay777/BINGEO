@@ -944,7 +944,7 @@
       if(del.error)throw del.error;
       var rows=(list.showIds||[]).map(function(cid){
         var cat=getCatalog(cid);
-        return {list_id:list.dbId,catalog_id:cid,tmdb_id:cat&&cat.tmdbId?Number(cat.tmdbId):null,title:cat?cat.title:cid};
+        return {list_id:list.dbId,catalog_id:cid,tmdb_id:cat&&cat.tmdbId?Number(cat.tmdbId):null,title:cat?cat.title:cid,poster_path:cat&&cat.poster_path?cat.poster_path:null,backdrop_path:cat&&cat.backdrop_path?cat.backdrop_path:null};
       });
       if(rows.length){
         var ins=await supabaseClient.from('list_items').insert(rows);
@@ -990,14 +990,14 @@
       if(result.error)throw result.error;
       var rows=result.data||[],ids=rows.map(function(x){return x.id;}),items=[];
       if(ids.length){
-        var itemResult=await supabaseClient.from('list_items').select('list_id,catalog_id,tmdb_id,title').in('list_id',ids);
+        var itemResult=await supabaseClient.from('list_items').select('list_id,catalog_id,tmdb_id,title,poster_path,backdrop_path').in('list_id',ids);
         if(itemResult.error)throw itemResult.error;
         items=itemResult.data||[];
       }
       rows.forEach(function(row){
         var showIds=items.filter(function(it){return it.list_id===row.id;}).map(function(it){
           if(!getCatalog(it.catalog_id)&&it.tmdb_id){
-            CATALOG.push({id:it.catalog_id,tmdbId:it.tmdb_id,title:it.title||'Série',type:'serie',genre:'Série',year:null,platform:'',seasons:[],poster_path:null,backdrop_path:null,tmdbSource:true});
+            CATALOG.push({id:it.catalog_id,tmdbId:it.tmdb_id,title:it.title||'Série',type:'serie',genre:'Série',year:null,platform:'',seasons:[],poster_path:it.poster_path||null,backdrop_path:it.backdrop_path||null,tmdbSource:true});
           }
           return it.catalog_id;
         });
