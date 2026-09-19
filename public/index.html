@@ -649,8 +649,8 @@
 
 
   /* ---- perfil completo, seguidores e feed social ---- */
-  .social-feed{margin:0 0 34px;}
-  .social-feed-list{display:grid;gap:10px;}
+  .social-feed{margin:0 0 36px;}
+  .social-feed-list{display:grid;gap:14px;}
   .social-activity{display:grid;grid-template-columns:44px minmax(0,1fr);gap:11px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--panel);}
   .social-activity-avatar{width:44px;height:44px;border-radius:50%;background:var(--panel-2) center/cover no-repeat;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;color:var(--text-muted);cursor:pointer;}
   .social-activity-head{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;}
@@ -661,6 +661,50 @@
   .social-activity-series{color:var(--text);font-weight:700;cursor:pointer;}
   .social-special{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
   .social-special span{font-size:10px;padding:4px 7px;border-radius:999px;border:1px solid rgba(139,92,246,.32);background:rgba(139,92,246,.08);color:#e6dcff;}
+
+  .diary-feed-card{
+    display:grid;
+    grid-template-columns:118px minmax(0,1fr);
+    min-height:176px;
+    border:1px solid var(--line);
+    border-radius:15px;
+    overflow:hidden;
+    background:linear-gradient(145deg,rgba(255,255,255,.018),rgba(139,92,246,.025)),var(--panel);
+    transition:transform .16s ease,border-color .16s ease,box-shadow .16s ease;
+  }
+  .diary-feed-card:hover{transform:translateY(-2px);border-color:rgba(139,92,246,.42);box-shadow:0 18px 42px rgba(0,0,0,.16);}
+  .diary-feed-poster{
+    width:118px;
+    height:100%;
+    min-height:176px;
+    background:#0d0f16 center/cover no-repeat;
+    cursor:pointer;
+    position:relative;
+  }
+  .diary-feed-poster::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 58%,rgba(0,0,0,.28));pointer-events:none;}
+  .diary-feed-content{padding:15px 16px 14px;min-width:0;display:flex;flex-direction:column;}
+  .diary-feed-userline{display:flex;align-items:center;gap:8px;min-width:0;}
+  .diary-feed-avatar{width:34px;height:34px;flex:0 0 34px;border-radius:50%;background:var(--panel-2) center/cover no-repeat;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 12px 'Space Grotesk',sans-serif;color:var(--text-muted);cursor:pointer;}
+  .diary-feed-usercopy{min-width:0;display:flex;align-items:center;gap:7px;flex-wrap:wrap;}
+  .diary-feed-username{font-size:12px;font-weight:700;cursor:pointer;}
+  .diary-feed-username:hover{text-decoration:underline;}
+  .diary-feed-label{font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.075em;font-weight:800;}
+  .diary-feed-time{margin-left:auto;font-size:10px;color:var(--text-dim);white-space:nowrap;}
+  .diary-feed-title{font:700 18px 'Space Grotesk',sans-serif;letter-spacing:-.02em;margin-top:14px;cursor:pointer;}
+  .diary-feed-title:hover{color:#fff;}
+  .diary-feed-meta{display:flex;gap:7px;flex-wrap:wrap;margin-top:7px;}
+  .diary-feed-pill{font-size:10.5px;padding:4px 7px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--text-muted);}
+  .diary-feed-rating{color:#ffd66b;}
+  .diary-feed-note{margin-top:12px;padding:10px 11px;border-left:2px solid rgba(139,92,246,.48);background:rgba(139,92,246,.045);border-radius:0 8px 8px 0;color:var(--text-muted);font-size:11.5px;line-height:1.5;font-style:italic;}
+  .diary-feed-empty{padding:18px 0 2px;color:var(--text-muted);font-size:12.5px;line-height:1.55;}
+  @media(max-width:640px){
+    .diary-feed-card{grid-template-columns:88px minmax(0,1fr);min-height:138px;border-radius:12px;}
+    .diary-feed-poster{width:88px;min-height:138px;}
+    .diary-feed-content{padding:12px;}
+    .diary-feed-avatar{width:30px;height:30px;flex-basis:30px;}
+    .diary-feed-title{font-size:15.5px;margin-top:10px;}
+    .diary-feed-time{width:100%;margin-left:38px;margin-top:-3px;}
+  }
   .follow-stats{display:flex;gap:14px;flex-wrap:wrap;margin-top:9px;font-size:11.5px;color:var(--text-muted);}
   .follow-stats strong{color:var(--text);font-size:13px;}
   .user-view-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
@@ -1337,14 +1381,16 @@
     if(!cid)return null;
     var cat=getCatalog(cid);
     if(!cat){
-      cat={id:cid,tmdbId:item.tmdb_id||null,title:item.title||'Série',type:'serie',genre:item.genre||'Série',year:null,platform:'',seasons:[],poster_path:item.poster_path||null,backdrop_path:item.backdrop_path||null,overview:'',tmdbSource:true};
+      var payload=item.payload||{};
+      cat={id:cid,tmdbId:item.tmdb_id||null,title:item.title||'Série',type:'serie',genre:item.genre||payload.genre||'Série',year:null,platform:'',seasons:[],poster_path:item.poster_path||payload.poster_path||null,backdrop_path:item.backdrop_path||payload.backdrop_path||null,overview:'',tmdbSource:true};
       CATALOG.push(cat);
     }else{
       if(item.tmdb_id&&!cat.tmdbId)cat.tmdbId=item.tmdb_id;
       if(item.title&&(!cat.title||cat.title==='Série'))cat.title=item.title;
-      if(item.genre)cat.genre=item.genre;
-      if(item.poster_path&&!cat.poster_path)cat.poster_path=item.poster_path;
-      if(item.backdrop_path&&!cat.backdrop_path)cat.backdrop_path=item.backdrop_path;
+      var payload=item.payload||{};
+      if(item.genre||payload.genre)cat.genre=item.genre||payload.genre;
+      if((item.poster_path||payload.poster_path)&&!cat.poster_path)cat.poster_path=item.poster_path||payload.poster_path;
+      if((item.backdrop_path||payload.backdrop_path)&&!cat.backdrop_path)cat.backdrop_path=item.backdrop_path||payload.backdrop_path;
     }
     return cat;
   }
@@ -1434,8 +1480,15 @@
     try{
       var result=await supabaseClient.rpc('get_following_feed',{p_limit:40});
       if(result.error)throw result.error;
-      state.socialFeed=Array.isArray(result.data)?result.data:[];
-      state.socialFeed.forEach(ensureRemoteUserCatalog);
+      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a.event_type==='diary_series'||a.event_type==='diary_episode';});
+      var feedCats=[];
+      state.socialFeed.forEach(function(a){var cat=ensureRemoteUserCatalog(a);if(cat&&cat.tmdbId&&!cat.poster_path)feedCats.push(cat);});
+      if(tmdbConfigured()&&feedCats.length){
+        var unique={};feedCats=feedCats.filter(function(cat){if(unique[cat.id])return false;unique[cat.id]=1;return true;}).slice(0,12);
+        Promise.allSettled(feedCats.map(function(cat){return loadTmdbSeries(cat);})).then(function(){
+          if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen)renderMainViewOnly();
+        });
+      }
     }catch(e){
       state.socialFeedError=e.message||'Não foi possível carregar o feed.';
     }finally{
@@ -1538,11 +1591,40 @@
       '<span class="social-activity-time">'+activityTime(a.created_at)+'</span></div>'+
       '<div class="social-activity-copy">'+activityDescription(a)+'</div>'+activitySpecialHtml(a)+'</div></div>';
   }
+  function diaryFeedCardHtml(a){
+    var initials=(a.username||'?').charAt(0).toUpperCase();
+    var avatar=a.avatar_url&&/^https?:\/\//i.test(a.avatar_url)?a.avatar_url:'';
+    var ns=a.name_style||{},nameClass='diary-feed-username'+(a.plan==='pro'&&ns.effect==='glow'?' name-glow':'')+(a.plan==='pro'&&ns.effect==='animated'?' name-animated':'');
+    var nameStyle=a.plan==='pro'&&ns.color?'color:'+escapeHtml(ns.color)+';':'';
+    var cat=ensureRemoteUserCatalog(a),payload=a.payload||{};
+    var poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'';
+    var backdrop=cat?tmdbImageUrl(cat.backdrop_path,'w500'):'';
+    var artwork=poster||backdrop;
+    var label=a.event_type==='diary_episode'?'Episódio no diário':'Série no diário';
+    var meta=[];
+    if(a.event_type==='diary_episode'&&a.season!=null&&a.episode!=null)meta.push('T'+a.season+'E'+a.episode);
+    if(a.rating!=null)meta.push('★ '+Number(a.rating).toFixed(1));
+    var note=String(payload.note||'').trim();
+    return '<article class="diary-feed-card">'+
+      '<div class="diary-feed-poster" '+(a.catalog_id?'data-action="open-show" data-catalog="'+escapeHtml(a.catalog_id)+'"':'')+' style="'+(artwork?'background-image:url(\''+artwork.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+      '<div class="diary-feed-content">'+
+        '<div class="diary-feed-userline">'+
+          '<div class="diary-feed-avatar" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
+          '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+label+'</span></div>'+
+          '<span class="diary-feed-time">'+activityTime(a.created_at)+'</span>'+
+        '</div>'+
+        '<div class="diary-feed-title" '+(a.catalog_id?'data-action="open-show" data-catalog="'+escapeHtml(a.catalog_id)+'"':'')+'>'+escapeHtml(a.title||cat&&cat.title||'Série')+'</div>'+
+        (meta.length?'<div class="diary-feed-meta">'+meta.map(function(x){return '<span class="diary-feed-pill '+(x.indexOf('★')===0?'diary-feed-rating':'')+'">'+escapeHtml(x)+'</span>';}).join('')+'</div>':'')+
+        (note?'<div class="diary-feed-note">“'+escapeHtml(note)+'”</div>':'')+
+      '</div>'+
+    '</article>';
+  }
+
   function followingFeedHtml(){
-    if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividades de quem você segue</div></div><div class="tmdb-loading">Carregando atividades…</div></section>';
-    if(state.socialFeedError)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividades de quem você segue</div></div><div class="empty">'+escapeHtml(state.socialFeedError)+'</div></section>';
-    if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividades de quem você segue</div></div><div class="empty"><strong>Seu feed ainda está vazio.</strong>Pesquise usuários do Bingeo e siga quem você quiser acompanhar.</div></section>';
-    return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividades de quem você segue</div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(function(a){return socialActivityHtml(a,true);}).join('')+'</div></section>';
+    if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div></div><div class="tmdb-loading">Carregando diário…</div></section>';
+    if(state.socialFeedError)return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div></div><div class="empty">'+escapeHtml(state.socialFeedError)+'</div></section>';
+    if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div></div><div class="diary-feed-empty"><strong>Ainda não há registros no diário.</strong><br>Quando alguém que você segue registrar uma série ou episódio no diário, ele aparece aqui.</div></section>';
+    return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(diaryFeedCardHtml).join('')+'</div></section>';
   }
   function userProfileStatsHtml(u){
     var avg=u.avg_rating==null?'—':Number(u.avg_rating).toFixed(1);
@@ -3216,7 +3298,7 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
       var noteVal = noteInputEl ? noteInputEl.value.trim() : '';
       var diaryEpisode={ id:uid(), type:'episode', catalogId:cidEp, season:sNumEp, episode:eNumEp, date:todayIso(), note:noteVal, rating:epRatingLog };
       state.diary.unshift(diaryEpisode);
-      publishActivity('diary_episode',entryEp,{season:sNumEp,episode:eNumEp,rating:epRatingLog,payload:{diary_id:diaryEpisode.id,has_note:!!noteVal}});
+      publishActivity('diary_episode',entryEp,{season:sNumEp,episode:eNumEp,rating:epRatingLog,payload:{diary_id:diaryEpisode.id,has_note:!!noteVal,note:noteVal}});
       bumpTrending(cidEp);
       entryEp.dateUpdated=new Date().toISOString();
       saveData(); syncEntryToSupabase(entryEp); renderMainViewOnly(); renderModalPreserveScroll();
