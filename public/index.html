@@ -1359,7 +1359,10 @@
     var roleAtStart=group.name;
     state.professionalHydrating=true;renderMainViewOnly();
     try{
-      var items=group.items.slice(0,36);
+      var items=group.items.filter(function(item){
+        var cat=item.cat,overview=(cat&&cat.tmdbData&&cat.tmdbData.overview)||(cat&&cat.overview)||'';
+        return !cat||!cat.poster_path||!overview;
+      });
       for(var i=0;i<items.length;i+=4){
         if(state.professionalOpen!==personId||state.professionalRoleTab!==roleAtStart)return;
         await Promise.allSettled(items.slice(i,i+4).map(hydrateProfessionalSeriesItem));
