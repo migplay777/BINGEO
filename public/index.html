@@ -472,10 +472,34 @@
   .spoiler-controls input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:7px;outline:none;}
   @media(max-width:640px){.community-stat-grid{grid-template-columns:1fr}.criteria-row{grid-template-columns:1fr}.spoiler-controls{grid-template-columns:1fr 1fr}.spoiler-controls select{grid-column:1/-1}}
 
+
+  /* ---- collaborative/public lists ---- */
+  .list-detail-cover{height:210px;border-radius:14px;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(76,124,240,.10));background-size:cover;background-position:center;position:relative;overflow:hidden;margin-bottom:16px;border:1px solid var(--line);}
+  .list-detail-cover::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.02),rgba(18,19,25,.72));}
+  .list-detail-cover-copy{position:absolute;left:18px;right:18px;bottom:16px;z-index:2;}
+  .list-detail-cover-copy h2{margin:0;font-size:25px;}
+  .list-detail-cover-copy p{margin:5px 0 0;color:#d1d2de;font-size:12.5px;max-width:680px;}
+  .list-meta-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;}
+  .list-meta-pill{font-size:10.5px;padding:4px 8px;border-radius:999px;background:rgba(9,10,15,.52);border:1px solid rgba(255,255,255,.14);color:#eee;}
+  .list-tools-panel{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 22px;}
+  .list-tool-box{border:1px solid var(--line);border-radius:10px;background:var(--panel);padding:13px;}
+  .list-tool-box h4{margin:0 0 8px;font-size:12px;font-family:'Space Grotesk',sans-serif;}
+  .collab-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .collab-chip{font-size:10.5px;padding:5px 8px;border-radius:999px;border:1px solid rgba(139,92,246,.38);color:#dacdff;background:rgba(139,92,246,.08);}
+  .list-comments{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);}
+  .list-comment{padding:10px 0;border-bottom:1px solid var(--line);}
+  .list-comment:last-child{border-bottom:0;}
+  .list-comment strong{font-size:11.5px;}
+  .list-comment p{font-size:12.5px;color:var(--text-muted);line-height:1.45;margin:4px 0 0;}
+  .custom-list-cover{height:100%;background-size:cover;background-position:center;}
+  .list-card .list-visibility{display:inline-flex;gap:4px;align-items:center;margin-top:5px;}
+  @media(max-width:700px){.list-tools-panel{grid-template-columns:1fr}.list-detail-cover{height:180px}}
+
 </style>
 </head>
 <body>
 
+<div id="publicShell" style="display:none"></div>
 <div id="authGate" class="auth-gate">
   <div class="auth-card">
     <div class="auth-logo"><img class="bingeo-logo-img" src="/assets/bingeo-logo.jpg" alt="Logo do Bingeo"></div>
@@ -517,6 +541,7 @@
 <div id="modalRoot"></div>
 <input type="file" id="avatarInput" accept="image/*" hidden>
 <input type="file" id="bannerInput" accept="image/*" hidden>
+<input type="file" id="listCoverInput" accept="image/*" hidden>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -712,6 +737,8 @@
   var top5EditorOpen = false;
 
   function uid(){ return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8); }
+  function slugify(value){return String(value||'lista').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,42)||'lista';}
+  function makeShareSlug(name){return slugify(name)+'-'+Math.random().toString(36).slice(2,8);}
   function todayIso(){ return new Date().toISOString().slice(0,10); }
   function formatDateLong(iso){
     var d = new Date(iso + 'T12:00:00');
@@ -820,7 +847,19 @@
   if(!e.spoilerLevel)e.spoilerLevel='none';
   if(e.spoilerSeason===undefined)e.spoilerSeason=null;
   if(e.spoilerEpisode===undefined)e.spoilerEpisode=null;
-});state.diary.forEach(function(d){if(!d.type)d.type='series';if(d.season===undefined)d.season=null;if(d.episode===undefined)d.episode=null;if(d.note===undefined)d.note='';});state.lists.forEach(function(l){if(!l.id)l.id=uid();if(!l.createdAt)l.createdAt=new Date().toISOString();if(!l.updatedAt)l.updatedAt=l.createdAt;if(l.visibility===undefined)l.visibility='private';if(l.owner===undefined)l.owner=state.profile.username||null;});await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.log('Sem dados salvos ainda.',e);}await loadTrending();if(currentUserId)setTimeout(loadLibraryFromSupabase,0);}
+});state.diary.forEach(function(d){if(!d.type)d.type='series';if(d.season===undefined)d.season=null;if(d.episode===undefined)d.episode=null;if(d.note===undefined)d.note='';});state.lists.forEach(function(l){
+  if(!l.id)l.id=uid();
+  if(!l.createdAt)l.createdAt=new Date().toISOString();
+  if(!l.updatedAt)l.updatedAt=l.createdAt;
+  if(l.visibility===undefined)l.visibility='private';
+  if(l.owner===undefined)l.owner=state.profile.username||null;
+  if(l.coverUrl===undefined)l.coverUrl=null;
+  if(!l.shareSlug)l.shareSlug=makeShareSlug(l.name);
+  if(l.allowComments===undefined)l.allowComments=true;
+  if(!Array.isArray(l.showIds))l.showIds=[];
+  if(!Array.isArray(l.collaborators))l.collaborators=[];
+  if(!Array.isArray(l.comments))l.comments=[];
+});await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.log('Sem dados salvos ainda.',e);}await loadTrending();if(currentUserId){setTimeout(loadLibraryFromSupabase,0);setTimeout(loadListsFromSupabase,80);}}
   async function saveData(){try{await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.error('Erro ao salvar:',e);}}
   async function syncEntryToSupabase(entry){
     if(!currentUserId||!entry)return;
@@ -897,6 +936,96 @@
       state.entries.forEach(function(entry){syncEntryToSupabase(entry);});
       if(appBooted)render();
     }catch(e){console.error('Erro ao carregar estante do Supabase:',e);}
+  }
+  async function syncListItemsToSupabase(list){
+    if(!currentUserId||!list||!list.dbId)return;
+    try{
+      var del=await supabaseClient.from('list_items').delete().eq('list_id',list.dbId);
+      if(del.error)throw del.error;
+      var rows=(list.showIds||[]).map(function(cid){
+        var cat=getCatalog(cid);
+        return {list_id:list.dbId,catalog_id:cid,tmdb_id:cat&&cat.tmdbId?Number(cat.tmdbId):null,title:cat?cat.title:cid};
+      });
+      if(rows.length){
+        var ins=await supabaseClient.from('list_items').insert(rows);
+        if(ins.error)throw ins.error;
+      }
+    }catch(e){console.error('Erro ao sincronizar títulos da lista:',e);}
+  }
+  async function syncListToSupabase(list){
+    if(!currentUserId||!list)return;
+    if(list.ownerUserId&&list.ownerUserId!==currentUserId){
+      await syncListItemsToSupabase(list);
+      return;
+    }
+    try{
+      if(!list.shareSlug)list.shareSlug=makeShareSlug(list.name);
+      var payload={
+        user_id:currentUserId,
+        client_id:list.id,
+        name:list.name||'Lista',
+        description:list.description||'',
+        visibility:list.visibility||'private',
+        cover_url:list.coverUrl||null,
+        share_slug:list.shareSlug,
+        allow_comments:list.allowComments!==false,
+        updated_at:list.updatedAt||new Date().toISOString()
+      };
+      var result=await supabaseClient.from('lists').upsert(payload,{onConflict:'user_id,client_id'}).select('id,user_id,client_id,share_slug').single();
+      if(result.error)throw result.error;
+      list.dbId=result.data.id;list.ownerUserId=result.data.user_id;list.shareSlug=result.data.share_slug;list.isOwner=true;
+      await syncListItemsToSupabase(list);
+    }catch(e){console.error('Erro ao sincronizar lista:',e);}
+  }
+  async function deleteListFromSupabase(list){
+    if(!currentUserId||!list||!list.dbId||list.ownerUserId!==currentUserId)return;
+    try{var result=await supabaseClient.from('lists').delete().eq('id',list.dbId).eq('user_id',currentUserId);if(result.error)throw result.error;}
+    catch(e){console.error('Erro ao excluir lista do Supabase:',e);}
+  }
+  async function loadListsFromSupabase(){
+    if(!currentUserId)return;
+    try{
+      await Promise.allSettled(state.lists.filter(function(l){return !l.ownerUserId||l.ownerUserId===currentUserId;}).map(syncListToSupabase));
+      var result=await supabaseClient.from('lists').select('id,user_id,client_id,name,description,visibility,cover_url,share_slug,allow_comments,created_at,updated_at').order('updated_at',{ascending:false});
+      if(result.error)throw result.error;
+      var rows=result.data||[],ids=rows.map(function(x){return x.id;}),items=[];
+      if(ids.length){
+        var itemResult=await supabaseClient.from('list_items').select('list_id,catalog_id,tmdb_id,title').in('list_id',ids);
+        if(itemResult.error)throw itemResult.error;
+        items=itemResult.data||[];
+      }
+      rows.forEach(function(row){
+        var showIds=items.filter(function(it){return it.list_id===row.id;}).map(function(it){
+          if(!getCatalog(it.catalog_id)&&it.tmdb_id){
+            CATALOG.push({id:it.catalog_id,tmdbId:it.tmdb_id,title:it.title||'Série',type:'serie',genre:'Série',year:null,platform:'',seasons:[],poster_path:null,backdrop_path:null,tmdbSource:true});
+          }
+          return it.catalog_id;
+        });
+        var mapped={
+          id:row.client_id,name:row.name,description:row.description||'',showIds:showIds,
+          ownerUserId:row.user_id,isOwner:row.user_id===currentUserId,dbId:row.id,
+          visibility:row.visibility||'private',coverUrl:row.cover_url||null,shareSlug:row.share_slug,
+          allowComments:row.allow_comments!==false,createdAt:row.created_at,updatedAt:row.updated_at,
+          owner:row.user_id===currentUserId?(state.profile.username||null):'colaborador',collaborators:[],comments:[]
+        };
+        var local=state.lists.find(function(l){return l.id===mapped.id;});
+        if(local)Object.assign(local,mapped);else state.lists.push(mapped);
+      });
+      await saveData();
+      if(appBooted&&state.view==='listas')renderMainViewOnly();
+    }catch(e){console.error('Erro ao carregar listas do Supabase:',e);}
+  }
+  async function loadListExtras(list){
+    if(!currentUserId||!list)return;
+    try{
+      var result=await supabaseClient.rpc('get_list_extras',{p_list_client_id:list.id});
+      if(result.error)throw result.error;
+      var data=result.data||{};
+      list.collaborators=Array.isArray(data.collaborators)?data.collaborators:[];
+      list.comments=Array.isArray(data.comments)?data.comments:[];
+      state.listExtras[list.id]=data;
+      await saveData();
+    }catch(e){console.error('Erro ao carregar colaboradores/comentários:',e);}
   }
   function hasPro(){return !!(state.profile&&state.profile.plan==='pro');}
   async function loadTrending(){
@@ -1233,88 +1362,74 @@
   }
 
   function listCoverHtml(list){
-    var cats = list.showIds.map(getCatalog).filter(Boolean);
-    if(cats.length===0){
-      return '<div class="list-cover list-cover-empty">Adicione séries</div>';
+    if(list.coverUrl){
+      return '<div class="list-cover"><div class="custom-list-cover" style="background-image:url(\''+String(list.coverUrl).replace(/'/g,'%27')+'\')"></div></div>';
     }
-    if(cats.length===1){
-      return '<div class="list-cover list-cover-1"><div class="list-cover-tile" style="' + posterBackgroundStyle(cats[0], 'w500') + '"></div></div>';
-    }
-    if(cats.length===2){
-      return '<div class="list-cover list-cover-2">' + cats.slice(0,2).map(function(c){
-        return '<div class="list-cover-tile" style="' + posterBackgroundStyle(c, 'w500') + '"></div>';
-      }).join('') + '</div>';
-    }
-    var four = cats.slice(0,4);
-    while(four.length<4){ four.push(cats[four.length % cats.length]); }
-    return '<div class="list-cover list-cover-4">' + four.map(function(c){
-      return '<div class="list-cover-tile" style="' + posterBackgroundStyle(c, 'w500') + '"></div>';
-    }).join('') + '</div>';
+    var cats=(list.showIds||[]).map(getCatalog).filter(Boolean);
+    if(cats.length===0)return '<div class="list-cover list-cover-empty">Adicione séries</div>';
+    if(cats.length===1)return '<div class="list-cover list-cover-1"><div class="list-cover-tile" style="'+posterBackgroundStyle(cats[0],'w500')+'"></div></div>';
+    if(cats.length===2)return '<div class="list-cover list-cover-2">'+cats.slice(0,2).map(function(cat){return '<div class="list-cover-tile" style="'+posterBackgroundStyle(cat,'w500')+'"></div>';}).join('')+'</div>';
+    var four=cats.slice(0,4);while(four.length<4)four.push(cats[four.length%cats.length]);
+    return '<div class="list-cover list-cover-4">'+four.map(function(cat){return '<div class="list-cover-tile" style="'+posterBackgroundStyle(cat,'w500')+'"></div>';}).join('')+'</div>';
+  }
+
+  function listCommentsHtml(list){
+    var comments=Array.isArray(list.comments)?list.comments:[];
+    var html='<div class="list-comments"><div class="section-title" style="margin-bottom:10px;">Comentários</div>';
+    if(list.allowComments!==false)html+='<form id="listCommentForm" class="new-list-form"><input type="text" name="comment" class="qa-input" maxlength="1200" placeholder="Comente nesta lista..." required><button class="btn btn-primary btn-sm" type="submit">Publicar</button></form>';
+    else html+='<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Comentários desativados pelo proprietário.</div>';
+    html+=comments.length?comments.map(function(cm){
+      return '<div class="list-comment"><strong>@'+escapeHtml(cm.username||'usuário')+'</strong><p>'+escapeHtml(cm.body||'')+'</p></div>';
+    }).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há comentários.</div>';
+    return html+'</div>';
   }
 
   /* ---------------- view: listas ---------------- */
   function viewListas(){
     if(state.listOpen){
-      var list = state.lists.find(function(l){ return l.id===state.listOpen; });
-      if(!list){ state.listOpen=null; return viewListas(); }
-      var memberEntries = state.entries.filter(function(e){ return list.showIds.indexOf(e.catalogId)>-1; });
-      var candidates = filteredEntries();
-      var html = (
-        '<div class="list-detail-head">' +
-          '<div><h2 style="margin:0 0 4px;">' + escapeHtml(list.name) + '</h2>' +
-          '<p style="margin:0;color:var(--text-muted);font-size:13px;">' + escapeHtml(list.description||'') + '</p></div>' +
-          '<div class="inline-actions">' +
-            '<button class="btn btn-ghost btn-sm" data-action="back-to-lists">← Todas as listas</button>' +
-            '<button class="btn btn-danger btn-sm" data-action="delete-list" data-list="' + list.id + '">Excluir lista</button>' +
-          '</div>' +
-        '</div>'
-      );
-      if(memberEntries.length>0){
-        html += '<div class="section-title" style="margin-bottom:10px;">Nesta lista</div>';
-        html += '<div class="grid" style="margin-bottom:28px;">' + memberEntries.map(entryCardHtml).join('') + '</div>';
+      var list=state.lists.find(function(l){return l.id===state.listOpen;});
+      if(!list){state.listOpen=null;return viewListas();}
+      var memberEntries=state.entries.filter(function(e){return list.showIds.indexOf(e.catalogId)>-1;});
+      var candidates=filteredEntries();
+      var isOwner=list.ownerUserId?list.ownerUserId===currentUserId:list.isOwner!==false;
+      var coverStyle=list.coverUrl?'background-image:url(\''+String(list.coverUrl).replace(/'/g,'%27')+'\');':'';
+      var collaborators=Array.isArray(list.collaborators)?list.collaborators:[];
+      var html='<div class="list-detail-cover" style="'+coverStyle+'"><div class="list-detail-cover-copy"><h2>'+escapeHtml(list.name)+'</h2><p>'+escapeHtml(list.description||'')+'</p><div class="list-meta-row"><span class="list-meta-pill">'+(list.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span><span class="list-meta-pill">'+list.showIds.length+' títulos</span>'+(collaborators.length?'<span class="list-meta-pill">👥 '+collaborators.length+' colaboradores</span>':'')+'</div></div></div>';
+      html+='<div class="list-detail-head"><button class="btn btn-ghost btn-sm" data-action="back-to-lists">← Todas as listas</button><div class="inline-actions">';
+      if(isOwner){
+        html+='<button class="btn btn-ghost btn-sm" data-action="choose-list-cover" data-list="'+list.id+'">Trocar capa</button>';
+        html+='<button class="btn btn-ghost btn-sm" data-action="toggle-list-public" data-list="'+list.id+'">'+(list.visibility==='public'?'Tornar privada':'Tornar pública')+'</button>';
+        html+='<button class="btn btn-ghost btn-sm" data-action="toggle-list-comments" data-list="'+list.id+'">'+(list.allowComments!==false?'Desativar comentários':'Ativar comentários')+'</button>';
       }
-      html += '<div class="section-title" style="margin-bottom:10px;">Adicionar títulos da sua estante</div>';
-      if(candidates.length===0){
-        html += '<div class="empty">Sua estante ainda está vazia. Adicione títulos em "Descobrir" primeiro.</div>';
+      if(list.visibility==='public')html+='<button class="btn btn-primary btn-sm" data-action="share-list" data-list="'+list.id+'">Compartilhar</button>';
+      if(isOwner)html+='<button class="btn btn-danger btn-sm" data-action="delete-list" data-list="'+list.id+'">Excluir lista</button>';
+      html+='</div></div>';
+
+      if(isOwner){
+        html+='<div class="list-tools-panel"><div class="list-tool-box"><h4>Colaboradores</h4><form id="listCollaboratorForm" class="new-list-form" style="margin:0;"><input type="text" name="username" class="qa-input" placeholder="@usuário" required><button class="btn btn-ghost btn-sm" type="submit">Adicionar</button></form><div class="collab-row">'+(collaborators.length?collaborators.map(function(co){return '<span class="collab-chip">@'+escapeHtml(co.username||'usuário')+' <button style="border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;" data-action="remove-collaborator" data-list="'+list.id+'" data-username="'+escapeHtml(co.username||'')+'">×</button></span>';}).join(''):'<span style="font-size:11px;color:var(--text-dim);">Só você edita esta lista.</span>')+'</div></div><div class="list-tool-box"><h4>Compartilhamento</h4><div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">Listas públicas ganham uma página própria que pode ser aberta mesmo sem conta no Bingeo.</div></div></div>';
       }else{
-        html += '<div>' + candidates.map(function(e){
-          var cat = getCatalog(e.catalogId);
-          var inList = list.showIds.indexOf(e.catalogId)>-1;
-          return (
-            '<div class="pick-row' + (inList?' in-list':'') + '" data-action="toggle-show-in-list" data-list="' + list.id + '" data-catalog="' + e.catalogId + '">' +
-              '<div class="pick-swatch" style="' + swatchStyle(cat.title) + '"></div>' +
-              '<span>' + escapeHtml(cat.title) + '</span>' +
-              '<span class="pick-check">' + (inList?'✓':'') + '</span>' +
-            '</div>'
-          );
-        }).join('') + '</div>';
+        html+='<div class="banner-note"><span>Você está colaborando nesta lista.</span><span class="pro-badge">EDITOR</span></div>';
       }
+
+      if(memberEntries.length>0){
+        html+='<div class="section-title" style="margin-bottom:10px;">Nesta lista</div><div class="grid" style="margin-bottom:28px;">'+memberEntries.map(entryCardHtml).join('')+'</div>';
+      }
+      html+='<div class="section-title" style="margin-bottom:10px;">Adicionar títulos da sua estante</div>';
+      if(candidates.length===0)html+='<div class="empty">Sua estante ainda está vazia. Adicione títulos em "Descobrir" primeiro.</div>';
+      else html+='<div>'+candidates.map(function(e){
+        var cat=getCatalog(e.catalogId),inList=list.showIds.indexOf(e.catalogId)>-1;
+        return '<div class="pick-row'+(inList?' in-list':'')+'" data-action="toggle-show-in-list" data-list="'+list.id+'" data-catalog="'+e.catalogId+'"><div class="pick-swatch" style="'+swatchStyle(cat.title)+'"></div><span>'+escapeHtml(cat.title)+'</span><span class="pick-check">'+(inList?'✓':'')+'</span></div>';
+      }).join('')+'</div>';
+      html+=listCommentsHtml(list);
       return html;
     }
 
-    var html = (
-      '<form class="new-list-form" id="newListForm">' +
-        '<input type="text" name="name" class="qa-input" placeholder="Nome da nova lista (ex: Melhores realities)" required>' +
-        '<input type="text" name="description" class="qa-input" placeholder="Descrição (opcional)" style="flex:1;">' +
-        '<button type="submit" class="btn btn-primary">Criar lista</button>' +
-      '</form>'
-    );
-    if(state.lists.length===0){
-      html += '<div class="empty"><strong>Você ainda não tem listas.</strong>Crie coleções como "Realities imperdíveis" ou "Maratonas de fim de semana".</div>';
-    }else{
-      html += '<div class="lists-grid">' + state.lists.map(function(l){
-        return (
-          '<div class="list-card" data-action="open-list" data-list="' + l.id + '">' +
-            listCoverHtml(l) +
-            '<div class="list-card-body">' +
-              '<h3>' + escapeHtml(l.name) + '</h3>' +
-              '<p>' + escapeHtml(l.description||'') + '</p>' +
-              '<div class="count">' + l.showIds.length + ' título' + (l.showIds.length===1?'':'s') + '</div>' +
-            '</div>' +
-          '</div>'
-        );
-      }).join('') + '</div>';
-    }
+    var html='<form class="new-list-form" id="newListForm"><input type="text" name="name" class="qa-input" placeholder="Nome da nova lista (ex: Melhores realities)" required><input type="text" name="description" class="qa-input" placeholder="Descrição (opcional)" style="flex:1;"><button type="submit" class="btn btn-primary">Criar lista</button></form>';
+    if(state.lists.length===0)html+='<div class="empty"><strong>Você ainda não tem listas.</strong>Crie coleções, convide amigos e compartilhe suas seleções.</div>';
+    else html+='<div class="lists-grid">'+state.lists.map(function(l){
+      var collabs=Array.isArray(l.collaborators)?l.collaborators.length:0;
+      return '<div class="list-card" data-action="open-list" data-list="'+l.id+'">'+listCoverHtml(l)+'<div class="list-card-body"><h3>'+escapeHtml(l.name)+'</h3><p>'+escapeHtml(l.description||'')+'</p><div class="count">'+l.showIds.length+' título'+(l.showIds.length===1?'':'s')+(collabs?' · '+collabs+' colaboradores':'')+'</div><span class="list-visibility">'+(l.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span></div></div>';
+    }).join('')+'</div>';
     return html;
   }
 
@@ -1849,12 +1964,44 @@
         if(!name) return;
         if(!hasPro() && state.lists.length>=5){ alert('O plano gratuito permite até 5 listas. Faça upgrade para o Bingeo Pro para criar mais.'); return; }
         var nowIso = new Date().toISOString();
-        state.lists.unshift({
-          id:uid(), name:name, description:(fd.get('description')||'').trim(), showIds:[],
-          owner: state.profile.username || null, visibility:'private',
-          createdAt: nowIso, updatedAt: nowIso
-        });
-        saveData(); render();
+        var newList={
+          id:uid(),name:name,description:(fd.get('description')||'').trim(),showIds:[],
+          owner:state.profile.username||null,ownerUserId:currentUserId,isOwner:true,visibility:'private',
+          coverUrl:null,shareSlug:makeShareSlug(name),allowComments:true,collaborators:[],comments:[],
+          createdAt:nowIso,updatedAt:nowIso
+        };
+        state.lists.unshift(newList);
+        saveData();syncListToSupabase(newList);render();
+      });
+    }
+    var collabForm=document.getElementById('listCollaboratorForm');
+    if(collabForm){
+      collabForm.addEventListener('submit',function(e){
+        e.preventDefault();
+        var list=state.lists.find(function(l){return l.id===state.listOpen;});
+        var fd=new FormData(collabForm),username=String(fd.get('username')||'').trim().replace(/^@/,'');
+        if(!list||!username)return;
+        syncListToSupabase(list).then(function(){
+          return supabaseClient.rpc('add_list_collaborator_by_username',{p_list_client_id:list.id,p_username:username});
+        }).then(function(result){
+          if(result.error)throw result.error;
+          alert((result.data&&result.data.message)||'Colaborador atualizado.');
+          return loadListExtras(list);
+        }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível adicionar o colaborador.');});
+      });
+    }
+    var listCommentForm=document.getElementById('listCommentForm');
+    if(listCommentForm){
+      listCommentForm.addEventListener('submit',function(e){
+        e.preventDefault();
+        var list=state.lists.find(function(l){return l.id===state.listOpen;});
+        var fd=new FormData(listCommentForm),body=String(fd.get('comment')||'').trim();
+        if(!list||!body)return;
+        supabaseClient.rpc('add_list_comment',{p_list_client_id:list.id,p_body:body}).then(function(result){
+          if(result.error)throw result.error;
+          if(result.data&&!result.data.ok)throw new Error(result.data.message||'Não foi possível comentar.');
+          return loadListExtras(list);
+        }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível publicar o comentário.');});
       });
     }
     var statusSel = document.getElementById('statusSelect');
@@ -1971,6 +2118,35 @@
     if(file.size>15*1024*1024){alert('Escolha uma imagem de até 15 MB. A imagem original será mantida sem compressão.');e.target.value='';return;}
     readImage(file).then(function(data){state.profile.banner=data;saveData();render();}).catch(function(err){console.error('Erro ao processar banner',err);});
     e.target.value='';
+  });
+  function resizeListCoverBlob(file){
+    return new Promise(function(resolve,reject){
+      var reader=new FileReader();
+      reader.onload=function(ev){
+        var img=new Image();
+        img.onload=function(){
+          var w=1200,h=675,canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;
+          var ctx=canvas.getContext('2d'),scale=Math.max(w/img.width,h/img.height),dw=img.width*scale,dh=img.height*scale;
+          ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh);
+          canvas.toBlob(function(blob){blob?resolve(blob):reject(new Error('Não foi possível processar a capa.'));},'image/jpeg',0.86);
+        };
+        img.onerror=reject;img.src=ev.target.result;
+      };
+      reader.onerror=reject;reader.readAsDataURL(file);
+    });
+  }
+  document.getElementById('listCoverInput').addEventListener('change',function(e){
+    var file=e.target.files&&e.target.files[0],list=state.lists.find(function(l){return l.id===state.listCoverTarget;});
+    e.target.value='';if(!file||!list||!currentUserId)return;
+    resizeListCoverBlob(file).then(function(blob){
+      var path=currentUserId+'/'+slugify(list.id)+'-'+Date.now()+'.jpg';
+      return supabaseClient.storage.from('list-covers').upload(path,blob,{contentType:'image/jpeg',upsert:true}).then(function(result){
+        if(result.error)throw result.error;
+        var pub=supabaseClient.storage.from('list-covers').getPublicUrl(path);
+        list.coverUrl=pub.data.publicUrl;list.updatedAt=new Date().toISOString();
+        saveData();return syncListToSupabase(list);
+      });
+    }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível enviar a capa.');});
   });
 
   /* ---------------- event delegation ---------------- */
@@ -2159,13 +2335,14 @@
       state.diary = state.diary.filter(function(d){ return d.id!==el.dataset.entry; });
       saveData(); render();
     }
-    else if(action==='open-list'){ state.listOpen = el.dataset.list; render(); }
-    else if(action==='back-to-lists'){ state.listOpen = null; render(); }
+    else if(action==='open-list'){ state.listOpen=el.dataset.list; var openedList=state.lists.find(function(l){return l.id===state.listOpen;}); render(); if(openedList)loadListExtras(openedList).then(function(){if(state.listOpen===openedList.id)renderMainViewOnly();}); }
+    else if(action==='back-to-lists'){ state.listOpen=null; render(); }
     else if(action==='delete-list'){
       if(confirm('Excluir esta lista? Os títulos não serão removidos da sua estante.')){
-        state.lists = state.lists.filter(function(l){ return l.id!==el.dataset.list; });
-        state.listOpen = null;
-        saveData(); render();
+        var deleting=state.lists.find(function(l){return l.id===el.dataset.list;});
+        state.lists=state.lists.filter(function(l){return l.id!==el.dataset.list;});
+        state.listOpen=null;
+        saveData();if(deleting)deleteListFromSupabase(deleting);render();
       }
     }
     else if(action==='toggle-show-in-list'){
@@ -2174,9 +2351,35 @@
         var sid = el.dataset.catalog;
         var idx = list.showIds.indexOf(sid);
         if(idx>-1) list.showIds.splice(idx,1); else list.showIds.push(sid);
-        list.updatedAt = new Date().toISOString();
-        saveData(); render();
+        list.updatedAt=new Date().toISOString();
+        saveData();syncListToSupabase(list);render();
       }
+    }
+    else if(action==='toggle-list-public'){
+      var vl=state.lists.find(function(l){return l.id===el.dataset.list;});if(!vl)return;
+      vl.visibility=vl.visibility==='public'?'private':'public';vl.updatedAt=new Date().toISOString();
+      saveData();syncListToSupabase(vl);renderMainViewOnly();
+    }
+    else if(action==='toggle-list-comments'){
+      var cl=state.lists.find(function(l){return l.id===el.dataset.list;});if(!cl)return;
+      cl.allowComments=cl.allowComments===false;cl.updatedAt=new Date().toISOString();
+      saveData();syncListToSupabase(cl);renderMainViewOnly();
+    }
+    else if(action==='share-list'){
+      var slist=state.lists.find(function(l){return l.id===el.dataset.list;});if(!slist)return;
+      var listUrl=location.origin+'/lista/'+encodeURIComponent(slist.shareSlug);
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(listUrl).then(function(){alert('Link da lista copiado!');}).catch(function(){prompt('Copie o link:',listUrl);});
+      else prompt('Copie o link:',listUrl);
+    }
+    else if(action==='choose-list-cover'){
+      state.listCoverTarget=el.dataset.list;document.getElementById('listCoverInput').click();
+    }
+    else if(action==='remove-collaborator'){
+      var rlist=state.lists.find(function(l){return l.id===el.dataset.list;});if(!rlist)return;
+      supabaseClient.rpc('remove_list_collaborator_by_username',{p_list_client_id:rlist.id,p_username:el.dataset.username}).then(function(result){
+        if(result.error)throw result.error;
+        return loadListExtras(rlist);
+      }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível remover o colaborador.');});
     }
     else if(action==='toggle-top5-editor'){ top5EditorOpen = !top5EditorOpen; render(); }
     else if(action==='top5-add'){
