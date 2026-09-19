@@ -1434,10 +1434,11 @@
     BINGEO_CRITERIA.forEach(function(item){var s=berryStage(cr[item.key]);if(s)bits.push(s.emoji+' '+item.label);});
     (ev.badges||[]).slice(0,3).forEach(function(b){bits.push(b);});
     var sr=ev.season_ratings||{},er=ev.episode_ratings||{};
-    var sc=Object.keys(sr).filter(function(k){return sr[k]!=null;}).length,ec=Object.keys(er).filter(function(k){return er[k]!=null;}).length;
-    if(sc)bits.push(sc+' temporada'+(sc===1?'':'s')+' avaliada'+(sc===1?'':'s'));
-    if(ec)bits.push(ec+' episódio'+(ec===1?'':'s')+' avaliado'+(ec===1?'':'s'));
-    return bits.length?'<div class="user-eval-breakdown">'+bits.slice(0,8).map(function(x){return '<span>'+escapeHtml(x)+'</span>';}).join('')+'</div>':'';
+    Object.keys(sr).filter(function(k){return sr[k]!=null;}).slice(0,3).forEach(function(k){bits.push('T'+k+' · '+Number(sr[k]).toFixed(1)+'★');});
+    Object.keys(er).filter(function(k){return er[k]!=null;}).slice(0,4).forEach(function(k){
+      var p=k.split('-');bits.push('T'+p[0]+'E'+p[1]+' · '+Number(er[k]).toFixed(1)+'★');
+    });
+    return bits.length?'<div class="user-eval-breakdown">'+bits.slice(0,10).map(function(x){return '<span>'+escapeHtml(x)+'</span>';}).join('')+'</div>':'';
   }
   function canViewUserEvaluationReview(ev){
     if(!ev||!ev.review)return true;
