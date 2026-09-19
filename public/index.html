@@ -2293,7 +2293,11 @@
             state.professionalOpen=null;state.professionalData=null;state.professionalError='';state.professionalLoading=false;state.view='descobrir';
           }
           state.query=searchInput.value; var pos=searchInput.selectionStart; clearTimeout(tmdbSearchTimer);
-          if(state.view==='descobrir'&&state.query.trim()&&tmdbConfigured()){
+          if(state.query.trim()&&tmdbConfigured()){
+            if(state.view!=='descobrir'){
+              state.view='descobrir';state.listOpen=null;
+              document.querySelectorAll('#navLinks .nav-link').forEach(function(btn){btn.classList.toggle('active',btn.dataset.view==='descobrir');});
+            }
             state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];state.tmdbPersonResults=[];var req=++state.tmdbSearchRequest;
             var root=document.getElementById('viewRoot');root.innerHTML=viewDescobrir();
             tmdbSearchTimer=setTimeout(function(){
