@@ -647,6 +647,10 @@
   .user-eval-breakdown span{font-size:9.5px;padding:3px 6px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--text-muted);}
   @media(max-width:760px){.user-top5-row{grid-template-columns:repeat(2,minmax(0,1fr))}.user-eval-grid{grid-template-columns:1fr}}
 
+
+  .social-activity-user.name-glow{text-shadow:0 0 6px currentColor,0 0 14px currentColor;}
+  .social-activity-user.name-animated{background-image:linear-gradient(90deg,#4d7c3f 0%,#8bc34a 20%,#c9b73b 40%,#c2478b 65%,#8B5CF6 82%,#4C7CF0 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent !important;animation:berryNameFlow 3.2s cubic-bezier(.45,0,.55,1) infinite;}
+
 </style>
 </head>
 <body>
@@ -1368,6 +1372,13 @@
       created_at:new Date().toISOString()
     };
     try{
+      if(['special_rating','rating_series','rating_season','rating_episode','status'].indexOf(eventType)>-1&&cid){
+        var cutoff=new Date(Date.now()-5*60*1000).toISOString();
+        var dq=supabaseClient.from('activity_events').delete().eq('user_id',currentUserId).eq('event_type',eventType).eq('catalog_id',cid).gte('created_at',cutoff);
+        if(extra.season!=null)dq=dq.eq('season',Number(extra.season));else dq=dq.is('season',null);
+        if(extra.episode!=null)dq=dq.eq('episode',Number(extra.episode));else dq=dq.is('episode',null);
+        await dq;
+      }
       var result=await supabaseClient.from('activity_events').insert(row);
       if(result.error)throw result.error;
     }catch(e){console.error('Erro ao publicar atividade:',e);}
@@ -1428,13 +1439,22 @@
     if(ec)bits.push(ec+' episódio'+(ec===1?'':'s')+' avaliado'+(ec===1?'':'s'));
     return bits.length?'<div class="user-eval-breakdown">'+bits.slice(0,8).map(function(x){return '<span>'+escapeHtml(x)+'</span>';}).join('')+'</div>':'';
   }
+  function canViewUserEvaluationReview(ev){
+    if(!ev||!ev.review)return true;
+    if(!ev.spoiler_level||ev.spoiler_level==='none')return true;
+    var mine=getEntry(ev.catalog_id);
+    if(mine&&mine.status==='completo')return true;
+    if(ev.spoiler_level==='full')return false;
+    var p=userEpisodeProgress(ev.catalog_id),s=Number(ev.spoiler_season)||0,e=Number(ev.spoiler_episode)||0;
+    return p.season>s||(p.season===s&&p.episode>=e);
+  }
   function userEvaluationCardHtml(ev){
     var cat=ensureRemoteUserCatalog(ev),poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'';
     return '<div class="user-eval-card" data-action="open-show" data-catalog="'+escapeHtml(ev.catalog_id||'')+'">'+
       '<div class="user-eval-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div>'+
       '<div><div class="user-eval-title">'+escapeHtml(ev.title||cat&&cat.title||'Série')+'</div>'+
       '<div class="user-eval-meta">'+(ev.rating!=null?'★ '+Number(ev.rating).toFixed(1):'Avaliação Bingeo')+'</div>'+
-      (ev.review?'<div class="user-eval-review">'+escapeHtml(ev.review)+'</div>':'')+userEvaluationExtraHtml(ev)+'</div></div>';
+      (ev.review?(canViewUserEvaluationReview(ev)?'<div class="user-eval-review">'+escapeHtml(ev.review)+'</div>':'<div class="user-eval-review">🔒 Resenha ocultada por spoilers.</div>'):'')+userEvaluationExtraHtml(ev)+'</div></div>';
   }
   function activityTime(iso){
     try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
