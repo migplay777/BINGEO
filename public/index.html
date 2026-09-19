@@ -1053,6 +1053,9 @@
       catalog_id:entry.catalogId,
       tmdb_id:(cat&&cat.tmdbId)?Number(cat.tmdbId):null,
       title:(cat&&cat.title)||entry.catalogId,
+      genre:(cat&&cat.genre)||'Série',
+      poster_path:cat&&cat.poster_path?cat.poster_path:null,
+      backdrop_path:cat&&cat.backdrop_path?cat.backdrop_path:null,
       status:entry.status||'quero-assistir',
       rating:entry.rating==null?null:Number(entry.rating),
       review:entry.review||'',
@@ -1082,16 +1085,16 @@
   async function loadLibraryFromSupabase(){
     if(!currentUserId)return;
     try{
-      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',currentUserId);
+      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,genre,poster_path,backdrop_path,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',currentUserId);
       if(result.error)throw result.error;
       (result.data||[]).forEach(function(row){
         var cid=row.catalog_id||('tmdb-'+row.tmdb_id);
         if(!cid)return;
         var cat=getCatalog(cid);
         if(!cat&&row.tmdb_id){
-          cat={id:cid,tmdbId:row.tmdb_id,title:row.title||'Série',type:'serie',genre:'Série',year:null,platform:'',seasons:[],poster_path:null,backdrop_path:null,tmdbSource:true};
+          cat={id:cid,tmdbId:row.tmdb_id,title:row.title||'Série',type:'serie',genre:row.genre||'Série',year:null,platform:'',seasons:[],poster_path:row.poster_path||null,backdrop_path:row.backdrop_path||null,tmdbSource:true};
           CATALOG.push(cat);
-        }else if(cat&&row.tmdb_id&&!cat.tmdbId){cat.tmdbId=row.tmdb_id;}
+        }else if(cat){if(row.tmdb_id&&!cat.tmdbId)cat.tmdbId=row.tmdb_id;if(row.genre)cat.genre=row.genre;if(row.poster_path)cat.poster_path=row.poster_path;if(row.backdrop_path)cat.backdrop_path=row.backdrop_path;}
         var local=getEntry(cid);
         var remoteTime=new Date(row.updated_at||row.created_at||0).getTime();
         var localTime=local?new Date(local.dateUpdated||local.dateAdded||0).getTime():0;
@@ -1285,11 +1288,14 @@
     if(!cid)return null;
     var cat=getCatalog(cid);
     if(!cat){
-      cat={id:cid,tmdbId:item.tmdb_id||null,title:item.title||'Série',type:'serie',genre:'Série',year:null,platform:'',seasons:[],poster_path:null,backdrop_path:null,overview:'',tmdbSource:true};
+      cat={id:cid,tmdbId:item.tmdb_id||null,title:item.title||'Série',type:'serie',genre:item.genre||'Série',year:null,platform:'',seasons:[],poster_path:item.poster_path||null,backdrop_path:item.backdrop_path||null,overview:'',tmdbSource:true};
       CATALOG.push(cat);
     }else{
       if(item.tmdb_id&&!cat.tmdbId)cat.tmdbId=item.tmdb_id;
       if(item.title&&(!cat.title||cat.title==='Série'))cat.title=item.title;
+      if(item.genre)cat.genre=item.genre;
+      if(item.poster_path&&!cat.poster_path)cat.poster_path=item.poster_path;
+      if(item.backdrop_path&&!cat.backdrop_path)cat.backdrop_path=item.backdrop_path;
     }
     return cat;
   }
@@ -1472,6 +1478,35 @@
     if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividades de quem você segue</div></div><div class="empty"><strong>Seu feed ainda está vazio.</strong>Pesquise usuários do Bingeo e siga quem você quiser acompanhar.</div></section>';
     return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividades de quem você segue</div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(function(a){return socialActivityHtml(a,true);}).join('')+'</div></section>';
   }
+  function userProfileStatsHtml(u){
+    var avg=u.avg_rating==null?'—':Number(u.avg_rating).toFixed(1);
+    return '<div class="stat-grid" style="margin-top:24px;">'+
+      '<div class="stat-box"><div class="stat-num">'+Number(u.library_count||0)+'</div><div class="stat-label">Títulos na estante</div></div>'+
+      '<div class="stat-box"><div class="stat-num">'+Number(u.completed_count||0)+'</div><div class="stat-label">Completos</div></div>'+
+      '<div class="stat-box"><div class="stat-num">'+Number(u.watching_count||0)+'</div><div class="stat-label">Assistindo agora</div></div>'+
+      '<div class="stat-box"><div class="stat-num">'+avg+'</div><div class="stat-label">Nota média</div></div>'+
+    '</div>';
+  }
+  function userProfileChartsHtml(u){
+    var dist=u.rating_distribution||{},buckets=[0.5,1,1.5,2,2.5,3,3.5,4,4.5,5];
+    var max=1;buckets.forEach(function(b){max=Math.max(max,Number(dist[String(b)]||0));});
+    var genres=Array.isArray(u.genre_stats)?u.genre_stats:[],maxGenre=genres.length?Number(genres[0].count||1):1;
+    return '<div class="two-col" style="margin-top:24px;">'+
+      '<div><div class="section-title" style="margin-bottom:12px;">Distribuição de notas</div><div class="bars">'+buckets.map(function(b){
+        var count=Number(dist[String(b)]||0),w=count===0?0:Math.max(6,(count/max)*100);
+        return '<div class="bar-row"><span class="bar-label">'+b.toFixed(1)+'★</span><div class="bar-track"><div class="bar-fill" style="width:'+w+'%"></div></div><span class="bar-count">'+count+'</span></div>';
+      }).join('')+'</div></div>'+
+      '<div><div class="section-title" style="margin-bottom:12px;">Gêneros mais assistidos</div>'+
+      (genres.length?genres.map(function(g){return '<div class="genre-row"><span class="genre-name">'+escapeHtml(g.name||'Série')+'</span><div class="genre-track"><div class="genre-fill" style="width:'+((Number(g.count||0)/maxGenre)*100)+'%"></div></div><span class="genre-count">'+Number(g.count||0)+'</span></div>';}).join(''):'<p style="color:var(--text-muted);font-size:13px;">Sem dados suficientes ainda.</p>')+
+      '</div></div>';
+  }
+  function userFavoritesHtml(u){
+    var favs=Array.isArray(u.favorites)?u.favorites:[];
+    if(!favs.length)return '';
+    return '<section class="user-profile-section"><div class="user-profile-section-title">Favoritos</div><div class="grid">'+favs.map(function(item){
+      var cat=ensureRemoteUserCatalog(item);return cat?catalogCardHtml(cat):'';
+    }).join('')+'</div></section>';
+  }
   function viewBingeoUserProfile(){
     if(state.userProfileLoading)return '<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button><div class="professional-loading">Carregando perfil…</div></div>';
     if(state.userProfileError)return '<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button><div class="empty"><strong>Não foi possível carregar este usuário.</strong>'+escapeHtml(state.userProfileError)+'</div></div>';
@@ -1491,13 +1526,14 @@
       '<div class="user-view-actions">'+(u.is_self?'<button class="btn btn-primary btn-sm" data-action="open-my-profile">Abrir meu perfil</button>':'<button class="btn '+(u.is_following?'btn-ghost':'btn-primary')+' btn-sm" data-action="toggle-follow-user" data-user="'+u.user_id+'" data-following="'+(u.is_following?'1':'0')+'">'+(u.is_following?'Seguindo ✓':'Seguir')+'</button>')+'</div>'+
       (socials.length?'<div class="user-view-socials">'+socials.filter(function(sl){return sl&&sl.url&&validSocialUrl(sl.url);}).map(function(sl){return '<a class="social-link" href="'+escapeHtml(sl.url)+'" target="_blank" rel="noopener noreferrer"><span>'+socialIcon(sl.platform)+'</span>'+escapeHtml(socialLabel(sl.platform))+'</a>';}).join('')+'</div>':'')+
       '</div></div>';
+    html+=userProfileStatsHtml(u)+userProfileChartsHtml(u);
     html+='<section class="user-profile-section"><div class="user-profile-section-title">Top 5</div>';
     if(top.length){
       html+='<div class="user-top5-row">'+top.map(function(item,i){var cat=ensureRemoteUserCatalog(item),poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'';return '<div class="user-top5-card" data-action="open-show" data-catalog="'+escapeHtml(item.catalog_id||'')+'"><span class="user-top5-rank">#'+(i+1)+'</span><div class="user-top5-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div></div>';}).join('')+'</div>';
     }else html+='<div class="empty">Esse usuário ainda não montou o Top 5.</div>';
     html+='</section><section class="user-profile-section"><div class="user-profile-section-title">Avaliações</div>';
     html+=evals.length?'<div class="user-eval-grid">'+evals.map(userEvaluationCardHtml).join('')+'</div>':'<div class="empty">Nenhuma avaliação registrada ainda.</div>';
-    html+='</section><section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
+    html+='</section>'+userFavoritesHtml(u)+'<section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
     html+=acts.length?'<div class="social-feed-list">'+acts.map(function(a){a.user_id=u.user_id;a.username=u.username;a.avatar_url=u.avatar_url;a.plan=u.plan;a.name_style=u.name_style;return socialActivityHtml(a,false);}).join('')+'</div>':'<div class="empty">Nenhuma atividade recente.</div>';
     return html+'</section></div>';
   }
@@ -2995,7 +3031,7 @@
         state.lists.forEach(function(l){ l.showIds = l.showIds.filter(function(id){ return id!==cid; }); });
         state.profile.topFive = state.profile.topFive.map(function(id){ return id===cid ? null : id; });
         state.modalCatalogId = null;
-        saveData(); deleteEntryFromSupabase(cid); render();
+        saveData(); deleteEntryFromSupabase(cid); syncProfileToSupabase(); render();
       }
     }
     else if(action==='rate'){
