@@ -599,14 +599,49 @@
   .bingeo-user-label{font-size:9.5px;color:var(--text-dim);margin-top:4px;}
   .user-view-page{padding-bottom:44px;}
   .user-view-back{margin-bottom:18px;}
-  .user-view-banner{height:300px;border-radius:16px;background:linear-gradient(135deg,rgba(139,92,246,.22),rgba(76,124,240,.08));background-size:cover;background-position:center;position:relative;overflow:hidden;border:1px solid var(--line);}
-  .user-view-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,19,25,.02),rgba(18,19,25,.18) 50%,var(--bg) 100%);}
-  .user-view-head{display:flex;align-items:flex-end;gap:18px;position:relative;margin-top:-72px;padding:0 18px 12px;z-index:2;}
-  .user-view-avatar{width:108px;height:108px;border-radius:50%;background:var(--panel-2) center/cover no-repeat;border:3px solid var(--bg);box-shadow:0 16px 34px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:34px;font-weight:700;color:var(--text-muted);flex:0 0 108px;}
-  .user-view-name{font-family:'Space Grotesk',sans-serif;font-size:26px;font-weight:700;letter-spacing:-.025em;}
+  .user-view-banner{
+    width:100vw;
+    height:50vh;
+    min-height:320px;
+    max-height:720px;
+    margin-left:calc((100% - 100vw)/2);
+    margin-right:calc((100% - 100vw)/2);
+    margin-bottom:0;
+    border:0;
+    border-radius:0;
+    background-color:var(--panel-2);
+    background-size:cover;
+    background-position:center center;
+    background-repeat:no-repeat;
+    position:relative;
+    overflow:hidden;
+    image-rendering:auto;
+  }
+  .user-view-banner::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:linear-gradient(180deg,rgba(18,19,25,.02) 0%,rgba(18,19,25,.08) 40%,rgba(18,19,25,.38) 68%,rgba(18,19,25,.82) 86%,var(--bg) 100%);
+    pointer-events:none;
+  }
+  .user-view-head{display:flex;align-items:center;gap:18px;position:relative;margin-bottom:30px;z-index:2;flex-wrap:wrap;}
+  .user-view-head.with-banner{margin-top:-72px;padding:0 4px 8px;}
+  .user-view-avatar{width:84px;height:84px;border-radius:50%;background:var(--panel-2) center/cover no-repeat;border:2px solid var(--line);box-shadow:0 12px 28px rgba(0,0,0,.24);display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-size:28px;font-weight:700;color:var(--text-muted);flex:0 0 84px;}
+  .user-view-name{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:-.02em;}
   .user-view-bio{font-size:13px;color:var(--text-muted);line-height:1.55;max-width:720px;margin-top:8px;}
   .user-view-socials{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;}
-  @media(max-width:640px){.bingeo-user-grid{grid-template-columns:1fr}.user-view-banner{height:220px}.user-view-head{margin-top:-54px;padding-left:4px}.user-view-avatar{width:82px;height:82px;flex-basis:82px;font-size:26px}.user-view-name{font-size:21px}}
+  @media (min-width:900px) and (min-height:700px){
+    .user-view-head{gap:12px;margin-bottom:8px;}
+    .user-view-head.with-banner{margin-top:-64px;}
+    .user-view-avatar{transform:scale(.88);transform-origin:left center;margin-right:-10px;}
+    .user-view-name{font-size:18px;}
+    .user-view-actions{margin-top:5px;gap:5px;}
+  }
+  @media(max-width:640px){
+    .bingeo-user-grid{grid-template-columns:1fr}
+    .user-view-banner{min-height:260px;height:42vh}
+    .user-view-head.with-banner{margin-top:-60px;padding-left:4px}
+  }
 
 
   .bingeo-user-name.name-glow,.user-view-name.name-glow{text-shadow:0 0 6px currentColor,0 0 14px currentColor,0 0 26px color-mix(in srgb,currentColor 45%,transparent);}
@@ -1538,8 +1573,8 @@
     var socials=Array.isArray(u.social_links)?u.social_links:[];
     var top=Array.isArray(u.top_five)?u.top_five:[],evals=Array.isArray(u.evaluations)?u.evaluations:[],acts=Array.isArray(u.recent_activity)?u.recent_activity:[];
     var html='<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
-      '<div class="user-view-banner" style="'+(banner?'background-image:url(\''+banner.replace(/'/g,'%27')+'\')':'')+'"></div>'+
-      '<div class="user-view-head"><div class="user-view-avatar" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
+      (banner?'<div class="user-view-banner" style="background-image:url(\''+banner.replace(/'/g,'%27')+'\')"></div>':'')+
+      '<div class="user-view-head'+(banner?' with-banner':'')+'"><div class="user-view-avatar" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
       '<div style="min-width:0;flex:1;"><div class="'+userNameClass(u)+'" style="'+userNameStyle(u)+'">@'+escapeHtml(u.username||'usuário')+'</div>'+
       '<div class="profile-plan"><span class="plan-pill '+(u.plan==='pro'?'pro':'')+'">'+(u.plan==='pro'?'✦ Bingeo Pro':'Plano gratuito')+'</span></div>'+
       '<div class="follow-stats"><span><strong>'+Number(u.follower_count||0)+'</strong> seguidores</span><span><strong>'+Number(u.following_count||0)+'</strong> seguindo</span><span><strong>'+Number(u.library_count||0)+'</strong> na estante</span></div>'+
