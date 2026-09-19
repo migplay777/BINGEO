@@ -54,11 +54,5 @@ app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
-// Links públicos compartilháveis de séries e listas continuam usando a mesma
-// aplicação, sem criar uma segunda base de frontend.
-app.get(/^\/(serie|lista|profissional)\/.+$/, (_req, res) => {
-  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 app.listen(PORT, () => console.log('Bingeo rodando na porta ' + PORT));
