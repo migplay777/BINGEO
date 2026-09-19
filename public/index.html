@@ -640,6 +640,13 @@
   var SUPABASE_PUBLISHABLE_KEY='sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
   var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
   var authMode='login', appBooted=false, currentUserId=null;
+  function authRedirectUrl(){
+    var origin=window.location.origin||'';
+    if(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(origin)){
+      return 'https://bingeo.onrender.com/';
+    }
+    return origin.replace(/\/$/,'')+'/';
+  }
 
   function setAuthMode(mode){
     authMode=mode;
@@ -671,7 +678,14 @@
     try{
       var result;
       if(authMode==='signup'){
-        result=await supabaseClient.auth.signUp({email:email,password:password,options:{data:{username:username}}});
+        result=await supabaseClient.auth.signUp({
+          email:email,
+          password:password,
+          options:{
+            data:{username:username},
+            emailRedirectTo:authRedirectUrl()
+          }
+        });
       }else{
         result=await supabaseClient.auth.signInWithPassword({email:email,password:password});
       }
