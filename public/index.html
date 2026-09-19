@@ -638,7 +638,9 @@
 (function(){
   var SUPABASE_URL='https://bazujvpppbxxiymxweiq.supabase.co';
   var SUPABASE_PUBLISHABLE_KEY='sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
-  var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+  var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
+    auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
+  });
   var authMode='login', appBooted=false, currentUserId=null;
   function authRedirectUrl(){
     var origin=window.location.origin||'';
