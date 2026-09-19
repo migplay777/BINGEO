@@ -858,14 +858,47 @@
       btn.textContent=authMode==='signup'?'Criar conta':'Entrar';
     }
   });
-  document.getElementById('logoutBtn').onclick=async function(){await supabaseClient.auth.signOut();};
+  var loadedAccountId=null;
+  document.getElementById('logoutBtn').onclick=async function(){
+    await supabaseClient.auth.signOut();
+  };
   async function applySession(session){
     var logged=!!(session&&session.user);
-    currentUserId=logged?session.user.id:null;
-    document.getElementById('authGate').style.display=logged?'none':'flex';
-    document.getElementById('appShell').style.display=logged?'block':'none';
-    if(logged&&!appBooted){appBooted=true;await loadData();render();}
-    if(!logged){appBooted=false;currentUserId=null;}
+    var nextUserId=logged?session.user.id:null;
+    var accountChanged=nextUserId!==loadedAccountId;
+
+    if(!logged){
+      currentUserId=null;
+      loadedAccountId=null;
+      appBooted=false;
+      resetAccountRuntime();
+      document.getElementById('authGate').style.display='flex';
+      document.getElementById('appShell').style.display='none';
+      return;
+    }
+
+    currentUserId=nextUserId;
+    document.getElementById('authGate').style.display='none';
+    document.getElementById('appShell').style.display='block';
+
+    if(accountChanged||!appBooted){
+      loadedAccountId=nextUserId;
+      appBooted=false;
+      resetAccountRuntime();
+      // Give immediate account identity while the authoritative profile loads.
+      state.profile.username=(session.user.user_metadata&&session.user.user_metadata.username)||'';
+      await loadData();
+      if(currentUserId!==nextUserId)return;
+      await Promise.allSettled([
+        loadOwnProfileFromSupabase(),
+        loadLibraryFromSupabase(),
+        loadListsFromSupabase(),
+        loadFollowingFeed()
+      ]);
+      if(currentUserId!==nextUserId)return;
+      appBooted=true;
+      render();
+    }
   }
   supabaseClient.auth.onAuthStateChange(function(_event,session){setTimeout(function(){applySession(session);},0);});
   supabaseClient.auth.getSession().then(function(r){applySession(r.data.session);});
@@ -1109,14 +1142,60 @@
   }
 
   /* ---------------- data layer v2 (backward-compatible) ---------------- */
-  var DB_SCHEMA_VERSION=3; var DB_KEY='bingeo-db-v2'; var dbInitPromise=null;
+  var DB_SCHEMA_VERSION=4; var DB_KEY_BASE='bingeo-db-v2'; var dbInitPromise=null;
+  function currentDbKey(){return currentUserId?(DB_KEY_BASE+':'+currentUserId):null;}
+  function currentIdbKey(){return currentUserId?('state:'+currentUserId):null;}
   function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none'},socialLinks:[]}};}
   function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
-  function readLocalDb(){try{var r=localStorage.getItem(DB_KEY);return r?normalizeDb(JSON.parse(r)):null;}catch(e){return null;}}
-  function writeLocalDb(db){try{localStorage.setItem(DB_KEY,JSON.stringify(db));return true;}catch(e){return false;}}
+  function readLocalDb(){var key=currentDbKey();if(!key)return null;try{var r=localStorage.getItem(key);return r?normalizeDb(JSON.parse(r)):null;}catch(e){return null;}}
+  function writeLocalDb(db){var key=currentDbKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(db));return true;}catch(e){return false;}}
   function openBingeoDb(){if(dbInitPromise)return dbInitPromise;dbInitPromise=new Promise(function(resolve){if(!('indexedDB' in window)){resolve(null);return;}try{var req=indexedDB.open('BingeoDB',1);req.onupgradeneeded=function(e){if(!e.target.result.objectStoreNames.contains('app'))e.target.result.createObjectStore('app',{keyPath:'key'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){resolve(null);};}catch(e){resolve(null);}});return dbInitPromise;}
-  async function readDb(){var local=readLocalDb();if(local)return local;try{if(window.storage&&window.storage.get){var legacy=await window.storage.get(LIB_KEY,false);if(legacy&&legacy.value){var parsed=JSON.parse(legacy.value);var migrated=normalizeDb({library:parsed});writeLocalDb(migrated);return migrated;}}}catch(e){}var idb=await openBingeoDb();if(!idb)return defaultDb();return await new Promise(function(resolve){var tx=idb.transaction('app','readonly');var req=tx.objectStore('app').get('state');req.onsuccess=function(){resolve(req.result&&req.result.value?normalizeDb(req.result.value):defaultDb());};req.onerror=function(){resolve(defaultDb());};});}
-  async function persistDb(db){db=normalizeDb(db);db.updatedAt=new Date().toISOString();writeLocalDb(db);try{var idb=await openBingeoDb();if(idb)await new Promise(function(resolve){var tx=idb.transaction('app','readwrite');tx.objectStore('app').put({key:'state',value:db});tx.oncomplete=resolve;tx.onerror=resolve;});}catch(e){}try{if(window.storage&&window.storage.set)await window.storage.set(LIB_KEY,JSON.stringify(db.library),false);}catch(e){}}
+  async function readDb(){
+    var key=currentIdbKey();if(!key)return defaultDb();
+    var local=readLocalDb();if(local)return local;
+    var idb=await openBingeoDb();if(!idb)return defaultDb();
+    return await new Promise(function(resolve){
+      var tx=idb.transaction('app','readonly'),req=tx.objectStore('app').get(key);
+      req.onsuccess=function(){resolve(req.result&&req.result.value?normalizeDb(req.result.value):defaultDb());};
+      req.onerror=function(){resolve(defaultDb());};
+    });
+  }
+  async function persistDb(db){
+    var key=currentIdbKey();if(!key)return;
+    db=normalizeDb(db);db.updatedAt=new Date().toISOString();writeLocalDb(db);
+    try{
+      var idb=await openBingeoDb();
+      if(idb)await new Promise(function(resolve){
+        var tx=idb.transaction('app','readwrite');
+        tx.objectStore('app').put({key:key,value:db});
+        tx.oncomplete=resolve;tx.onerror=resolve;
+      });
+    }catch(e){}
+  }
+  function resetAccountRuntime(){
+    var fresh=defaultDb();
+    state.entries=[];
+    state.diary=[];
+    state.lists=[];
+    state.profile=fresh.profile;
+    state.socialFeed=[];
+    state.socialFeedLoading=false;
+    state.socialFeedError='';
+    state.userSearchResults=[];
+    state.userProfileOpen=null;
+    state.userProfileData=null;
+    state.userProfileLoading=false;
+    state.userProfileError='';
+    state.professionalOpen=null;
+    state.professionalData=null;
+    state.professionalLoading=false;
+    state.professionalError='';
+    state.professionalRoleTab=null;
+    state.professionalHydrating=false;
+    state.modalCatalogId=null;
+    state.listOpen=null;
+    state.query='';
+  }
   async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none'},state.profile.nameStyle||{});state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
   if(!e.premiumRating)e.premiumRating={format:'classic',value:null,reactions:[]};
   if(!e.criteriaRatings||typeof e.criteriaRatings!=='object')e.criteriaRatings={};
@@ -1136,13 +1215,13 @@
   if(!Array.isArray(l.showIds))l.showIds=[];
   if(!Array.isArray(l.collaborators))l.collaborators=[];
   if(!Array.isArray(l.comments))l.comments=[];
-});await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.log('Sem dados salvos ainda.',e);}await loadTrending();if(currentUserId){setTimeout(loadLibraryFromSupabase,0);setTimeout(loadListsFromSupabase,80);setTimeout(loadOwnProfileFromSupabase,120);setTimeout(loadFollowingFeed,180);}}
+});await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.log('Sem dados salvos ainda.',e);}await loadTrending();}
   async function saveData(){try{await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.error('Erro ao salvar:',e);}}
   async function syncEntryToSupabase(entry){
     if(!currentUserId||!entry)return;
-    var cat=getCatalog(entry.catalogId);
+    var userId=currentUserId,cat=getCatalog(entry.catalogId);
     var payload={
-      user_id:currentUserId,
+      user_id:userId,
       catalog_id:entry.catalogId,
       tmdb_id:(cat&&cat.tmdbId)?Number(cat.tmdbId):null,
       title:(cat&&cat.title)||entry.catalogId,
@@ -1164,6 +1243,7 @@
       updated_at:entry.dateUpdated||new Date().toISOString()
     };
     try{
+      if(currentUserId!==userId)return;
       var result=await supabaseClient.from('library_entries').upsert(payload,{onConflict:'user_id,catalog_id'});
       if(result.error)throw result.error;
     }catch(e){console.error('Erro ao sincronizar estante com Supabase:',e);}
@@ -1177,9 +1257,11 @@
   }
   async function loadLibraryFromSupabase(){
     if(!currentUserId)return;
+    var userId=currentUserId;
     try{
-      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,genre,poster_path,backdrop_path,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',currentUserId);
+      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,genre,poster_path,backdrop_path,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',userId);
       if(result.error)throw result.error;
+      if(currentUserId!==userId)return;
       (result.data||[]).forEach(function(row){
         var cid=row.catalog_id||('tmdb-'+row.tmdb_id);
         if(!cid)return;
@@ -1212,9 +1294,9 @@
           if(local)state.entries[state.entries.indexOf(local)]=mapped;else state.entries.push(mapped);
         }
       });
+      if(currentUserId!==userId)return;
       await saveData();
-      state.entries.forEach(function(entry){syncEntryToSupabase(entry);});
-      if(appBooted)render();
+      if(appBooted&&currentUserId===userId)render();
     }catch(e){console.error('Erro ao carregar estante do Supabase:',e);}
   }
   async function syncListItemsToSupabase(list){
@@ -1264,10 +1346,11 @@
   }
   async function loadListsFromSupabase(){
     if(!currentUserId)return;
+    var userId=currentUserId;
     try{
-      await Promise.allSettled(state.lists.filter(function(l){return !l.ownerUserId||l.ownerUserId===currentUserId;}).map(syncListToSupabase));
       var result=await supabaseClient.from('lists').select('id,user_id,client_id,name,description,visibility,cover_url,share_slug,allow_comments,created_at,updated_at').order('updated_at',{ascending:false});
       if(result.error)throw result.error;
+      if(currentUserId!==userId)return;
       var rows=result.data||[],ids=rows.map(function(x){return x.id;}),items=[];
       if(ids.length){
         var itemResult=await supabaseClient.from('list_items').select('list_id,catalog_id,tmdb_id,title,poster_path,backdrop_path').in('list_id',ids);
@@ -1291,6 +1374,7 @@
         var local=state.lists.find(function(l){return l.id===mapped.id;});
         if(local)Object.assign(local,mapped);else state.lists.push(mapped);
       });
+      if(currentUserId!==userId)return;
       await saveData();
       if(appBooted&&state.view==='listas')renderMainViewOnly();
     }catch(e){console.error('Erro ao carregar listas do Supabase:',e);}
@@ -1324,25 +1408,30 @@
   }
   async function loadOwnProfileFromSupabase(){
     if(!currentUserId)return;
+    var userId=currentUserId;
     try{
-      var result=await supabaseClient.from('profiles').select('username,bio,avatar_url,banner_url,plan,name_style,social_links,top_five').eq('id',currentUserId).maybeSingle();
+      var result=await supabaseClient.from('profiles').select('username,bio,avatar_url,banner_url,plan,name_style,social_links,top_five').eq('id',userId).maybeSingle();
       if(result.error)throw result.error;
+      if(currentUserId!==userId)return;
       var row=result.data||{};
-      if(!state.profile.username&&row.username)state.profile.username=row.username;
-      if(!state.profile.bio&&row.bio)state.profile.bio=row.bio;
-      if(!state.profile.photo&&row.avatar_url)state.profile.photo=row.avatar_url;
-      if(!state.profile.banner&&row.banner_url)state.profile.banner=row.banner_url;
-      if((!state.profile.topFive||!state.profile.topFive.filter(Boolean).length)&&Array.isArray(row.top_five))state.profile.topFive=row.top_five.slice(0,5);
-      if(row.name_style&&(!state.profile.nameStyle||(!state.profile.nameStyle.color&&state.profile.nameStyle.effect==='none')))state.profile.nameStyle=row.name_style;
-      if(Array.isArray(row.social_links)&&(!state.profile.socialLinks||!state.profile.socialLinks.length))state.profile.socialLinks=row.social_links;
-      if(row.plan==='pro'&&state.profile.plan!=='pro')state.profile.plan='pro';
+      // Supabase is authoritative for account identity. Never carry another
+      // account's username/profile into this session.
+      state.profile.username=row.username||'';
+      state.profile.bio=row.bio||'';
+      state.profile.photo=row.avatar_url||null;
+      state.profile.banner=row.banner_url||null;
+      state.profile.plan=row.plan==='pro'?'pro':'free';
+      state.profile.nameStyle=row.name_style&&typeof row.name_style==='object'?row.name_style:{color:null,effect:'none'};
+      state.profile.socialLinks=Array.isArray(row.social_links)?row.social_links:[];
+      state.profile.topFive=Array.isArray(row.top_five)?row.top_five.slice(0,5):[];
+      state.profile.editing=false;
       await saveData();
-      await syncProfileToSupabase();
-      if(appBooted&&state.view==='perfil')renderMainViewOnly();
+      if(appBooted&&currentUserId===userId&&state.view==='perfil')renderMainViewOnly();
     }catch(e){console.error('Erro ao carregar perfil da conta:',e);}
   }
   async function syncProfileToSupabase(){
     if(!currentUserId||!state.profile)return;
+    var userId=currentUserId;
     try{
       if(/^data:image\//i.test(String(state.profile.photo||''))){
         state.profile.photo=await uploadProfileDataUrl(state.profile.photo,'avatar');
@@ -1353,7 +1442,7 @@
         await saveData();
       }
       var payload={
-        id:currentUserId,
+        id:userId,
         username:state.profile.username||null,
         bio:state.profile.bio||'',
         avatar_url:/^https?:\/\//i.test(String(state.profile.photo||''))?state.profile.photo:null,
@@ -1364,6 +1453,7 @@
         top_five:(state.profile.topFive||[]).filter(Boolean).slice(0,5),
         updated_at:new Date().toISOString()
       };
+      if(currentUserId!==userId)return;
       var result=await supabaseClient.from('profiles').upsert(payload,{onConflict:'id'});
       if(result.error)throw result.error;
     }catch(e){console.error('Erro ao sincronizar perfil com Supabase:',e);}
@@ -1476,10 +1566,12 @@
   }
   async function loadFollowingFeed(){
     if(!currentUserId)return;
+    var userId=currentUserId;
     state.socialFeedLoading=true;state.socialFeedError='';
     try{
       var result=await supabaseClient.rpc('get_following_feed',{p_limit:40});
       if(result.error)throw result.error;
+      if(currentUserId!==userId)return;
       state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a.event_type==='diary_series'||a.event_type==='diary_episode';});
       var feedCats=[];
       state.socialFeed.forEach(function(a){var cat=ensureRemoteUserCatalog(a);if(cat&&cat.tmdbId&&!cat.poster_path)feedCats.push(cat);});
