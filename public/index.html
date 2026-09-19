@@ -606,7 +606,7 @@
     <button class="nav-link" data-view="perfil">Perfil</button>
   </nav>
   <div class="search-wrap">
-    <input type="text" id="searchInput" placeholder="Buscar…">
+    <input type="text" id="searchInput" placeholder="Buscar séries ou profissionais…">
   </div>
   <button class="account-btn" id="logoutBtn">Sair</button>
 </header>
@@ -1995,7 +1995,7 @@
     html+='<div class="community-subtitle">Top reviews</div>'+(reviews.length?reviews.map(function(rv,i){return communityReviewHtml(rv,cat.id,i);}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há resenhas públicas para esta série.</div>');
     if(lists.length){
       html+='<div class="community-subtitle">Listas populares com esta série</div><div class="community-list-row">'+lists.map(function(l){
-        return '<div class="community-list-card" data-action="open-list" data-slug="'+escapeHtml(l.share_slug||'')+'"><strong>'+escapeHtml(l.name||'Lista')+'</strong><span>por @'+escapeHtml(l.owner||'usuário')+' · '+Number(l.item_count||0)+' títulos</span></div>';
+        return '<div class="community-list-card"><strong>'+escapeHtml(l.name||'Lista')+'</strong><span>por @'+escapeHtml(l.owner||'usuário')+' · '+Number(l.item_count||0)+' títulos</span></div>';
       }).join('')+'</div>';
     }
     return html+'</div>';
