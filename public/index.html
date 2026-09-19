@@ -898,6 +898,9 @@
       if(currentUserId!==nextUserId)return;
       appBooted=true;
       render();
+      await openSharedProfileTarget();
+    }else{
+      await openSharedProfileTarget();
     }
   }
   supabaseClient.auth.onAuthStateChange(function(_event,session){setTimeout(function(){applySession(session);},0);});
@@ -2440,6 +2443,64 @@
   function socialIcon(platform){var m={instagram:'◎',x:'𝕏',twitter:'𝕏',tiktok:'♪',youtube:'▶',twitch:'▣',discord:'◈',github:'◉',website:'↗'};return m[platform]||'↗';}
   function validSocialUrl(url){try{var u=new URL(url);return u.protocol==='https:'||u.protocol==='http:';}catch(e){return false;}}
   function normalizeSocialUrl(url){var u=(url||'').trim();if(!u)return '';if(!/^https?:\/\//i.test(u))u='https://'+u;return u;}
+  function profileShareUrl(userId){
+    var base=(window.location.origin||'https://bingeo.onrender.com').replace(/\/$/,'');
+    return base+'/?perfil='+encodeURIComponent(userId||currentUserId||'');
+  }
+  function sharedProfileTargetId(){
+    try{return new URL(window.location.href).searchParams.get('perfil')||'';}catch(e){return '';}
+  }
+  function clearSharedProfileTarget(){
+    try{
+      var url=new URL(window.location.href);
+      if(!url.searchParams.has('perfil'))return;
+      url.searchParams.delete('perfil');
+      history.replaceState(null,'',url.pathname+(url.searchParams.toString()?('?'+url.searchParams.toString()):'')+url.hash);
+    }catch(e){}
+  }
+  async function openSharedProfileTarget(){
+    var target=sharedProfileTargetId();
+    if(!target||!currentUserId)return false;
+    clearSharedProfileTarget();
+    state.query='';
+    state.modalCatalogId=null;
+    state.professionalOpen=null;
+    state.professionalData=null;
+    if(target===currentUserId){
+      state.userProfileOpen=null;
+      state.userProfileData=null;
+      state.view='perfil';
+      render();
+      return true;
+    }
+    state.userProfileBackView='descobrir';
+    state.userProfileOpen=target;
+    state.userProfileData=null;
+    state.userProfileError='';
+    state.userProfileLoading=true;
+    state.view='descobrir';
+    renderMainViewOnly();
+    loadBingeoUserProfile(target);
+    return true;
+  }
+  async function shareBingeoProfile(userId,username){
+    var url=profileShareUrl(userId);
+    var name=username||'este perfil';
+    try{
+      if(navigator.share){
+        await navigator.share({title:'Perfil de '+name+' no Bingeo',text:'Veja o perfil de '+name+' no Bingeo.',url:url});
+        return;
+      }
+    }catch(e){
+      if(e&&e.name==='AbortError')return;
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      alert('Link do perfil copiado!');
+    }catch(e){
+      window.prompt('Copie o link do perfil:',url);
+    }
+  }
 
   /* ---------------- view: perfil ---------------- */
   function viewPerfil(){
@@ -2460,7 +2521,7 @@
           '<div class="profile-sub">' + state.entries.length + ' título' + (state.entries.length===1?'':'s') + ' na estante</div>' +
           '<div class="profile-plan"><span class="plan-pill ' + (hasPro()?'pro':'') + '">' + (hasPro()?'✦ Bingeo Pro':'Plano gratuito') + '</span></div>' +
           (state.profile.bio ? '<div style="color:var(--text-muted);font-size:13px;max-width:620px;margin-top:8px;line-height:1.45;">' + escapeHtml(state.profile.bio) + '</div>' : '') +
-          '<div class="profile-actions">' + (photo ? '<button class="btn btn-ghost btn-sm" data-action="remove-avatar">Remover foto</button>' : '') + '<button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button>' + (!hasPro() ? '<button class="btn btn-primary btn-sm" data-action="demo-pro">Testar Pro</button>' : '<button class="btn btn-ghost btn-sm" data-action="demo-free">Voltar ao Free</button>') + '</div>' +
+          '<div class="profile-actions">' + (photo ? '<button class="btn btn-ghost btn-sm" data-action="remove-avatar">Remover foto</button>' : '') + '<button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button><button class="btn btn-ghost btn-sm" data-action="share-own-profile">Compartilhar perfil</button>' + (!hasPro() ? '<button class="btn btn-primary btn-sm" data-action="demo-pro">Testar Pro</button>' : '<button class="btn btn-ghost btn-sm" data-action="demo-free">Voltar ao Free</button>') + '</div>' +
           (socialLinks.length ? '<div class="social-links">' + socialLinks.map(function(sl){return '<a class="social-link" href="' + escapeHtml(sl.url) + '" target="_blank" rel="noopener noreferrer"><span>' + socialIcon(sl.platform) + '</span>' + escapeHtml(socialLabel(sl.platform)) + '</a>';}).join('') + '</div>' : '') +
         '</div>' +
       '</div>';
@@ -3202,6 +3263,10 @@
     var action = el.dataset.action;
 
     if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
+    else if(action==='share-own-profile'){
+      if(!currentUserId)return;
+      shareBingeoProfile(currentUserId,state.profile.username||'meu perfil');
+    }
     else if(action==='open-user-profile'){
       var userId=el.dataset.user;if(!userId)return;
       if(userId===currentUserId){
