@@ -1013,6 +1013,7 @@
     lists:[],
     profile:{ photo:null, topFive:[], username:'', bio:'', plan:'free', editing:false },
     trending:{},
+    trendingUsers:{},
     tmdbSearchResults:[],
     tmdbPersonResults:[],
     userSearchResults:[],
@@ -1182,6 +1183,8 @@
     state.lists=[];
     state.profile=fresh.profile;
     state.socialFeed=[];
+    state.trending={};
+    state.trendingUsers={};
     state.socialFeedLoading=false;
     state.socialFeedError='';
     state.userSearchResults=[];
@@ -1783,15 +1786,66 @@
 
   function hasPro(){return !!(state.profile&&state.profile.plan==='pro');}
   async function loadTrending(){
+    if(!currentUserId)return;
+    var userId=currentUserId;
     try{
-      var raw = localStorage.getItem(TRENDING_KEY);
-      state.trending = raw ? JSON.parse(raw) : (state.trending || {});
-    }catch(e){ state.trending = state.trending || {}; }
+      var result=await supabaseClient.rpc('get_global_trending',{p_days:30,p_limit:8});
+      if(result.error)throw result.error;
+      if(currentUserId!==userId)return;
+      var counts={},users={};
+      (result.data||[]).forEach(function(row){
+        counts[row.catalog_id]=Number(row.interaction_count||0);
+        users[row.catalog_id]=Number(row.user_count||0);
+        var cat=getCatalog(row.catalog_id);
+        if(!cat){
+          cat={
+            id:row.catalog_id,
+            tmdbId:row.tmdb_id||null,
+            title:row.title||'Série',
+            type:'serie',
+            genre:'Série',
+            year:null,
+            platform:'',
+            seasons:[],
+            poster_path:row.poster_path||null,
+            backdrop_path:row.backdrop_path||null,
+            overview:'',
+            tmdbSource:true
+          };
+          CATALOG.push(cat);
+        }else{
+          if(row.tmdb_id&&!cat.tmdbId)cat.tmdbId=row.tmdb_id;
+          if(row.title&&(!cat.title||cat.title==='Série'))cat.title=row.title;
+          if(row.poster_path&&!cat.poster_path)cat.poster_path=row.poster_path;
+          if(row.backdrop_path&&!cat.backdrop_path)cat.backdrop_path=row.backdrop_path;
+        }
+      });
+      state.trending=counts;
+      state.trendingUsers=users;
+    }catch(e){
+      console.error('Erro ao carregar tendências globais:',e);
+    }
   }
-  async function bumpTrending(catalogId){
-    state.trending[catalogId] = (state.trending[catalogId]||0) + 1;
-    try{ localStorage.setItem(TRENDING_KEY, JSON.stringify(state.trending)); }
-    catch(e){ console.error('Erro ao atualizar tendências', e); }
+  async function bumpTrending(catalogId,interactionType){
+    if(!currentUserId||!catalogId)return;
+    var userId=currentUserId,cat=getCatalog(catalogId);
+    state.trending[catalogId]=(state.trending[catalogId]||0)+1;
+    try{
+      var result=await supabaseClient.rpc('record_series_interaction',{
+        p_catalog_id:catalogId,
+        p_tmdb_id:cat&&cat.tmdbId?Number(cat.tmdbId):null,
+        p_title:cat&&cat.title?cat.title:catalogId,
+        p_poster_path:cat&&cat.poster_path?cat.poster_path:null,
+        p_backdrop_path:cat&&cat.backdrop_path?cat.backdrop_path:null,
+        p_interaction_type:interactionType||'interaction'
+      });
+      if(result.error)throw result.error;
+      if(currentUserId!==userId)return;
+      await loadTrending();
+      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen)renderMainViewOnly();
+    }catch(e){
+      console.error('Erro ao registrar interação global:',e);
+    }
   }
 
   /* ---------------- TMDB API ---------------- */
@@ -2261,12 +2315,12 @@
   /* ---------------- view: descobrir ---------------- */
   function viewDescobrir(){
     var html='';
-    html+=followingFeedHtml();
     var trendIds=Object.keys(state.trending).filter(function(id){return getCatalog(id)&&state.trending[id]>0;}).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);
-    html+='<div class="trending"><div class="trending-head"><h2>Mais faladas do momento</h2><span class="trending-note">Ordenadas pelas interações registradas no Bingeo</span></div>';
-    if(trendIds.length===0) html+='<p style="color:var(--text-muted);font-size:13px;margin:0;">Ainda não há interações suficientes para formar o ranking.</p>';
-    else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações</div></div>';}).join('')+'</div>';
+    html+='<div class="trending"><div class="trending-head"><h2>Séries mais faladas do momento</h2><span class="trending-note">Ranking compartilhado entre toda a comunidade do Bingeo · últimos 30 dias</span></div>';
+    if(trendIds.length===0) html+='<p style="color:var(--text-muted);font-size:13px;margin:0;">Ainda não há interações suficientes da comunidade para formar o ranking.</p>';
+    else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id),people=Number(state.trendingUsers[id]||0);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações'+(people?' · '+people+' usuário'+(people===1?'':'s'):'')+'</div></div>';}).join('')+'</div>';
     html+='</div>';
+    html+=followingFeedHtml();
     var q=state.query.trim();
     if(q)html+=tmdbSearchResultsHtml();
     return html;
@@ -3095,7 +3149,7 @@
         if(!entry) return;
         entry.status = statusSel.value;
         entry.dateUpdated = new Date().toISOString();
-        if(statusSel.value==='assistindo' || statusSel.value==='completo') bumpTrending(entry.catalogId);
+        if(statusSel.value==='assistindo' || statusSel.value==='completo') bumpTrending(entry.catalogId,'status');
         saveData();
         syncEntryToSupabase(entry);
         publishActivity('status',entry,{payload:{status:entry.status,status_label:STATUS_LABELS[entry.status]||entry.status}});
@@ -3319,13 +3373,13 @@
     else if(action==='quick-add'){
       var wasNew1 = !getEntry(el.dataset.catalog);
       var quickEntry=ensureEntry(el.dataset.catalog, 'quero-assistir');
-      if(wasNew1) bumpTrending(el.dataset.catalog);
+      if(wasNew1) bumpTrending(el.dataset.catalog,'library_add');
       saveData(); syncEntryToSupabase(quickEntry); render();
     }
     else if(action==='add-to-library'){
       var wasNew2 = !getEntry(el.dataset.catalog);
       var addedEntry=ensureEntry(el.dataset.catalog, 'quero-assistir');
-      if(wasNew2) bumpTrending(el.dataset.catalog);
+      if(wasNew2) bumpTrending(el.dataset.catalog,'library_add');
       saveData(); syncEntryToSupabase(addedEntry); renderModal(); render();
     }
     else if(action==='remove-entry'){
@@ -3358,7 +3412,7 @@
         activityType='rating_episode';activityRating=entry.episodeRatings[eKey];activityExtra.season=Number(el.dataset.season);activityExtra.episode=Number(el.dataset.episode);
       }
       entry.dateUpdated = new Date().toISOString();
-      bumpTrending(entry.catalogId);
+      bumpTrending(entry.catalogId,'rating');
       saveData();
       syncEntryToSupabase(entry).then(function(){loadSeriesCommunity(entry.catalogId);});
       if(activityType&&activityRating!=null){activityExtra.rating=activityRating;publishActivity(activityType,entry,activityExtra);}
@@ -3377,11 +3431,11 @@
     }
     else if(action==='premium-value'){
       if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
-      var epv=getEntry(el.dataset.catalog); if(!epv) return; epv.premiumRating=epv.premiumRating||{format:'berry',value:null,reactions:[]}; epv.premiumRating.format='berry'; var berry=parseFloat(el.dataset.value); epv.premiumRating.value=(epv.premiumRating.value===berry?null:berry); epv.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epv); if(epv.premiumRating.value!=null)publishActivity('special_rating',epv,{payload:specialActivityPayload(epv)}); bumpTrending(epv.catalogId); renderModalPreserveScroll();
+      var epv=getEntry(el.dataset.catalog); if(!epv) return; epv.premiumRating=epv.premiumRating||{format:'berry',value:null,reactions:[]}; epv.premiumRating.format='berry'; var berry=parseFloat(el.dataset.value); epv.premiumRating.value=(epv.premiumRating.value===berry?null:berry); epv.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epv); if(epv.premiumRating.value!=null)publishActivity('special_rating',epv,{payload:specialActivityPayload(epv)}); bumpTrending(epv.catalogId,'pro_rating'); renderModalPreserveScroll();
     }
     else if(action==='premium-reaction'){
       if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
-      var epr=getEntry(el.dataset.catalog); if(!epr) return; epr.premiumRating=epr.premiumRating||{format:'reactions',value:null,reactions:[]}; epr.premiumRating.format='reactions'; epr.premiumRating.reactions=Array.isArray(epr.premiumRating.reactions)?epr.premiumRating.reactions:[]; var reaction=el.dataset.reaction,ri=epr.premiumRating.reactions.indexOf(reaction); if(ri>-1)epr.premiumRating.reactions.splice(ri,1);else epr.premiumRating.reactions.push(reaction); epr.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epr); if(epr.premiumRating.reactions.length)publishActivity('special_rating',epr,{payload:specialActivityPayload(epr)}); bumpTrending(epr.catalogId); renderModalPreserveScroll();
+      var epr=getEntry(el.dataset.catalog); if(!epr) return; epr.premiumRating=epr.premiumRating||{format:'reactions',value:null,reactions:[]}; epr.premiumRating.format='reactions'; epr.premiumRating.reactions=Array.isArray(epr.premiumRating.reactions)?epr.premiumRating.reactions:[]; var reaction=el.dataset.reaction,ri=epr.premiumRating.reactions.indexOf(reaction); if(ri>-1)epr.premiumRating.reactions.splice(ri,1);else epr.premiumRating.reactions.push(reaction); epr.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epr); if(epr.premiumRating.reactions.length)publishActivity('special_rating',epr,{payload:specialActivityPayload(epr)}); bumpTrending(epr.catalogId,'pro_rating'); renderModalPreserveScroll();
     }
     else if(action==='criteria-value'){
       if(!hasPro()){alert('O DNA da avaliação é exclusivo do Bingeo Pro.');return;}
@@ -3389,7 +3443,7 @@
       var ck=el.dataset.criterion,cv=Number(el.dataset.value);
       ce.criteriaRatings[ck]=Number(ce.criteriaRatings[ck])===cv?null:cv;
       ce.dateUpdated=new Date().toISOString();
-      saveData();syncEntryToSupabase(ce).then(function(){loadSeriesCommunity(ce.catalogId);});if(ce.criteriaRatings[ck]!=null)publishActivity('special_rating',ce,{payload:specialActivityPayload(ce)});renderModalPreserveScroll();
+      saveData();syncEntryToSupabase(ce).then(function(){loadSeriesCommunity(ce.catalogId);});if(ce.criteriaRatings[ck]!=null){publishActivity('special_rating',ce,{payload:specialActivityPayload(ce)});bumpTrending(ce.catalogId,'pro_criteria');}renderModalPreserveScroll();
     }
     else if(action==='toggle-badge'){
       if(!hasPro()){alert('As medalhas são exclusivas do Bingeo Pro.');return;}
@@ -3397,7 +3451,7 @@
       var badge=el.dataset.badge,bi=be.badges.indexOf(badge);
       if(bi>-1)be.badges.splice(bi,1);else be.badges.push(badge);
       be.dateUpdated=new Date().toISOString();
-      saveData();syncEntryToSupabase(be).then(function(){loadSeriesCommunity(be.catalogId);});if(be.badges.indexOf(badge)>-1)publishActivity('special_rating',be,{payload:specialActivityPayload(be)});renderModalPreserveScroll();
+      saveData();syncEntryToSupabase(be).then(function(){loadSeriesCommunity(be.catalogId);});if(be.badges.indexOf(badge)>-1){publishActivity('special_rating',be,{payload:specialActivityPayload(be)});bumpTrending(be.catalogId,'pro_badge');}renderModalPreserveScroll();
     }
     else if(action==='reveal-spoiler'){
       var rvData=state.seriesCommunity[el.dataset.catalog];
@@ -3432,7 +3486,7 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
       var en2 = getEntry(el.dataset.catalog);
       if(en2){
         en2.favorite = !en2.favorite;
-        if(en2.favorite) bumpTrending(en2.catalogId);
+        if(en2.favorite) bumpTrending(en2.catalogId,'favorite');
         en2.dateUpdated=new Date().toISOString();
         saveData(); syncEntryToSupabase(en2); renderMainViewOnly(); renderModalPreserveScroll();
       }
@@ -3443,6 +3497,7 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
         var diarySeries={ id:uid(), type:'series', catalogId:en3.catalogId, date:todayIso(), note:'', rating:en3.rating };
         state.diary.unshift(diarySeries);
         publishActivity('diary_series',en3,{rating:en3.rating,payload:{diary_id:diarySeries.id}});
+        bumpTrending(en3.catalogId,'diary');
         saveData(); render();
       }
     }
@@ -3456,7 +3511,7 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
       var diaryEpisode={ id:uid(), type:'episode', catalogId:cidEp, season:sNumEp, episode:eNumEp, date:todayIso(), note:noteVal, rating:epRatingLog };
       state.diary.unshift(diaryEpisode);
       publishActivity('diary_episode',entryEp,{season:sNumEp,episode:eNumEp,rating:epRatingLog,payload:{diary_id:diaryEpisode.id,has_note:!!noteVal,note:noteVal}});
-      bumpTrending(cidEp);
+      bumpTrending(cidEp,'diary');
       entryEp.dateUpdated=new Date().toISOString();
       saveData(); syncEntryToSupabase(entryEp); renderMainViewOnly(); renderModalPreserveScroll();
     }
@@ -3470,7 +3525,7 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
         en4.spoilerSeason=en4.spoilerLevel==='episode'&&ss&&ss.value?Number(ss.value):null;
         en4.spoilerEpisode=en4.spoilerLevel==='episode'&&se&&se.value?Number(se.value):null;
         en4.dateUpdated=new Date().toISOString();
-        if(ta.value.trim()) bumpTrending(en4.catalogId);
+        if(ta.value.trim()) bumpTrending(en4.catalogId,'review');
         saveData(); syncEntryToSupabase(en4).then(function(){loadSeriesCommunity(en4.catalogId);}); if(ta.value.trim())publishActivity('review',en4,{rating:en4.rating,payload:{spoiler_level:en4.spoilerLevel,spoiler_season:en4.spoilerSeason,spoiler_episode:en4.spoilerEpisode}}); renderMainViewOnly(); renderModalPreserveScroll();
       }
     }
