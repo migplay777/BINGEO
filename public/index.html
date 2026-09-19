@@ -622,7 +622,7 @@
     var html=publicTopbarHtml()+'<main class="public-main"><div class="public-series-hero" style="'+(hero?'background-image:url(\''+hero.replace(/'/g,'%27')+'\')':'')+'"></div><div class="public-series-intro"><div class="public-series-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div><div class="public-series-copy"><h1>'+escapeHtml(details.name||cat.title)+'</h1><div class="public-series-meta">'+escapeHtml(meta)+'</div><p class="public-series-overview">'+escapeHtml(details.overview||'Sinopse não disponível.')+'</p><div class="inline-actions" style="margin-top:14px;"><button class="btn btn-primary btn-sm" data-action="'+(currentUserId?'public-open-app-series':'public-login')+'" data-tmdb="'+tmdbId+'">'+(currentUserId?'Avaliar no meu Bingeo':'Entrar para avaliar')+'</button><button class="btn btn-ghost btn-sm" data-action="copy-current-link">Compartilhar</button></div></div></div>';
     html+='<div class="public-section"><div class="section-title">Criadores</div><div style="margin-top:9px;">'+creators+'</div></div>';
     html+='<div class="public-section"><div class="section-title">Elenco principal</div><div style="margin-top:10px;">'+tmdbCastHtml(credits)+'</div></div>';
-    html+='<div class="public-section"><div class="section-title">Temporadas e episódios</div><div class="public-seasons">'+seasons.map(function(s){return '<div class="public-season"><strong style="color:var(--text);">Temporada '+s.season_number+'</strong><br>'+Number(s.episode_count||0)+' episódios</div>';}).join('')+'</div></div>';
+    html+='<div class="public-section"><div class="section-title">Temporadas e episódios</div><div class="public-seasons">'+seasons.map(function(s){return '<button class="public-season" style="text-align:left;cursor:pointer;color:var(--text-muted);" data-action="public-load-season" data-tmdb="'+tmdbId+'" data-season="'+s.season_number+'"><strong style="color:var(--text);">Temporada '+s.season_number+'</strong><br>'+Number(s.episode_count||0)+' episódios</button>';}).join('')+'</div><div id="publicEpisodePane"></div></div>';
     html+='<div class="public-section">'+seriesCommunityHtml(cat)+'</div>';
     html+='<div class="tmdb-credit"><a class="tmdb-logo-badge" href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">TMDB</a><span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span></div></main>';
     document.getElementById('publicShell').innerHTML=html;
@@ -1828,6 +1828,14 @@
       var s=Number(d.season)||0,e=Number(d.episode)||0;
       if(s>max.season||(s===max.season&&e>max.episode))max={season:s,episode:e};
     });
+    var entry=getEntry(catalogId);
+    if(entry&&entry.episodeRatings){
+      Object.keys(entry.episodeRatings).forEach(function(key){
+        if(entry.episodeRatings[key]==null)return;
+        var parts=key.split('-'),s=Number(parts[0])||0,e=Number(parts[1])||0;
+        if(s>max.season||(s===max.season&&e>max.episode))max={season:s,episode:e};
+      });
+    }
     return max;
   }
   function spoilerKey(catalogId,review,index){return catalogId+'|'+index+'|'+(review.username||'')+'|'+(review.updated_at||'');}
@@ -2306,6 +2314,17 @@
       document.getElementById('appShell').style.display='block';
       var openIt=function(){if(pcat){state.modalCatalogId=pcat.id;render();loadSeriesCommunity(pcat.id);}};
       if(!appBooted){appBooted=true;loadData().then(openIt);}else openIt();
+    }
+    else if(action==='public-load-season'){
+      var pane=document.getElementById('publicEpisodePane'),sid=Number(el.dataset.tmdb),seasonNo=Number(el.dataset.season);
+      if(!pane||!sid||!seasonNo)return;
+      pane.innerHTML='<div class="tmdb-loading">Carregando episódios da temporada '+seasonNo+'…</div>';
+      tmdbFetch('/tv/'+sid+'/season/'+seasonNo,{language:'pt-BR'}).then(function(data){
+        pane.innerHTML='<div class="community-subtitle">Temporada '+seasonNo+'</div>'+(data.episodes||[]).map(function(ep){
+          return '<div class="ep-card"><div class="ep-card-head"><div><span class="ep-num">Ep. '+String(ep.episode_number||'').padStart(2,'0')+'</span><div class="ep-title">'+escapeHtml(ep.name||('Episódio '+ep.episode_number))+'</div></div></div><div class="ep-synopsis">'+escapeHtml(ep.overview||'Sinopse não disponível.')+'</div></div>';
+        }).join('');
+        pane.scrollIntoView({behavior:'smooth',block:'nearest'});
+      }).catch(function(err){pane.innerHTML='<div class="empty" style="margin-top:12px;">'+escapeHtml(err.message||'Não foi possível carregar os episódios.')+'</div>';});
     }
     else if(action==='public-series-link'){
       if(el.dataset.tmdb)location.href='/serie/'+encodeURIComponent(el.dataset.tmdb);
