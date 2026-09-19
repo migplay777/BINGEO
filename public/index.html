@@ -1524,7 +1524,7 @@
       html+='</div></div>';
 
       if(isOwner){
-        html+='<div class="list-tools-panel"><div class="list-tool-box"><h4>Colaboradores</h4><form id="listCollaboratorForm" class="new-list-form" style="margin:0;"><input type="text" name="username" class="qa-input" placeholder="@usuário" required><button class="btn btn-ghost btn-sm" type="submit">Adicionar</button></form><div class="collab-row">'+(collaborators.length?collaborators.map(function(co){return '<span class="collab-chip">@'+escapeHtml(co.username||'usuário')+' <button style="border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;" data-action="remove-collaborator" data-list="'+list.id+'" data-username="'+escapeHtml(co.username||'')+'">×</button></span>';}).join(''):'<span style="font-size:11px;color:var(--text-dim);">Só você edita esta lista.</span>')+'</div></div><div class="list-tool-box"><h4>Compartilhamento</h4><div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">Listas públicas ganham uma página própria que pode ser aberta mesmo sem conta no Bingeo.</div></div></div>';
+        html+='<div class="list-tools-panel"><div class="list-tool-box"><h4>Detalhes da lista</h4><form id="listMetadataForm"><input class="qa-input" name="name" value="'+escapeHtml(list.name||'')+'" placeholder="Nome da lista" style="width:100%;margin-bottom:7px;"><input class="qa-input" name="description" value="'+escapeHtml(list.description||'')+'" placeholder="Descrição" style="width:100%;margin-bottom:7px;"><button class="btn btn-ghost btn-sm" type="submit">Salvar detalhes</button></form></div><div class="list-tool-box"><h4>Colaboradores</h4><form id="listCollaboratorForm" class="new-list-form" style="margin:0;"><input type="text" name="username" class="qa-input" placeholder="@usuário" required><button class="btn btn-ghost btn-sm" type="submit">Adicionar</button></form><div class="collab-row">'+(collaborators.length?collaborators.map(function(co){return '<span class="collab-chip">@'+escapeHtml(co.username||'usuário')+' <button style="border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;" data-action="remove-collaborator" data-list="'+list.id+'" data-username="'+escapeHtml(co.username||'')+'">×</button></span>';}).join(''):'<span style="font-size:11px;color:var(--text-dim);">Só você edita esta lista.</span>')+'</div></div><div class="list-tool-box"><h4>Compartilhamento</h4><div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">Listas públicas ganham uma página própria que pode ser aberta mesmo sem conta no Bingeo.</div></div></div>';
       }else{
         html+='<div class="banner-note"><span>Você está colaborando nesta lista.</span><span class="pro-badge">EDITOR</span></div>';
       }
@@ -2100,6 +2100,18 @@
         saveData();syncListToSupabase(newList);render();
       });
     }
+    var listMetadataForm=document.getElementById('listMetadataForm');
+    if(listMetadataForm){
+      listMetadataForm.addEventListener('submit',function(e){
+        e.preventDefault();
+        var list=state.lists.find(function(l){return l.id===state.listOpen;});
+        if(!list)return;
+        var fd=new FormData(listMetadataForm),name=String(fd.get('name')||'').trim(),desc=String(fd.get('description')||'').trim();
+        if(!name)return;
+        list.name=name;list.description=desc;list.updatedAt=new Date().toISOString();
+        saveData();syncListToSupabase(list);renderMainViewOnly();
+      });
+    }
     var collabForm=document.getElementById('listCollaboratorForm');
     if(collabForm){
       collabForm.addEventListener('submit',function(e){
@@ -2381,10 +2393,9 @@
       entry.dateUpdated = new Date().toISOString();
       bumpTrending(entry.catalogId);
       saveData();
-      syncEntryToSupabase(entry);
+      syncEntryToSupabase(entry).then(function(){loadSeriesCommunity(entry.catalogId);});
       renderMainViewOnly();
       renderModalPreserveScroll();
-      loadSeriesCommunity(entry.catalogId,false);
     }
     else if(action==='toggle-season'){
       var key=el.dataset.key; expandedSeasons[key]=!expandedSeasons[key]; renderModalPreserveScroll(); var sc=getCatalog(state.modalCatalogId),sn=parseInt(key.split('-').pop(),10); if(expandedSeasons[key]&&sc&&tmdbConfigured()){loadTmdbSeries(sc).then(function(){return loadTmdbSeason(sc,sn);}).then(function(){if(state.modalCatalogId===sc.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===sc.id)renderModalPreserveScroll();});}
@@ -2410,7 +2421,7 @@
       var ck=el.dataset.criterion,cv=Number(el.dataset.value);
       ce.criteriaRatings[ck]=Number(ce.criteriaRatings[ck])===cv?null:cv;
       ce.dateUpdated=new Date().toISOString();
-      saveData();syncEntryToSupabase(ce);renderModalPreserveScroll();loadSeriesCommunity(ce.catalogId,false);
+      saveData();syncEntryToSupabase(ce).then(function(){loadSeriesCommunity(ce.catalogId);});renderModalPreserveScroll();
     }
     else if(action==='toggle-badge'){
       if(!hasPro()){alert('As medalhas são exclusivas do Bingeo Pro.');return;}
@@ -2418,7 +2429,7 @@
       var badge=el.dataset.badge,bi=be.badges.indexOf(badge);
       if(bi>-1)be.badges.splice(bi,1);else be.badges.push(badge);
       be.dateUpdated=new Date().toISOString();
-      saveData();syncEntryToSupabase(be);renderModalPreserveScroll();loadSeriesCommunity(be.catalogId,false);
+      saveData();syncEntryToSupabase(be).then(function(){loadSeriesCommunity(be.catalogId);});renderModalPreserveScroll();
     }
     else if(action==='reveal-spoiler'){
       var rvData=state.seriesCommunity[el.dataset.catalog];
@@ -2498,7 +2509,7 @@
         en4.spoilerEpisode=en4.spoilerLevel==='episode'&&se&&se.value?Number(se.value):null;
         en4.dateUpdated=new Date().toISOString();
         if(ta.value.trim()) bumpTrending(en4.catalogId);
-        saveData(); syncEntryToSupabase(en4); renderMainViewOnly(); renderModalPreserveScroll(); loadSeriesCommunity(en4.catalogId);
+        saveData(); syncEntryToSupabase(en4).then(function(){loadSeriesCommunity(en4.catalogId);}); renderMainViewOnly(); renderModalPreserveScroll();
       }
     }
     else if(action==='delete-diary'){
