@@ -1337,7 +1337,7 @@
   async function setFollowingUser(userId,follow){
     if(!currentUserId||!userId||userId===currentUserId)return;
     if(follow){
-      var result=await supabaseClient.from('user_follows').upsert({follower_id:currentUserId,following_id:userId},{onConflict:'follower_id,following_id'});
+      var result=await supabaseClient.from('user_follows').insert({follower_id:currentUserId,following_id:userId});
       if(result.error)throw result.error;
     }else{
       var del=await supabaseClient.from('user_follows').delete().eq('follower_id',currentUserId).eq('following_id',userId);
