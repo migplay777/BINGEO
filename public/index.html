@@ -608,6 +608,10 @@
   .user-view-socials{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px;}
   @media(max-width:640px){.bingeo-user-grid{grid-template-columns:1fr}.user-view-banner{height:220px}.user-view-head{margin-top:-54px;padding-left:4px}.user-view-avatar{width:82px;height:82px;flex-basis:82px;font-size:26px}.user-view-name{font-size:21px}}
 
+
+  .bingeo-user-name.name-glow,.user-view-name.name-glow{text-shadow:0 0 6px currentColor,0 0 14px currentColor,0 0 26px color-mix(in srgb,currentColor 45%,transparent);}
+  .bingeo-user-name.name-animated,.user-view-name.name-animated{background-image:linear-gradient(90deg,#4d7c3f 0%,#8bc34a 20%,#c9b73b 40%,#c2478b 65%,#8B5CF6 82%,#4C7CF0 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent !important;animation:berryNameFlow 3.2s cubic-bezier(.45,0,.55,1) infinite;}
+
 </style>
 </head>
 <body>
@@ -1736,7 +1740,7 @@
     else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações</div></div>';}).join('')+'</div>';
     html+='</div>';
     var q=state.query.trim();
-    if(q){if(tmdbConfigured())html+=tmdbSearchResultsHtml();else{var local=filteredCatalog();html+=local.length?'<div class="grid">'+local.map(catalogCardHtml).join('')+'</div>':'<div class="empty"><strong>Nada encontrado.</strong>Conecte a TMDB no Perfil para pesquisar um catálogo maior.</div>';}}
+    if(q)html+=tmdbSearchResultsHtml();
     return html;
   }
 
