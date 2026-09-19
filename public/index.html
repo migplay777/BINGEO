@@ -430,6 +430,48 @@
   .auth-error{min-height:20px;color:#ff8f8f;font-size:12px;line-height:1.4;margin:8px 0}.auth-submit{width:100%;margin-top:4px;padding:11px 15px}
   .auth-foot{margin-top:16px;text-align:center;color:var(--text-dim);font-size:11.5px;line-height:1.5}
   .account-btn{background:transparent;border:1px solid var(--line);color:var(--text-muted);border-radius:18px;padding:7px 12px;cursor:pointer;font-size:12px}.account-btn:hover{color:var(--text);border-color:var(--violet)}
+
+  /* ---- Bingeo identity / community / spoilers ---- */
+  .series-community{margin:18px 0 8px;padding:16px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(160deg,rgba(139,92,246,.10),rgba(76,124,240,.04));}
+  .community-head{display:flex;align-items:end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .community-title{font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;}
+  .community-score{font-size:28px;font-weight:700;font-family:'Space Grotesk',sans-serif;}
+  .community-score small{font-size:12px;color:var(--text-muted);font-weight:500;}
+  .community-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-bottom:14px;}
+  .community-stat{padding:10px;border-radius:9px;background:rgba(16,18,27,.48);border:1px solid rgba(255,255,255,.05);}
+  .community-stat strong{display:block;font-size:16px;}
+  .community-stat span{font-size:10.5px;color:var(--text-muted);}
+  .rating-dist{display:grid;grid-template-columns:26px 1fr 26px;gap:6px 8px;align-items:center;font-size:10.5px;color:var(--text-muted);margin:10px 0 16px;}
+  .rating-dist-track{height:6px;border-radius:999px;background:var(--panel-2);overflow:hidden;}
+  .rating-dist-fill{height:100%;background:linear-gradient(90deg,var(--violet),var(--blue));border-radius:999px;}
+  .community-subtitle{font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;margin:16px 0 8px;}
+  .community-review{border:1px solid var(--line);border-radius:10px;background:rgba(18,19,25,.56);padding:12px;margin-bottom:8px;}
+  .community-review-top{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:12px;}
+  .community-review-user{font-weight:700;}
+  .community-review-text{font-size:12.5px;line-height:1.5;color:var(--text-muted);margin-top:8px;}
+  .spoiler-locked{padding:12px;border:1px dashed rgba(139,92,246,.45);border-radius:8px;background:rgba(139,92,246,.06);margin-top:8px;font-size:12px;color:var(--text-muted);}
+  .criteria-summary{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px;}
+  .criteria-chip,.badge-chip{font-size:10px;padding:4px 7px;border-radius:999px;border:1px solid var(--line);background:var(--panel-2);color:var(--text-muted);}
+  .badge-chip{color:#eadcff;border-color:rgba(139,92,246,.35);}
+  .community-list-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+  .community-list-card{flex:0 0 180px;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);cursor:pointer;}
+  .community-list-card:hover{border-color:var(--violet);}
+  .community-list-card strong{display:block;font-size:12px;margin-bottom:3px;}
+  .community-list-card span{font-size:10.5px;color:var(--text-muted);}
+  .criteria-box{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  .criteria-row{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:center;margin-top:8px;}
+  .criteria-label{font-size:11px;font-weight:700;color:var(--text-muted);}
+  .criteria-buttons{display:flex;gap:5px;flex-wrap:wrap;}
+  .criteria-btn{border:1px solid var(--line);background:var(--panel);color:var(--text-muted);border-radius:8px;padding:5px 7px;cursor:pointer;font-size:15px;line-height:1;}
+  .criteria-btn:hover{transform:translateY(-1px);border-color:var(--text-dim);}
+  .criteria-btn.active{border-color:var(--violet);box-shadow:0 0 0 1px var(--violet) inset,0 0 12px rgba(139,92,246,.22);background:rgba(139,92,246,.10);}
+  .badge-picker{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+  .badge-btn{border:1px solid var(--line);background:var(--panel);color:var(--text-muted);border-radius:999px;padding:6px 9px;font-size:10.5px;cursor:pointer;}
+  .badge-btn.active{border-color:var(--violet);color:#fff;background:rgba(139,92,246,.14);}
+  .spoiler-controls{display:grid;grid-template-columns:minmax(160px,1fr) 82px 82px;gap:8px;margin:7px 0 10px;}
+  .spoiler-controls input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:9px 10px;border-radius:7px;outline:none;}
+  @media(max-width:640px){.community-stat-grid{grid-template-columns:1fr}.criteria-row{grid-template-columns:1fr}.spoiler-controls{grid-template-columns:1fr 1fr}.spoiler-controls select{grid-column:1/-1}}
+
 </style>
 </head>
 <body>
@@ -655,7 +697,12 @@
     tmdbSearchError:'',
     tmdbSearchRequest:0,
     listOpen:null,
-    modalCatalogId:null
+    modalCatalogId:null,
+    seriesCommunity:{},
+    communityLoading:{},
+    revealedSpoilers:{},
+    listExtras:{},
+    listCoverTarget:null
   };
   var tmdbHydrationPromises={};
   var tmdbSearchTimer=null;
@@ -766,7 +813,14 @@
   function openBingeoDb(){if(dbInitPromise)return dbInitPromise;dbInitPromise=new Promise(function(resolve){if(!('indexedDB' in window)){resolve(null);return;}try{var req=indexedDB.open('BingeoDB',1);req.onupgradeneeded=function(e){if(!e.target.result.objectStoreNames.contains('app'))e.target.result.createObjectStore('app',{keyPath:'key'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){resolve(null);};}catch(e){resolve(null);}});return dbInitPromise;}
   async function readDb(){var local=readLocalDb();if(local)return local;try{if(window.storage&&window.storage.get){var legacy=await window.storage.get(LIB_KEY,false);if(legacy&&legacy.value){var parsed=JSON.parse(legacy.value);var migrated=normalizeDb({library:parsed});writeLocalDb(migrated);return migrated;}}}catch(e){}var idb=await openBingeoDb();if(!idb)return defaultDb();return await new Promise(function(resolve){var tx=idb.transaction('app','readonly');var req=tx.objectStore('app').get('state');req.onsuccess=function(){resolve(req.result&&req.result.value?normalizeDb(req.result.value):defaultDb());};req.onerror=function(){resolve(defaultDb());};});}
   async function persistDb(db){db=normalizeDb(db);db.updatedAt=new Date().toISOString();writeLocalDb(db);try{var idb=await openBingeoDb();if(idb)await new Promise(function(resolve){var tx=idb.transaction('app','readwrite');tx.objectStore('app').put({key:'state',value:db});tx.oncomplete=resolve;tx.onerror=resolve;});}catch(e){}try{if(window.storage&&window.storage.set)await window.storage.set(LIB_KEY,JSON.stringify(db.library),false);}catch(e){}}
-  async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none'},state.profile.nameStyle||{});state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){if(!e.premiumRating)e.premiumRating={format:'classic',value:null,reactions:[]};});state.diary.forEach(function(d){if(!d.type)d.type='series';if(d.season===undefined)d.season=null;if(d.episode===undefined)d.episode=null;if(d.note===undefined)d.note='';});state.lists.forEach(function(l){if(!l.id)l.id=uid();if(!l.createdAt)l.createdAt=new Date().toISOString();if(!l.updatedAt)l.updatedAt=l.createdAt;if(l.visibility===undefined)l.visibility='private';if(l.owner===undefined)l.owner=state.profile.username||null;});await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.log('Sem dados salvos ainda.',e);}await loadTrending();if(currentUserId)setTimeout(loadLibraryFromSupabase,0);}
+  async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none'},state.profile.nameStyle||{});state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
+  if(!e.premiumRating)e.premiumRating={format:'classic',value:null,reactions:[]};
+  if(!e.criteriaRatings||typeof e.criteriaRatings!=='object')e.criteriaRatings={};
+  if(!Array.isArray(e.badges))e.badges=[];
+  if(!e.spoilerLevel)e.spoilerLevel='none';
+  if(e.spoilerSeason===undefined)e.spoilerSeason=null;
+  if(e.spoilerEpisode===undefined)e.spoilerEpisode=null;
+});state.diary.forEach(function(d){if(!d.type)d.type='series';if(d.season===undefined)d.season=null;if(d.episode===undefined)d.episode=null;if(d.note===undefined)d.note='';});state.lists.forEach(function(l){if(!l.id)l.id=uid();if(!l.createdAt)l.createdAt=new Date().toISOString();if(!l.updatedAt)l.updatedAt=l.createdAt;if(l.visibility===undefined)l.visibility='private';if(l.owner===undefined)l.owner=state.profile.username||null;});await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.log('Sem dados salvos ainda.',e);}await loadTrending();if(currentUserId)setTimeout(loadLibraryFromSupabase,0);}
   async function saveData(){try{await persistDb({library:{entries:state.entries,diary:state.diary,lists:state.lists},profile:state.profile});}catch(e){console.error('Erro ao salvar:',e);}}
   async function syncEntryToSupabase(entry){
     if(!currentUserId||!entry)return;
@@ -783,6 +837,11 @@
       season_ratings:entry.seasonRatings||{},
       episode_ratings:entry.episodeRatings||{},
       premium_rating:entry.premiumRating||{format:'classic',value:null,reactions:[]},
+      criteria_ratings:entry.criteriaRatings||{},
+      badges:Array.isArray(entry.badges)?entry.badges:[],
+      spoiler_level:entry.spoilerLevel||'none',
+      spoiler_season:entry.spoilerSeason||null,
+      spoiler_episode:entry.spoilerEpisode||null,
       updated_at:entry.dateUpdated||new Date().toISOString()
     };
     try{
@@ -800,7 +859,7 @@
   async function loadLibraryFromSupabase(){
     if(!currentUserId)return;
     try{
-      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,created_at,updated_at').eq('user_id',currentUserId);
+      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',currentUserId);
       if(result.error)throw result.error;
       (result.data||[]).forEach(function(row){
         var cid=row.catalog_id||('tmdb-'+row.tmdb_id);
@@ -823,6 +882,11 @@
             seasonRatings:row.season_ratings||{},
             episodeRatings:row.episode_ratings||{},
             premiumRating:row.premium_rating||{format:'classic',value:null,reactions:[]},
+            criteriaRatings:row.criteria_ratings||{},
+            badges:Array.isArray(row.badges)?row.badges:[],
+            spoilerLevel:row.spoiler_level||'none',
+            spoilerSeason:row.spoiler_season||null,
+            spoilerEpisode:row.spoiler_episode||null,
             dateAdded:row.created_at||new Date().toISOString(),
             dateUpdated:row.updated_at||new Date().toISOString()
           };
@@ -973,7 +1037,8 @@
     var entry = getEntry(catalogId);
     if(!entry){
       entry = { catalogId:catalogId, status:initialStatus||'quero-assistir', rating:null, review:'', favorite:false,
-        seasonRatings:{}, episodeRatings:{}, dateAdded:new Date().toISOString(), dateUpdated:new Date().toISOString(), premiumRating:{format:'classic',value:null,reactions:[]} };
+        seasonRatings:{}, episodeRatings:{}, dateAdded:new Date().toISOString(), dateUpdated:new Date().toISOString(),
+        premiumRating:{format:'classic',value:null,reactions:[]}, criteriaRatings:{}, badges:[], spoilerLevel:'none', spoilerSeason:null, spoilerEpisode:null };
       state.entries.push(entry);
     }
     return entry;
@@ -1454,7 +1519,143 @@
     html += '</div>';
     return html;
   }
-  function premiumEvaluationHtml(entry,catalogId){var pr=entry.premiumRating||{format:'classic',value:null,reactions:[]};var fmt=pr.format||'classic';var html='<div class="premium-box pro"><div class="premium-header"><span class="premium-title">Avaliação premium</span><span class="pro-badge">✦ PRO</span></div><div class="premium-format-row">';['classic','berry','reactions'].forEach(function(f){var labels={classic:'Clássica',berry:'Amadurecimento da amora 🍇',reactions:'Reações'};html+='<button class="premium-format-btn '+(fmt===f?'active':'')+'" data-action="premium-format" data-catalog="'+catalogId+'" data-format="'+f+'">'+labels[f]+'</button>';});html+='</div>';if(fmt==='berry'){html+=berryLabHtml(pr,catalogId);}else if(fmt==='reactions'){var selected=Array.isArray(pr.reactions)?pr.reactions:[];html+='<div class="reaction-row">'+REACTIONS.map(function(r){return '<button class="reaction-btn '+(selected.indexOf(r)>-1?'active':'')+'" data-action="premium-reaction" data-catalog="'+catalogId+'" data-reaction="'+r+'">'+r+'</button>';}).join('')+'</div><div style="margin-top:8px;color:var(--text-dim);font-size:11px;">Escolha uma ou mais reações para a sua avaliação.</div>';}else{html+='<div style="margin-top:9px;color:var(--text-muted);font-size:11.5px;line-height:1.45;">A nota tradicional continua disponível. Os formatos premium ficam salvos junto da sua avaliação.</div>';}return html+'</div>';}
+  var BINGEO_CRITERIA=[
+    {key:'story',label:'História'},
+    {key:'characters',label:'Personagens'},
+    {key:'acting',label:'Atuação'},
+    {key:'visual',label:'Visual'},
+    {key:'ending',label:'Final'}
+  ];
+  var BINGEO_BADGES=[
+    '🏆 Melhor personagem',
+    '✨ Final perfeito',
+    '⚡ Maratonei sem parar',
+    '📉 Começou bem e desandou',
+    '🧠 Não sai da cabeça',
+    '🎬 Direção impecável',
+    '💔 Me destruiu',
+    '😂 Ri demais'
+  ];
+  function berryStage(value){return BERRY_STAGES.filter(function(b){return Number(b.value)===Number(value);})[0]||null;}
+  function ensureEvaluationExtras(entry){
+    if(!entry)return;
+    entry.criteriaRatings=entry.criteriaRatings&&typeof entry.criteriaRatings==='object'?entry.criteriaRatings:{};
+    entry.badges=Array.isArray(entry.badges)?entry.badges:[];
+    entry.spoilerLevel=entry.spoilerLevel||'none';
+  }
+  function criteriaSummaryHtml(criteria){
+    criteria=criteria||{};
+    return '<div class="criteria-summary">'+BINGEO_CRITERIA.map(function(item){
+      var s=berryStage(criteria[item.key]); if(!s)return '';
+      return '<span class="criteria-chip">'+s.emoji+' '+escapeHtml(item.label)+' — '+escapeHtml(s.name)+'</span>';
+    }).join('')+'</div>';
+  }
+  function badgesSummaryHtml(badges){
+    badges=Array.isArray(badges)?badges:[];
+    return badges.length?'<div class="criteria-summary">'+badges.map(function(b){return '<span class="badge-chip">'+escapeHtml(b)+'</span>';}).join('')+'</div>':'';
+  }
+  function criteriaEvaluationHtml(entry,catalogId){
+    ensureEvaluationExtras(entry);
+    var html='<div class="criteria-box"><div class="premium-title">DNA da sua avaliação</div><div style="font-size:10.5px;color:var(--text-dim);margin-top:3px;">Avalie o que realmente fez essa série funcionar — ou não.</div>';
+    BINGEO_CRITERIA.forEach(function(item){
+      html+='<div class="criteria-row"><div class="criteria-label">'+item.label+'</div><div class="criteria-buttons">'+BERRY_STAGES.map(function(s){
+        var active=Number(entry.criteriaRatings[item.key])===Number(s.value);
+        return '<button class="criteria-btn '+(active?'active':'')+'" data-action="criteria-value" data-catalog="'+catalogId+'" data-criterion="'+item.key+'" data-value="'+s.value+'" title="'+escapeHtml(s.name+' — '+s.desc)+'">'+s.emoji+'</button>';
+      }).join('')+'</div></div>';
+    });
+    html+='<div class="criteria-box"><div class="premium-title">Medalhas da experiência</div><div class="badge-picker">'+BINGEO_BADGES.map(function(b){
+      var active=entry.badges.indexOf(b)>-1;
+      return '<button class="badge-btn '+(active?'active':'')+'" data-action="toggle-badge" data-catalog="'+catalogId+'" data-badge="'+escapeHtml(b)+'">'+escapeHtml(b)+'</button>';
+    }).join('')+'</div></div>';
+    return html+'</div>';
+  }
+  function premiumEvaluationHtml(entry,catalogId){
+    ensureEvaluationExtras(entry);
+    var pr=entry.premiumRating||{format:'classic',value:null,reactions:[]};
+    var fmt=pr.format||'classic';
+    var html='<div class="premium-box pro"><div class="premium-header"><span class="premium-title">Avaliação Bingeo</span><span class="pro-badge">✦ PRO</span></div><div class="premium-format-row">';
+    ['classic','berry','reactions'].forEach(function(f){
+      var labels={classic:'Clássica',berry:'Amadurecimento da amora 🍇',reactions:'Reações'};
+      html+='<button class="premium-format-btn '+(fmt===f?'active':'')+'" data-action="premium-format" data-catalog="'+catalogId+'" data-format="'+f+'">'+labels[f]+'</button>';
+    });
+    html+='</div>';
+    if(fmt==='berry')html+=berryLabHtml(pr,catalogId);
+    else if(fmt==='reactions'){
+      var selected=Array.isArray(pr.reactions)?pr.reactions:[];
+      html+='<div class="reaction-row">'+REACTIONS.map(function(r){return '<button class="reaction-btn '+(selected.indexOf(r)>-1?'active':'')+'" data-action="premium-reaction" data-catalog="'+catalogId+'" data-reaction="'+r+'">'+r+'</button>';}).join('')+'</div><div style="margin-top:8px;color:var(--text-dim);font-size:11px;">Escolha uma ou mais reações para a sua avaliação.</div>';
+    }else html+='<div style="margin-top:9px;color:var(--text-muted);font-size:11.5px;line-height:1.45;">A nota tradicional continua disponível. Use o DNA da avaliação para explicar melhor o que funcionou.</div>';
+    html+=criteriaEvaluationHtml(entry,catalogId);
+    return html+'</div>';
+  }
+
+  function userEpisodeProgress(catalogId){
+    var max={season:0,episode:0};
+    state.diary.forEach(function(d){
+      if(d.catalogId!==catalogId||d.type!=='episode')return;
+      var s=Number(d.season)||0,e=Number(d.episode)||0;
+      if(s>max.season||(s===max.season&&e>max.episode))max={season:s,episode:e};
+    });
+    return max;
+  }
+  function spoilerKey(catalogId,review,index){return catalogId+'|'+index+'|'+(review.username||'')+'|'+(review.updated_at||'');}
+  function canViewCommunityReview(catalogId,review,index){
+    if(!review||review.spoiler_level==='none'||!review.spoiler_level)return true;
+    if(state.revealedSpoilers[spoilerKey(catalogId,review,index)])return true;
+    var entry=getEntry(catalogId);
+    if(entry&&entry.status==='completo')return true;
+    if(review.spoiler_level==='full')return false;
+    var p=userEpisodeProgress(catalogId),rs=Number(review.spoiler_season)||0,re=Number(review.spoiler_episode)||0;
+    return p.season>rs||(p.season===rs&&p.episode>=re);
+  }
+  function spoilerLabel(review){
+    if(!review||review.spoiler_level==='none'||!review.spoiler_level)return 'Sem spoilers';
+    if(review.spoiler_level==='full')return 'Spoilers da série completa';
+    return 'Spoilers até T'+(review.spoiler_season||'?')+'E'+(review.spoiler_episode||'?');
+  }
+  function communityReviewHtml(review,catalogId,index){
+    var unlocked=canViewCommunityReview(catalogId,review,index);
+    var rating=review.rating!=null?'★ '+Number(review.rating).toFixed(1):'Sem nota';
+    var top='<div class="community-review-top"><span class="community-review-user">@'+escapeHtml(review.username||'usuário')+'</span><span class="card-stars">'+rating+'</span></div>';
+    var tags=criteriaSummaryHtml(review.criteria_ratings)+badgesSummaryHtml(review.badges);
+    if(!unlocked){
+      return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta resenha está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'">Revelar mesmo assim</button></div></div>';
+    }
+    return '<div class="community-review">'+top+'<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">'+escapeHtml(spoilerLabel(review))+'</div><div class="community-review-text">'+escapeHtml(review.review||'')+'</div>'+tags+'</div>';
+  }
+  function seriesCommunityHtml(cat){
+    var data=state.seriesCommunity[cat.id];
+    if(state.communityLoading[cat.id]&&!data)return '<div class="series-community"><div class="tmdb-loading">Carregando comunidade Bingeo…</div></div>';
+    if(!data)return '<div class="series-community"><div class="community-title">Comunidade Bingeo</div><div style="font-size:12px;color:var(--text-muted);margin-top:5px;">As notas, resenhas e listas da comunidade aparecem aqui.</div></div>';
+    var dist=data.distribution||{},max=Math.max(1,Number(dist['1']||0),Number(dist['2']||0),Number(dist['3']||0),Number(dist['4']||0),Number(dist['5']||0));
+    var distHtml='<div class="rating-dist">'+[5,4,3,2,1].map(function(n){
+      var count=Number(dist[String(n)]||0),pct=(count/max)*100;
+      return '<span>'+n+'★</span><div class="rating-dist-track"><div class="rating-dist-fill" style="width:'+pct+'%"></div></div><span>'+count+'</span>';
+    }).join('')+'</div>';
+    var reviews=Array.isArray(data.top_reviews)?data.top_reviews:[];
+    var lists=Array.isArray(data.popular_lists)?data.popular_lists:[];
+    var html='<div class="series-community"><div class="community-head"><div><div class="community-title">Comunidade Bingeo</div><div style="font-size:10.5px;color:var(--text-dim);margin-top:2px;">O que a comunidade está achando</div></div><div class="community-score">'+(data.avg_rating!=null?Number(data.avg_rating).toFixed(1):'—')+' <small>/ 5 · '+Number(data.rating_count||0)+' avaliações</small></div></div>';
+    html+='<div class="community-stat-grid"><div class="community-stat"><strong>'+Number(data.watching_count||0)+'</strong><span>assistindo</span></div><div class="community-stat"><strong>'+Number(data.completed_count||0)+'</strong><span>concluíram</span></div><div class="community-stat"><strong>'+Number(data.abandoned_count||0)+'</strong><span>abandonaram</span></div></div>'+distHtml;
+    html+='<div class="community-subtitle">Top reviews</div>'+(reviews.length?reviews.map(function(rv,i){return communityReviewHtml(rv,cat.id,i);}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há resenhas públicas para esta série.</div>');
+    if(lists.length){
+      html+='<div class="community-subtitle">Listas populares com esta série</div><div class="community-list-row">'+lists.map(function(l){
+        return '<div class="community-list-card" data-action="open-public-list" data-slug="'+escapeHtml(l.share_slug||'')+'"><strong>'+escapeHtml(l.name||'Lista')+'</strong><span>por @'+escapeHtml(l.owner||'usuário')+' · '+Number(l.item_count||0)+' títulos</span></div>';
+      }).join('')+'</div>';
+    }
+    return html+'</div>';
+  }
+  async function loadSeriesCommunity(catalogId,rerender){
+    if(!catalogId||state.communityLoading[catalogId])return;
+    state.communityLoading[catalogId]=true;
+    try{
+      var result=await supabaseClient.rpc('get_series_community',{p_catalog_id:catalogId});
+      if(result.error)throw result.error;
+      state.seriesCommunity[catalogId]=result.data||{};
+    }catch(e){console.error('Erro ao carregar comunidade da série:',e);}
+    finally{
+      state.communityLoading[catalogId]=false;
+      if(rerender!==false&&state.modalCatalogId===catalogId)renderModalPreserveScroll();
+    }
+  }
 
   /* ---------------- modal ---------------- */
   function renderModal(){
@@ -1467,12 +1668,14 @@
     var td=cat.tmdbData||{}; var metaLine=[TYPE_LABELS[cat.type],(td.genres&&td.genres[0]&&td.genres[0].name)||cat.genre,(td.first_air_date?td.first_air_date.slice(0,4):cat.year),(td.networks&&td.networks[0]&&td.networks[0].name)||cat.platform].filter(Boolean).join(' · ');
 
     var tmdbInfo=(tmdbConfigured()&&cat.tmdbLoaded)?tmdbSeriesInfoHtml(cat):(tmdbConfigured()?'<div class="tmdb-loading">Carregando dados do TMDB…</div>':'');
+    var communityInfo=seriesCommunityHtml(cat);
     var body;
     if(!entry){
       body = (
         '<div class="modal-title">' + escapeHtml(cat.title) + '</div>' +
         '<div class="modal-sub">' + escapeHtml(metaLine) + '</div>' +
         tmdbInfo +
+        communityInfo +
         '<p style="color:var(--text-muted);font-size:13.5px;">Esse título ainda não está na sua estante.</p>' +
         '<button class="btn btn-primary" data-action="add-to-library" data-catalog="' + cat.id + '">Adicionar à minha estante</button>'
       );
@@ -1521,6 +1724,7 @@
         '<div class="modal-title">' + escapeHtml(cat.title) + '</div>' +
         '<div class="modal-sub">' + escapeHtml(metaLine) + '</div>' +
         tmdbInfo +
+        communityInfo +
 
         '<div class="field-group">' +
           '<label class="field-label">Status</label>' +
@@ -1553,7 +1757,12 @@
         '</div>' +
 
         '<div class="modal-section">' +
-          '<label class="field-label">Resenha</label>' +
+          '<label class="field-label">Resenha e spoilers</label>' +
+          '<div class="spoiler-controls">' +
+            '<select id="spoilerLevel"><option value="none" '+((entry.spoilerLevel||'none')==='none'?'selected':'')+'>Sem spoilers</option><option value="episode" '+(entry.spoilerLevel==='episode'?'selected':'')+'>Spoilers até episódio</option><option value="full" '+(entry.spoilerLevel==='full'?'selected':'')+'>Série completa</option></select>' +
+            '<input id="spoilerSeason" type="number" min="1" placeholder="Temp." value="'+(entry.spoilerSeason||'')+'" '+(entry.spoilerLevel==='episode'?'':'disabled')+'>' +
+            '<input id="spoilerEpisode" type="number" min="1" placeholder="Ep." value="'+(entry.spoilerEpisode||'')+'" '+(entry.spoilerLevel==='episode'?'':'disabled')+'>' +
+          '</div>' +
           '<textarea id="reviewText" placeholder="O que você achou?">' + escapeHtml(entry.review||'') + '</textarea>' +
           '<div style="margin-top:8px;" class="inline-actions">' +
             '<button class="btn btn-primary btn-sm" data-action="save-review" data-catalog="' + cat.id + '">Salvar resenha</button>' +
@@ -1563,7 +1772,7 @@
 
         '<div class="modal-footer">' +
           '<button class="btn btn-danger btn-sm" data-action="remove-entry" data-catalog="' + cat.id + '">Remover da estante</button>' +
-          '<button class="btn btn-ghost btn-sm" data-action="close-modal">Fechar</button>' +
+          '<div class="inline-actions"><button class="btn btn-ghost btn-sm" data-action="share-series" data-catalog="' + cat.id + '">Compartilhar série</button><button class="btn btn-ghost btn-sm" data-action="close-modal">Fechar</button></div>' +
         '</div>'
       );
     }
@@ -1660,6 +1869,14 @@
         syncEntryToSupabase(entry);
         renderMainViewOnly();
         renderModalPreserveScroll();
+      });
+    }
+    var spoilerLevelSel=document.getElementById('spoilerLevel');
+    if(spoilerLevelSel){
+      spoilerLevelSel.addEventListener('change',function(){
+        var enabled=spoilerLevelSel.value==='episode';
+        var ss=document.getElementById('spoilerSeason'),se=document.getElementById('spoilerEpisode');
+        if(ss)ss.disabled=!enabled;if(se)se.disabled=!enabled;
       });
     }
     var searchInput = document.getElementById('searchInput');
@@ -1771,7 +1988,7 @@
     if(!el) return;
     var action = el.dataset.action;
 
-    if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
+    if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
     else if(action==='close-modal' || action==='close-modal-bg'){
       if(action==='close-modal-bg' && e.target!==el) return;
       state.modalCatalogId = null; renderModal();
@@ -1821,6 +2038,7 @@
       syncEntryToSupabase(entry);
       renderMainViewOnly();
       renderModalPreserveScroll();
+      loadSeriesCommunity(entry.catalogId,false);
     }
     else if(action==='toggle-season'){
       var key=el.dataset.key; expandedSeasons[key]=!expandedSeasons[key]; renderModalPreserveScroll(); var sc=getCatalog(state.modalCatalogId),sn=parseInt(key.split('-').pop(),10); if(expandedSeasons[key]&&sc&&tmdbConfigured()){loadTmdbSeries(sc).then(function(){return loadTmdbSeason(sc,sn);}).then(function(){if(state.modalCatalogId===sc.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===sc.id)renderModalPreserveScroll();});}
@@ -1839,6 +2057,38 @@
     else if(action==='premium-reaction'){
       if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
       var epr=getEntry(el.dataset.catalog); if(!epr) return; epr.premiumRating=epr.premiumRating||{format:'reactions',value:null,reactions:[]}; epr.premiumRating.format='reactions'; epr.premiumRating.reactions=Array.isArray(epr.premiumRating.reactions)?epr.premiumRating.reactions:[]; var reaction=el.dataset.reaction,ri=epr.premiumRating.reactions.indexOf(reaction); if(ri>-1)epr.premiumRating.reactions.splice(ri,1);else epr.premiumRating.reactions.push(reaction); epr.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epr); bumpTrending(epr.catalogId); renderModalPreserveScroll();
+    }
+    else if(action==='criteria-value'){
+      if(!hasPro()){alert('O DNA da avaliação é exclusivo do Bingeo Pro.');return;}
+      var ce=getEntry(el.dataset.catalog);if(!ce)return;ensureEvaluationExtras(ce);
+      var ck=el.dataset.criterion,cv=Number(el.dataset.value);
+      ce.criteriaRatings[ck]=Number(ce.criteriaRatings[ck])===cv?null:cv;
+      ce.dateUpdated=new Date().toISOString();
+      saveData();syncEntryToSupabase(ce);renderModalPreserveScroll();loadSeriesCommunity(ce.catalogId,false);
+    }
+    else if(action==='toggle-badge'){
+      if(!hasPro()){alert('As medalhas são exclusivas do Bingeo Pro.');return;}
+      var be=getEntry(el.dataset.catalog);if(!be)return;ensureEvaluationExtras(be);
+      var badge=el.dataset.badge,bi=be.badges.indexOf(badge);
+      if(bi>-1)be.badges.splice(bi,1);else be.badges.push(badge);
+      be.dateUpdated=new Date().toISOString();
+      saveData();syncEntryToSupabase(be);renderModalPreserveScroll();loadSeriesCommunity(be.catalogId,false);
+    }
+    else if(action==='reveal-spoiler'){
+      var rvData=state.seriesCommunity[el.dataset.catalog];
+      var rvIndex=Number(el.dataset.reviewIndex)||0;
+      var rv=rvData&&rvData.top_reviews&&rvData.top_reviews[rvIndex];
+      if(rv){state.revealedSpoilers[spoilerKey(el.dataset.catalog,rv,rvIndex)]=true;renderModalPreserveScroll();}
+    }
+    else if(action==='share-series'){
+      var shareCat=getCatalog(el.dataset.catalog);
+      if(!shareCat||!shareCat.tmdbId){alert('Aguarde os dados oficiais da série carregarem.');return;}
+      var shareUrl=location.origin+'/serie/'+shareCat.tmdbId;
+      if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(shareUrl).then(function(){alert('Link da série copiado!');}).catch(function(){prompt('Copie o link:',shareUrl);});
+      else prompt('Copie o link:',shareUrl);
+    }
+    else if(action==='open-public-list'){
+      if(el.dataset.slug)location.href='/lista/'+encodeURIComponent(el.dataset.slug);
     }
     else if(action==='edit-profile'){ state.profile.editing=true; render(); }
     else if(action==='save-profile'){
@@ -1896,9 +2146,13 @@
       var ta = document.getElementById('reviewText');
       if(en4 && ta){
         en4.review = ta.value;
+        var sl=document.getElementById('spoilerLevel'),ss=document.getElementById('spoilerSeason'),se=document.getElementById('spoilerEpisode');
+        en4.spoilerLevel=sl?sl.value:'none';
+        en4.spoilerSeason=en4.spoilerLevel==='episode'&&ss&&ss.value?Number(ss.value):null;
+        en4.spoilerEpisode=en4.spoilerLevel==='episode'&&se&&se.value?Number(se.value):null;
         en4.dateUpdated=new Date().toISOString();
         if(ta.value.trim()) bumpTrending(en4.catalogId);
-        saveData(); syncEntryToSupabase(en4); renderMainViewOnly(); renderModalPreserveScroll();
+        saveData(); syncEntryToSupabase(en4); renderMainViewOnly(); renderModalPreserveScroll(); loadSeriesCommunity(en4.catalogId);
       }
     }
     else if(action==='delete-diary'){
