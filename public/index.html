@@ -3498,8 +3498,9 @@
       if(!searchInput.dataset.bingeoSearchBound){
         searchInput.dataset.bingeoSearchBound='1';
         searchInput.addEventListener('input',function(){
-          if(state.professionalOpen||state.userProfileOpen){
+          if(state.professionalOpen||state.userProfileOpen||state.characterOpen){
             state.professionalOpen=null;state.professionalData=null;state.professionalError='';state.professionalRoleTab=null;state.professionalHydrating=false;state.professionalLoading=false;
+            state.characterOpen=null;state.characterData=null;state.characterError='';state.characterLoading=false;
             state.userProfileOpen=null;state.userProfileData=null;state.userProfileError='';state.userProfileLoading=false;state.view='descobrir';
           }
           state.query=searchInput.value; var pos=searchInput.selectionStart; clearTimeout(tmdbSearchTimer);
@@ -3508,17 +3509,19 @@
               state.view='descobrir';state.listOpen=null;
               document.querySelectorAll('#navLinks .nav-link').forEach(function(btn){btn.classList.toggle('active',btn.dataset.view==='descobrir');});
             }
-            state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];state.tmdbPersonResults=[];state.userSearchResults=[];var req=++state.tmdbSearchRequest;
+            state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];state.tmdbPersonResults=[];state.characterSearchResults=[];state.userSearchResults=[];var req=++state.tmdbSearchRequest;
             var root=document.getElementById('viewRoot');root.innerHTML=viewDescobrir();
             tmdbSearchTimer=setTimeout(function(){
               var queryAtRequest=state.query.trim();
               var tvTask=tmdbConfigured()?tmdbSearchTV(queryAtRequest):Promise.resolve([]);
               var peopleTask=tmdbConfigured()?tmdbSearchPeople(queryAtRequest):Promise.resolve([]);
-              Promise.allSettled([tvTask,peopleTask,searchBingeoUsers(queryAtRequest)]).then(function(results){
+              var characterTask=searchBingeoCharacters(queryAtRequest);
+              Promise.allSettled([tvTask,peopleTask,characterTask,searchBingeoUsers(queryAtRequest)]).then(function(results){
                 if(req!==state.tmdbSearchRequest)return;
                 state.tmdbSearchResults=results[0].status==='fulfilled'?(results[0].value||[]):[];
                 state.tmdbPersonResults=results[1].status==='fulfilled'?(results[1].value||[]):[];
-                state.userSearchResults=results[2].status==='fulfilled'?(results[2].value||[]):[];
+                state.characterSearchResults=results[2].status==='fulfilled'?(results[2].value||[]):[];
+                state.userSearchResults=results[3].status==='fulfilled'?(results[3].value||[]):[];
                 var failures=results.filter(function(x){return x.status==='rejected';});
                 state.tmdbSearchError=failures.length===results.length?(failures[0].reason&&failures[0].reason.message||'Erro ao buscar.'):'';
                 state.tmdbSearchLoading=false;
@@ -3531,7 +3534,7 @@
             },350);
           }else{
             state.tmdbSearchRequest++;
-            state.tmdbSearchLoading=false;state.tmdbSearchResults=[];state.tmdbPersonResults=[];state.userSearchResults=[];state.tmdbSearchError='';
+            state.tmdbSearchLoading=false;state.tmdbSearchResults=[];state.tmdbPersonResults=[];state.characterSearchResults=[];state.userSearchResults=[];state.tmdbSearchError='';
             var r2=document.getElementById('viewRoot');
             if(state.view==='descobrir')r2.innerHTML=viewDescobrir();
             else if(state.view==='estante')r2.innerHTML=viewEstante();
