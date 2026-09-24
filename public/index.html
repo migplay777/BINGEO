@@ -1590,7 +1590,7 @@
   }
   async function indexCharactersFromLibrary(){
     if(!currentUserId||!tmdbConfigured())return;
-    var cats=state.entries.map(function(e){return getCatalog(e.catalogId);}).filter(function(cat){return cat&&cat.tmdbId;}).slice(0,12);
+    var cats=state.entries.map(function(e){return getCatalog(e.catalogId);}).filter(Boolean).slice(0,12);
     for(var i=0;i<cats.length;i+=3){
       if(!currentUserId)return;
       await Promise.allSettled(cats.slice(i,i+3).map(function(cat){return loadTmdbSeries(cat);}));
@@ -2211,6 +2211,20 @@
     if(v==='visual effects')return 'Efeitos visuais';
     return value||'Profissional';
   }
+  function professionalDepartmentFromRole(role,fallback){
+    var r=String(role||'');
+    if(r==='Atuação')return 'Acting';
+    if(r==='Direção')return 'Directing';
+    if(r==='Produção')return 'Production';
+    if(r==='Roteiro'||r==='Criação')return 'Writing';
+    if(r==='Edição')return 'Editing';
+    if(r==='Fotografia e câmera')return 'Camera';
+    if(r==='Som e música')return 'Sound';
+    if(r==='Arte')return 'Art';
+    if(r==='Figurino e maquiagem')return 'Costume & Make-Up';
+    if(r==='Efeitos visuais')return 'Visual Effects';
+    return fallback||'';
+  }
   function professionalRoleGroup(item,isCast){
     if(isCast)return 'Atuação';
     var job=String(item.job||''),dept=String(item.department||'');
@@ -2354,12 +2368,13 @@
     if(person.deathday)meta.push('Falecimento: '+person.deathday.split('-').reverse().join('/'));
     if(person.place_of_birth)meta.push(person.place_of_birth);
     var pg=professionalActiveGroup(person),groups=pg.groups,active=pg.active;
+    var favoriteDepartment=professionalDepartmentFromRole(active&&active.name,person.known_for_department||'');
     var html='<div class="professional-page"><button class="btn btn-ghost btn-sm professional-back" data-action="close-professional">← Voltar</button>'+
       '<section class="professional-hero"><div class="professional-photo" style="'+(photo?'background-image:url(\''+photo.replace(/'/g,'%27')+'\')':'')+'"></div>'+
       '<div class="professional-copy"><div style="font-size:11px;color:var(--violet);font-weight:800;text-transform:uppercase;letter-spacing:.08em;">Profissional</div>'+
       '<h1>'+escapeHtml(person.name||'Profissional')+'</h1><div class="professional-meta">'+meta.map(function(x){return '<span>'+escapeHtml(x)+'</span>';}).join('')+'</div>'+
       '<div class="professional-bio">'+escapeHtml(person.biography||'Biografia não disponível na TMDB em português no momento.')+'</div>'+
-      '<div class="character-actions"><button class="btn '+(isProfessionalFavorite(person.id)?'btn-primary':'btn-ghost')+' btn-sm" data-action="toggle-professional-favorite" data-person="'+person.id+'" data-name="'+escapeHtml(person.name||'Profissional')+'" data-profile="'+escapeHtml(person.profile_path||'')+'" data-department="'+escapeHtml(person.known_for_department||'')+'">'+(isProfessionalFavorite(person.id)?'♥ Profissional favorito':'♡ Favoritar profissional')+'</button></div></div></section>';
+      '<div class="character-actions"><button class="btn '+(isProfessionalFavorite(person.id)?'btn-primary':'btn-ghost')+' btn-sm" data-action="toggle-professional-favorite" data-person="'+person.id+'" data-name="'+escapeHtml(person.name||'Profissional')+'" data-profile="'+escapeHtml(person.profile_path||'')+'" data-department="'+escapeHtml(favoriteDepartment)+'">'+(isProfessionalFavorite(person.id)?'♥ Profissional favorito':'♡ Favoritar profissional')+'</button></div></div></section>';
     if(!groups.length){
       html+='<div class="empty"><strong>Nenhuma série encontrada.</strong>A TMDB não possui créditos de séries cadastrados para este profissional.</div>';
       return html+'</div>';
@@ -2881,11 +2896,13 @@
     data=data||{};var pros=Array.isArray(data.professionals)?data.professionals:[],chars=Array.isArray(data.characters)?data.characters:[];
     var actors=pros.filter(function(p){return professionalFavoriteGroup(p)==='actor';});
     var creators=pros.filter(function(p){return professionalFavoriteGroup(p)!=='actor';});
-    var html='';
-    if(actors.length)html+='<section class="people-favorites-section"><div class="people-favorites-title">Atores favoritos</div><div class="favorite-people-grid">'+actors.map(favoriteProfessionalCardHtml).join('')+'</div></section>';
-    if(creators.length)html+='<section class="people-favorites-section"><div class="people-favorites-title">Diretores/criadores favoritos</div><div class="favorite-people-grid">'+creators.map(favoriteProfessionalCardHtml).join('')+'</div></section>';
-    if(chars.length)html+='<section class="people-favorites-section"><div class="people-favorites-title">Personagens favoritos</div><div class="favorite-people-grid">'+chars.map(favoriteCharacterCardHtml).join('')+'</div></section>';
-    return html;
+    var empty=function(text){return '<div class="empty" style="padding:18px 14px;">'+escapeHtml(text)+'</div>';};
+    return '<section class="people-favorites-section"><div class="people-favorites-title">Atores favoritos</div>'+
+      (actors.length?'<div class="favorite-people-grid">'+actors.map(favoriteProfessionalCardHtml).join('')+'</div>':empty('Nenhum ator favoritado ainda.'))+'</section>'+
+      '<section class="people-favorites-section"><div class="people-favorites-title">Diretores/criadores favoritos</div>'+
+      (creators.length?'<div class="favorite-people-grid">'+creators.map(favoriteProfessionalCardHtml).join('')+'</div>':empty('Nenhum diretor ou criador favoritado ainda.'))+'</section>'+
+      '<section class="people-favorites-section"><div class="people-favorites-title">Personagens favoritos</div>'+
+      (chars.length?'<div class="favorite-people-grid">'+chars.map(favoriteCharacterCardHtml).join('')+'</div>':empty('Nenhum personagem favoritado ainda.'))+'</section>';
   }
 
   /* ---------------- view: perfil ---------------- */
@@ -3662,12 +3679,13 @@
     }
     else if(action==='toggle-professional-favorite'){
       var fpId=Number(el.dataset.person);if(!fpId)return;
-      var fp=(state.professionalData&&Number(state.professionalData.id)===fpId)?state.professionalData:{
+      var fp=(state.professionalData&&Number(state.professionalData.id)===fpId)?Object.assign({},state.professionalData):{
         id:fpId,
         name:el.dataset.name||'Profissional',
         profile_path:el.dataset.profile||null,
         known_for_department:el.dataset.department||''
       };
+      if(el.dataset.department)fp.known_for_department=el.dataset.department;
       el.disabled=true;
       toggleProfessionalFavorite(fp).catch(function(err){alert(err.message||'Não foi possível atualizar este favorito.');}).finally(function(){el.disabled=false;});
     }
