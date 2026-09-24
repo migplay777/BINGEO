@@ -4,6 +4,10 @@ const path = require('path');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const TMDB_READ_TOKEN = process.env.TMDB_READ_TOKEN;
+const THETVDB_API_KEY = process.env.THETVDB_API_KEY;
+const THETVDB_PIN = process.env.THETVDB_PIN || '';
+let theTvdbToken = null;
+let theTvdbTokenExpiresAt = 0;
 
 app.disable('x-powered-by');
 app.use(express.static(path.join(__dirname, 'public'), {
@@ -86,6 +90,104 @@ app.get(/^\/api\/tvmaze\/(.*)/, async (req, res) => {
   } catch (error) {
     console.error('Erro ao acessar TVmaze:', error);
     res.status(502).json({ error: 'Não foi possível acessar a TVmaze.' });
+  }
+});
+
+async function getTheTvdbToken(forceRefresh = false) {
+  if (!THETVDB_API_KEY) {
+    const error = new Error('TheTVDB não configurado no servidor.');
+    error.statusCode = 500;
+    throw error;
+  }
+
+  if (!forceRefresh && theTvdbToken && Date.now() < theTvdbTokenExpiresAt) {
+    return theTvdbToken;
+  }
+
+  const payload = { apikey: THETVDB_API_KEY };
+  if (THETVDB_PIN) payload.pin = THETVDB_PIN;
+
+  const response = await fetch('https://api4.thetvdb.com/v4/login', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'Bingeo/1.0'
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10000)
+  });
+
+  const body = await response.json().catch(() => null);
+  const token = body && body.data && body.data.token;
+
+  if (!response.ok || !token) {
+    const error = new Error(
+      (body && (body.message || body.error)) ||
+      'Não foi possível autenticar na TheTVDB.'
+    );
+    error.statusCode = response.status || 502;
+    throw error;
+  }
+
+  theTvdbToken = token;
+  // TheTVDB documents a one-month token lifetime. Refresh a little earlier.
+  theTvdbTokenExpiresAt = Date.now() + (27 * 24 * 60 * 60 * 1000);
+  return theTvdbToken;
+}
+
+async function fetchTheTvdb(url, forceRefresh = false) {
+  const token = await getTheTvdbToken(forceRefresh);
+  return fetch(url, {
+    headers: {
+      Authorization: 'Bearer ' + token,
+      Accept: 'application/json',
+      'User-Agent': 'Bingeo/1.0'
+    },
+    signal: AbortSignal.timeout(12000)
+  });
+}
+
+app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
+  if (!THETVDB_API_KEY) {
+    return res.status(503).json({ error: 'TheTVDB não configurado no servidor.' });
+  }
+
+  const tvdbPath = req.params[0] || '';
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(req.query)) {
+    if (Array.isArray(value)) value.forEach(v => query.append(key, v));
+    else if (value != null) query.append(key, value);
+  }
+
+  const url = 'https://api4.thetvdb.com/v4/' + tvdbPath +
+    (query.toString() ? '?' + query.toString() : '');
+
+  try {
+    let response = await fetchTheTvdb(url);
+
+    // Token can be revoked/expired before our local cache expires.
+    if (response.status === 401) {
+      theTvdbToken = null;
+      theTvdbTokenExpiresAt = 0;
+      response = await fetchTheTvdb(url, true);
+    }
+
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+
+    if (response.ok) {
+      res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao acessar TheTVDB:', error);
+    res.status(error.statusCode || 502).json({
+      error: error.message || 'Não foi possível acessar a TheTVDB.'
+    });
   }
 });
 
