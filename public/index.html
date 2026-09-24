@@ -740,6 +740,62 @@
     .user-view-head.with-banner{margin-top:-72px;}
   }
 
+
+  /* ---- favoritos de profissionais/personagens + páginas de personagem ---- */
+  .credit-person-wrap{display:inline-flex;align-items:center;gap:4px;margin:2px 4px 2px 0;}
+  .credit-fav-btn,.cast-fav-btn,.character-fav-mini{border:1px solid var(--line);background:rgba(15,16,22,.76);color:var(--text-muted);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:.15s ease;}
+  .credit-fav-btn{width:25px;height:25px;border-radius:999px;font-size:12px;}
+  .cast-fav-btn{position:absolute;top:7px;right:7px;width:28px;height:28px;border-radius:50%;z-index:3;backdrop-filter:blur(6px);}
+  .character-fav-mini{margin-top:7px;border-radius:999px;padding:4px 8px;font-size:9.5px;gap:4px;}
+  .credit-fav-btn.active,.cast-fav-btn.active,.character-fav-mini.active{color:#ff7f9d;border-color:rgba(255,127,157,.5);background:rgba(255,127,157,.12);}
+  .tmdb-person{position:relative;}
+  .tmdb-person-name[data-action],.tmdb-person-role[data-action]{cursor:pointer;}
+  .tmdb-person-name[data-action]:hover,.tmdb-person-role[data-action]:hover{text-decoration:underline;}
+
+  .people-favorites-section{margin:28px 0 4px;padding-top:22px;border-top:1px solid var(--line);}
+  .people-favorites-title{font:700 18px 'Space Grotesk',sans-serif;margin-bottom:13px;}
+  .favorite-people-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;}
+  .favorite-person-card,.favorite-character-card{border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s ease,border-color .15s ease;min-width:0;}
+  .favorite-person-card:hover,.favorite-character-card:hover{transform:translateY(-2px);border-color:var(--violet);}
+  .favorite-person-photo,.favorite-character-photo{aspect-ratio:4/5;background:#0d0f16 center/cover no-repeat;}
+  .favorite-person-copy,.favorite-character-copy{padding:10px;}
+  .favorite-person-name,.favorite-character-name{font:700 12.5px 'Space Grotesk',sans-serif;line-height:1.3;}
+  .favorite-person-role,.favorite-character-meta{font-size:10px;color:var(--text-muted);margin-top:4px;line-height:1.35;}
+
+  .character-search-wrap{margin:0 0 28px;}
+  .character-search-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+  .character-search-card{display:grid;grid-template-columns:76px minmax(0,1fr);min-height:106px;border:1px solid var(--line);background:var(--panel);border-radius:12px;overflow:hidden;cursor:pointer;transition:transform .15s ease,border-color .15s ease;}
+  .character-search-card:hover{transform:translateY(-2px);border-color:var(--violet);}
+  .character-search-photo{background:#0d0f16 center/cover no-repeat;}
+  .character-search-body{padding:11px;min-width:0;}
+  .character-search-name{font:700 13px 'Space Grotesk',sans-serif;}
+  .character-search-series{font-size:10.5px;color:var(--violet);margin-top:5px;}
+  .character-search-actor{font-size:10px;color:var(--text-muted);margin-top:3px;}
+
+  .character-page{padding-bottom:50px;}
+  .character-back{margin-bottom:16px;}
+  .character-banner{width:100vw;height:44vh;min-height:300px;max-height:620px;margin-left:calc((100% - 100vw)/2);margin-right:calc((100% - 100vw)/2);position:relative;background:#101119 center/cover no-repeat;overflow:hidden;}
+  .character-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,16,.05),rgba(10,11,16,.12) 42%,rgba(10,11,16,.62) 76%,var(--bg) 100%);}
+  .character-hero{display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:end;position:relative;margin-top:-138px;z-index:2;padding:0 4px 18px;}
+  .character-portrait{width:190px;aspect-ratio:4/5;border-radius:14px;background:#0d0f16 center/cover no-repeat;border:3px solid var(--bg);box-shadow:0 18px 46px rgba(0,0,0,.42);}
+  .character-copy{padding-bottom:8px;}
+  .character-kicker{font-size:10px;color:var(--violet);font-weight:800;text-transform:uppercase;letter-spacing:.1em;}
+  .character-name{font:700 clamp(28px,4vw,48px) 'Space Grotesk',sans-serif;letter-spacing:-.035em;margin:5px 0 7px;}
+  .character-sub{font-size:13px;color:var(--text-muted);line-height:1.5;}
+  .character-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .character-about{margin-top:24px;padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel);}
+  .character-about h2{font:700 18px 'Space Grotesk',sans-serif;margin:0 0 9px;}
+  .character-about p{font-size:12.5px;color:var(--text-muted);line-height:1.65;margin:0;}
+  .character-source-note{margin-top:10px;font-size:10px;color:var(--text-dim);}
+  @media(max-width:700px){
+    .favorite-people-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+    .character-search-row{grid-template-columns:1fr;}
+    .character-banner{height:36vh;min-height:250px;}
+    .character-hero{grid-template-columns:112px minmax(0,1fr);gap:14px;margin-top:-88px;}
+    .character-portrait{width:112px;border-radius:11px;}
+    .character-name{font-size:26px;}
+  }
+
 </style>
 </head>
 <body>
@@ -2110,9 +2166,27 @@
   }
   async function loadTmdbSeries(cat,force){if(!tmdbConfigured())return null;if(cat.tmdbLoaded&&!force)return cat.tmdbData;if(tmdbHydrationPromises[cat.id]&&!force)return tmdbHydrationPromises[cat.id];tmdbHydrationPromises[cat.id]=(async function(){var found;if(cat.tmdbId)found={id:cat.tmdbId};else{var sr=await tmdbSearchTV(cat.title);found=chooseTmdbMatch(sr,cat);if(!found)throw new Error('Série não encontrada na TMDB.');}var details=tmdbCacheGet('series:'+found.id,86400000);if(!details){details=await tmdbFetch('/tv/'+found.id,{language:'pt-BR',append_to_response:'aggregate_credits'});tmdbCacheSet('series:'+found.id,details);}cat.tmdbId=details.id;cat.tmdbData=details;cat.tmdbLoaded=true;cat.tmdbError='';cat.poster_path=details.poster_path||cat.poster_path||null;cat.backdrop_path=details.backdrop_path||cat.backdrop_path||null;cat.overview=details.overview||cat.overview||'';cat.tmdbData=details;cat.genre=(details.genres&&details.genres[0]&&details.genres[0].name)||cat.genre||'Série';cat.year=parseInt((details.first_air_date||'').slice(0,4),10)||cat.year||null;cat.platform=(details.networks&&details.networks[0]&&details.networks[0].name)||cat.platform||'';if(Array.isArray(details.seasons))cat.seasons=details.seasons.filter(function(se){return Number(se.season_number)>0;}).map(function(se){return Number(se.episode_count)||0;});cat.tmdbSeasons=cat.tmdbSeasons||{};indexSeriesCharacters(cat,details);return details;})().catch(function(err){cat.tmdbLoaded=false;cat.tmdbError=err.message||'Erro ao carregar TMDB';throw err;}).finally(function(){delete tmdbHydrationPromises[cat.id];});return tmdbHydrationPromises[cat.id];}
   async function loadTmdbSeason(cat,seasonNum){if(!tmdbConfigured()||!cat.tmdbId)return null;cat.tmdbSeasons=cat.tmdbSeasons||{};if(cat.tmdbSeasons[seasonNum])return cat.tmdbSeasons[seasonNum];var key='season:'+cat.tmdbId+':'+seasonNum,cached=tmdbCacheGet(key,86400000);if(cached){cat.tmdbSeasons[seasonNum]=cached;return cached;}var data=await tmdbFetch('/tv/'+cat.tmdbId+'/season/'+seasonNum,{language:'pt-BR'});cat.tmdbSeasons[seasonNum]=data;tmdbCacheSet(key,data);return data;}
-  function tmdbCastHtml(credits){var cast=(credits&&credits.cast||[]).slice(0,12);if(!cast.length)return '<span style="color:var(--text-dim);font-size:12px;">Elenco não disponível.</span>';return '<div class="tmdb-people-row">'+cast.map(function(p){var img=tmdbImageUrl(p.profile_path,'w185');return '<div class="tmdb-person" data-action="open-professional" data-person="'+p.id+'">'+(img?'<img src="'+img+'" alt="" loading="lazy">':'<div class="tmdb-person-placeholder">•</div>')+'<span class="tmdb-person-name">'+escapeHtml(p.name||'')+'</span><span class="tmdb-person-role">'+escapeHtml(p.character||'')+'</span></div>';}).join('')+'</div>';}
-  function tmdbCrewChips(crew,department,jobMatcher){var list=[];(crew||[]).forEach(function(p){if(department&&p.department!==department)return;var jobs=(p.jobs||[]).map(function(j){return j.job||'';}),job=p.job||'';if(jobMatcher&&!jobMatcher(job,jobs))return;if(!list.some(function(x){return x.id===p.id;}))list.push(p);});return list.slice(0,12).map(function(p){return '<span class="tmdb-credit-chip" data-action="open-professional" data-person="'+p.id+'">'+escapeHtml(p.name||'')+'</span>';}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';}
-  function tmdbSeriesInfoHtml(cat){if(!tmdbConfigured())return '';if(!cat.tmdbLoaded){return '<div class="tmdb-loading">Carregando dados oficiais da TMDB…</div>';}var d=cat.tmdbData||{},credits=d.aggregate_credits||{},overview=d.overview||'Sinopse não disponível.';var creators=(d.created_by||[]).map(function(p){return '<span class="tmdb-credit-chip" data-action="open-professional" data-person="'+p.id+'">'+escapeHtml(p.name||'')+'</span>';}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';var directors=tmdbCrewChips(credits.crew,'Directing',function(job,jobs){return /director/i.test(job)||jobs.some(function(x){return /director/i.test(x);});});var writers=tmdbCrewChips(credits.crew,'Writing',function(job,jobs){return /writer|screenplay|teleplay/i.test(job)||jobs.some(function(x){return /writer|screenplay|teleplay/i.test(x);});});var producers=tmdbCrewChips(credits.crew,'Production',function(job,jobs){return /producer/i.test(job)||jobs.some(function(x){return /producer/i.test(x);});});return '<div class="tmdb-series-header"><div class="tmdb-series-poster" style="'+posterBackgroundStyle(cat,'w500')+'"></div><div class="tmdb-series-copy"><div class="modal-title">'+escapeHtml(d.name||cat.title)+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+escapeHtml([d.first_air_date?d.first_air_date.slice(0,4):'',d.number_of_seasons?d.number_of_seasons+' temporadas':'',d.number_of_episodes?d.number_of_episodes+' episódios':''].filter(Boolean).join(' · '))+'</div><p class="tmdb-overview">'+escapeHtml(overview)+'</p></div></div><div class="tmdb-credit-grid"><div class="tmdb-credit-block"><h4>Criador(es)</h4><div class="tmdb-credit-list">'+creators+'</div></div><div class="tmdb-credit-block"><h4>Direção</h4><div class="tmdb-credit-list">'+directors+'</div></div><div class="tmdb-credit-block"><h4>Roteiro</h4><div class="tmdb-credit-list">'+writers+'</div></div><div class="tmdb-credit-block"><h4>Produção</h4><div class="tmdb-credit-list">'+producers+'</div></div><div class="tmdb-credit-block"><h4>Elenco principal</h4>'+tmdbCastHtml(credits)+'</div></div>';}
+  function professionalCreditFavoriteHtml(p,department){
+    var fav=isProfessionalFavorite(p.id);
+    return '<span class="credit-person-wrap"><span class="tmdb-credit-chip" data-action="open-professional" data-person="'+p.id+'">'+escapeHtml(p.name||'')+'</span>'+
+      '<button class="credit-fav-btn '+(fav?'active':'')+'" data-action="toggle-professional-favorite" data-person="'+p.id+'" data-name="'+escapeHtml(p.name||'Profissional')+'" data-profile="'+escapeHtml(p.profile_path||'')+'" data-department="'+escapeHtml(p.known_for_department||department||'')+'" title="'+(fav?'Remover dos favoritos':'Favoritar profissional')+'">'+(fav?'♥':'♡')+'</button></span>';
+  }
+  function tmdbCastHtml(cat,credits){
+    var cast=(credits&&credits.cast||[]).slice(0,12);if(!cast.length)return '<span style="color:var(--text-dim);font-size:12px;">Elenco não disponível.</span>';
+    return '<div class="tmdb-people-row">'+cast.map(function(p){
+      var img=tmdbImageUrl(p.profile_path,'w185'),roles=characterRolesForCast(p),role=roles[0]||null,ch=role?characterRowFromCast(cat,p,role):null;
+      var fav=isProfessionalFavorite(p.id),charFav=ch&&isCharacterFavorite(ch.character_key);
+      return '<div class="tmdb-person" '+(ch?'data-action="open-character" data-character="'+escapeHtml(ch.character_key)+'"':'data-action="open-professional" data-person="'+p.id+'"')+'>'+
+        '<button class="cast-fav-btn '+(fav?'active':'')+'" data-action="toggle-professional-favorite" data-person="'+p.id+'" data-name="'+escapeHtml(p.name||'Profissional')+'" data-profile="'+escapeHtml(p.profile_path||'')+'" data-department="Acting" title="'+(fav?'Remover ator dos favoritos':'Favoritar ator')+'">'+(fav?'♥':'♡')+'</button>'+
+        (img?'<img src="'+img+'" alt="" loading="lazy">':'<div class="tmdb-person-placeholder">•</div>')+
+        '<span class="tmdb-person-name" data-action="open-professional" data-person="'+p.id+'">'+escapeHtml(p.name||'')+'</span>'+
+        '<span class="tmdb-person-role" '+(ch?'data-action="open-character" data-character="'+escapeHtml(ch.character_key)+'"':'')+'>'+escapeHtml(role&&role.character||'Personagem não informado')+'</span>'+
+        (ch?'<button class="character-fav-mini '+(charFav?'active':'')+'" data-action="toggle-character-favorite" data-character="'+escapeHtml(ch.character_key)+'">'+(charFav?'♥ Personagem favorito':'♡ Favoritar personagem')+'</button>':'')+
+      '</div>';
+    }).join('')+'</div>';
+  }
+  function tmdbCrewChips(crew,department,jobMatcher){var list=[];(crew||[]).forEach(function(p){if(department&&p.department!==department)return;var jobs=(p.jobs||[]).map(function(j){return j.job||'';}),job=p.job||'';if(jobMatcher&&!jobMatcher(job,jobs))return;if(!list.some(function(x){return x.id===p.id;}))list.push(p);});return list.slice(0,12).map(function(p){return professionalCreditFavoriteHtml(p,department);}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';}
+  function tmdbSeriesInfoHtml(cat){if(!tmdbConfigured())return '';if(!cat.tmdbLoaded){return '<div class="tmdb-loading">Carregando dados oficiais da TMDB…</div>';}var d=cat.tmdbData||{},credits=d.aggregate_credits||{},overview=d.overview||'Sinopse não disponível.';var creators=(d.created_by||[]).map(function(p){return professionalCreditFavoriteHtml(p,'Writing');}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';var directors=tmdbCrewChips(credits.crew,'Directing',function(job,jobs){return /director/i.test(job)||jobs.some(function(x){return /director/i.test(x);});});var writers=tmdbCrewChips(credits.crew,'Writing',function(job,jobs){return /writer|screenplay|teleplay/i.test(job)||jobs.some(function(x){return /writer|screenplay|teleplay/i.test(x);});});var producers=tmdbCrewChips(credits.crew,'Production',function(job,jobs){return /producer/i.test(job)||jobs.some(function(x){return /producer/i.test(x);});});return '<div class="tmdb-series-header"><div class="tmdb-series-poster" style="'+posterBackgroundStyle(cat,'w500')+'"></div><div class="tmdb-series-copy"><div class="modal-title">'+escapeHtml(d.name||cat.title)+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+escapeHtml([d.first_air_date?d.first_air_date.slice(0,4):'',d.number_of_seasons?d.number_of_seasons+' temporadas':'',d.number_of_episodes?d.number_of_episodes+' episódios':''].filter(Boolean).join(' · '))+'</div><p class="tmdb-overview">'+escapeHtml(overview)+'</p></div></div><div class="tmdb-credit-grid"><div class="tmdb-credit-block"><h4>Criador(es)</h4><div class="tmdb-credit-list">'+creators+'</div></div><div class="tmdb-credit-block"><h4>Direção</h4><div class="tmdb-credit-list">'+directors+'</div></div><div class="tmdb-credit-block"><h4>Roteiro</h4><div class="tmdb-credit-list">'+writers+'</div></div><div class="tmdb-credit-block"><h4>Produção</h4><div class="tmdb-credit-list">'+producers+'</div></div><div class="tmdb-credit-block"><h4>Elenco principal</h4>'+tmdbCastHtml(credits)+'</div></div>';}
   function professionalDepartmentLabel(value){
     var v=String(value||'').toLowerCase();
     if(v==='acting')return 'Atuação';
@@ -2274,7 +2348,8 @@
       '<section class="professional-hero"><div class="professional-photo" style="'+(photo?'background-image:url(\''+photo.replace(/'/g,'%27')+'\')':'')+'"></div>'+
       '<div class="professional-copy"><div style="font-size:11px;color:var(--violet);font-weight:800;text-transform:uppercase;letter-spacing:.08em;">Profissional</div>'+
       '<h1>'+escapeHtml(person.name||'Profissional')+'</h1><div class="professional-meta">'+meta.map(function(x){return '<span>'+escapeHtml(x)+'</span>';}).join('')+'</div>'+
-      '<div class="professional-bio">'+escapeHtml(person.biography||'Biografia não disponível na TMDB em português no momento.')+'</div></div></section>';
+      '<div class="professional-bio">'+escapeHtml(person.biography||'Biografia não disponível na TMDB em português no momento.')+'</div>'+
+      '<div class="character-actions"><button class="btn '+(isProfessionalFavorite(person.id)?'btn-primary':'btn-ghost')+' btn-sm" data-action="toggle-professional-favorite" data-person="'+person.id+'" data-name="'+escapeHtml(person.name||'Profissional')+'" data-profile="'+escapeHtml(person.profile_path||'')+'" data-department="'+escapeHtml(person.known_for_department||'')+'">'+(isProfessionalFavorite(person.id)?'♥ Profissional favorito':'♡ Favoritar profissional')+'</button></div></div></section>';
     if(!groups.length){
       html+='<div class="empty"><strong>Nenhuma série encontrada.</strong>A TMDB não possui créditos de séries cadastrados para este profissional.</div>';
       return html+'</div>';
@@ -2718,6 +2793,35 @@
     }
   }
 
+  function professionalFavoriteGroup(p){
+    return String(p&&p.known_for_department||'').toLowerCase()==='acting'?'actor':'creator';
+  }
+  function favoriteProfessionalCardHtml(p){
+    var img=tmdbImageUrl(p.profile_path,'w342');
+    return '<div class="favorite-person-card" data-action="open-professional" data-person="'+Number(p.person_id)+'">'+
+      '<div class="favorite-person-photo" style="'+(img?'background-image:url(\''+img.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+      '<div class="favorite-person-copy"><div class="favorite-person-name">'+escapeHtml(p.name||'Profissional')+'</div>'+
+      '<div class="favorite-person-role">'+escapeHtml(professionalDepartmentLabel(p.known_for_department||'Profissional'))+'</div></div></div>';
+  }
+  function favoriteCharacterCardHtml(ch){
+    var img=tmdbImageUrl(ch.profile_path,'w342')||tmdbImageUrl(ch.series_poster_path,'w342');
+    characterLocalCache[ch.character_key]=ch;
+    return '<div class="favorite-character-card" data-action="open-character" data-character="'+escapeHtml(ch.character_key)+'">'+
+      '<div class="favorite-character-photo" style="'+(img?'background-image:url(\''+img.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+      '<div class="favorite-character-copy"><div class="favorite-character-name">'+escapeHtml(ch.character_name||'Personagem')+'</div>'+
+      '<div class="favorite-character-meta">'+escapeHtml(ch.tv_name||'Série')+' · '+escapeHtml(ch.actor_name||'')+'</div></div></div>';
+  }
+  function peopleFavoritesSectionsHtml(data){
+    data=data||{};var pros=Array.isArray(data.professionals)?data.professionals:[],chars=Array.isArray(data.characters)?data.characters:[];
+    var actors=pros.filter(function(p){return professionalFavoriteGroup(p)==='actor';});
+    var creators=pros.filter(function(p){return professionalFavoriteGroup(p)!=='actor';});
+    var html='';
+    if(actors.length)html+='<section class="people-favorites-section"><div class="people-favorites-title">Atores favoritos</div><div class="favorite-people-grid">'+actors.map(favoriteProfessionalCardHtml).join('')+'</div></section>';
+    if(creators.length)html+='<section class="people-favorites-section"><div class="people-favorites-title">Diretores/criadores favoritos</div><div class="favorite-people-grid">'+creators.map(favoriteProfessionalCardHtml).join('')+'</div></section>';
+    if(chars.length)html+='<section class="people-favorites-section"><div class="people-favorites-title">Personagens favoritos</div><div class="favorite-people-grid">'+chars.map(favoriteCharacterCardHtml).join('')+'</div></section>';
+    return html;
+  }
+
   /* ---------------- view: perfil ---------------- */
   function viewPerfil(){
     var initials = state.profile.username ? state.profile.username.trim().charAt(0).toUpperCase() : '?';
@@ -2809,6 +2913,7 @@
       '</div>';
     }
     html += '</div>';
+    html += peopleFavoritesSectionsHtml({professionals:state.favoriteProfessionals,characters:state.favoriteCharacters});
 
     if(state.entries.length===0){
       html += '<div class="empty"><strong>Ainda sem dados suficientes.</strong>Adicione e avalie títulos para ver suas estatísticas aqui.</div>';
