@@ -1610,7 +1610,7 @@
     if(!tmdbPerson||!role||!Array.isArray(tvmazeCast))return null;
     var actor=normalizeCreditName(tmdbPerson.name),target=normalizeCharacterName(role.character);
     if(!target)return null;
-    var best=null,bestScore=0,ties=0;
+    var best=null,bestScore=0;
     tvmazeCast.forEach(function(item){
       var mazeCharacter=item&&item.character&&item.character.name||'';
       var nameScore=characterNameScore(target,mazeCharacter);
@@ -1618,12 +1618,11 @@
       var score=nameScore;
       if(actor&&normalizeCreditName(item&&item.person&&item.person.name)===actor)score+=55;
       if(safeTvmazeImage(item&&item.character&&item.character.image&&(item.character.image.original||item.character.image.medium)))score+=18;
-      if(score>bestScore){best=item;bestScore=score;ties=0;}
-      else if(score===bestScore){ties++;}
+      if(score>bestScore){best=item;bestScore=score;}
     });
-    // A strong exact/fuzzy character-name match is safe even when the voice actor
-    // is stored in a different script or represents another dub.
-    return bestScore>=85&&ties===0?best:null;
+    // A strong character-name match is enough even when another dub, child/adult
+    // performer, or native-script credit makes the actor names different.
+    return bestScore>=85?best:null;
   }
   async function resolveTheTvdbSeriesId(details){
     if(!details)return 0;
@@ -1675,7 +1674,7 @@
     if(!tmdbPerson||!role||!Array.isArray(tvdbCharacters))return null;
     var actor=normalizeCreditName(tmdbPerson.name),target=normalizeCharacterName(role.character);
     if(!target)return null;
-    var best=null,bestScore=0,ties=0;
+    var best=null,bestScore=0;
     tvdbCharacters.forEach(function(item){
       var names=characterAliasNames(item),nameScore=0;
       names.forEach(function(name){nameScore=Math.max(nameScore,characterNameScore(target,name));});
@@ -1685,10 +1684,9 @@
       if(item&&item.isFeatured)score+=12;
       if(safeTheTvdbImage(item&&item.image))score+=20;
       if(Number(item&&item.sort)>=0)score+=Math.max(0,8-Math.min(8,Number(item.sort||0)));
-      if(score>bestScore){best=item;bestScore=score;ties=0;}
-      else if(score===bestScore){ties++;}
+      if(score>bestScore){best=item;bestScore=score;}
     });
-    return bestScore>=85&&ties===0?best:null;
+    return bestScore>=85?best:null;
   }
   function tvdbArtworkScore(art,landscape){
     if(!art||!safeTheTvdbImage(art.image))return -Infinity;
