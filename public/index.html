@@ -774,7 +774,7 @@
 
   .character-page{padding-bottom:50px;}
   .character-back{margin-bottom:16px;}
-  .character-banner{width:100vw;height:44vh;min-height:300px;max-height:620px;margin-left:calc((100% - 100vw)/2);margin-right:calc((100% - 100vw)/2);position:relative;background:#101119 center/cover no-repeat;overflow:hidden;}
+  .character-banner{width:100vw;height:48vh;min-height:330px;max-height:680px;margin-left:calc((100% - 100vw)/2);margin-right:calc((100% - 100vw)/2);position:relative;background:#101119 center 34%/cover no-repeat;overflow:hidden;filter:saturate(1.04) contrast(1.02);}
   .character-banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,11,16,.05),rgba(10,11,16,.12) 42%,rgba(10,11,16,.62) 76%,var(--bg) 100%);}
   .character-hero{display:grid;grid-template-columns:190px minmax(0,1fr);gap:24px;align-items:end;position:relative;margin-top:-138px;z-index:2;padding:0 4px 18px;}
   .character-portrait{width:190px;aspect-ratio:4/5;border-radius:14px;background:#0d0f16 center/cover no-repeat;border:3px solid var(--bg);box-shadow:0 18px 46px rgba(0,0,0,.42);}
@@ -1572,7 +1572,12 @@
       episode_count:Number(role.episode_count||p.total_episode_count||0),
       tvmaze_character_id:null,
       tvmaze_show_id:null,
-      character_image_url:null
+      character_image_url:null,
+      tvdb_character_id:null,
+      tvdb_series_id:null,
+      tvdb_character_image_url:null,
+      character_banner_url:null,
+      character_image_source:null
     };
     characterLocalCache[row.character_key]=row;
     return row;
@@ -1619,30 +1624,119 @@
     });
     return characterMatches.length===1?characterMatches[0]:null;
   }
+  async function getTheTvdbSeriesExtended(details){
+    var tvdbId=Number(details&&details.external_ids&&details.external_ids.tvdb_id)||0;
+    if(!tvdbId)return null;
+    var key='thetvdb-series:'+tvdbId,cached=tmdbCacheGet(key,604800000);
+    if(cached)return cached;
+    var response=await theTvdbFetch('series/'+tvdbId+'/extended',{short:'false'});
+    var data=response&&response.data||null;
+    if(data)tmdbCacheSet(key,data);
+    return data;
+  }
+  function findTheTvdbCharacterMatch(tmdbPerson,role,tvdbCharacters){
+    if(!tmdbPerson||!role||!Array.isArray(tvdbCharacters))return null;
+    var actor=normalizeCreditName(tmdbPerson.name),character=normalizeCreditName(role.character);
+    if(!actor||!character)return null;
+    var exact=tvdbCharacters.find(function(item){
+      return normalizeCreditName(item&&item.personName)===actor &&
+        normalizeCreditName(item&&item.name)===character;
+    });
+    if(exact)return exact;
+    var actorMatches=tvdbCharacters.filter(function(item){
+      return normalizeCreditName(item&&item.personName)===actor;
+    });
+    var fuzzy=actorMatches.filter(function(item){
+      var n=normalizeCreditName(item&&item.name);
+      return n&&character&&(n.indexOf(character)>-1||character.indexOf(n)>-1);
+    });
+    if(fuzzy.length===1)return fuzzy[0];
+    if(actorMatches.length===1)return actorMatches[0];
+    return null;
+  }
+  function tvdbArtworkScore(art,landscape){
+    if(!art||!safeTheTvdbImage(art.image))return -Infinity;
+    var w=Number(art.width||0),h=Number(art.height||0);
+    if(w&&h){
+      var ratio=w/h;
+      if(landscape&&ratio<1.35)return -Infinity;
+      if(!landscape&&ratio>1.05)return -Infinity;
+    }
+    var score=Number(art.score||0)*100;
+    score+=Math.min(80,(w*h)/250000);
+    if(art.includesText===false)score+=12;
+    if(art.language==='eng'||!art.language)score+=3;
+    return score;
+  }
+  function bestTheTvdbCharacterArtwork(character,artworks,landscape){
+    if(!character||!Array.isArray(artworks))return '';
+    var matches=artworks.filter(function(art){
+      return Number(art.seriesPeopleId||0)===Number(character.id||0) ||
+        (character.peopleId&&Number(art.peopleId||0)===Number(character.peopleId));
+    });
+    var best=null,bestScore=-Infinity;
+    matches.forEach(function(art){
+      var score=tvdbArtworkScore(art,landscape);
+      if(score>bestScore){best=art;bestScore=score;}
+    });
+    return best?safeTheTvdbImage(best.image):'';
+  }
+  function enrichRowFromTheTvdb(row,tvdbCharacter,tvdbSeries){
+    if(!row||!tvdbCharacter||!tvdbSeries)return row;
+    var artworks=Array.isArray(tvdbSeries.artworks)?tvdbSeries.artworks:[];
+    var rolePortrait=bestTheTvdbCharacterArtwork(tvdbCharacter,artworks,false);
+    var roleBanner=bestTheTvdbCharacterArtwork(tvdbCharacter,artworks,true);
+    var officialCharacterImage=safeTheTvdbImage(tvdbCharacter.image);
+    row.tvdb_character_id=Number(tvdbCharacter.id)||null;
+    row.tvdb_series_id=Number(tvdbSeries.id)||Number(tvdbCharacter.seriesId)||null;
+    row.tvdb_character_image_url=rolePortrait||officialCharacterImage||null;
+    row.character_banner_url=roleBanner||null;
+    if(!row.character_image_url&&row.tvdb_character_image_url)row.character_image_source='thetvdb';
+    return row;
+  }
   async function indexSeriesCharacters(cat,details){
     if(!currentUserId||!cat||!cat.tmdbId||!details||cat.charactersIndexed)return;
     var cast=details.aggregate_credits&&Array.isArray(details.aggregate_credits.cast)?details.aggregate_credits.cast:[];
-    var tvmazeShow=null,tvmazeCast=[];
+    var tvmazeShow=null,tvmazeCast=[],tvdbSeries=null,tvdbCharacters=[];
+
     try{
       tvmazeShow=await findTvmazeShowForTmdb(details);
       if(tvmazeShow&&tvmazeShow.id)tvmazeCast=await getTvmazeCast(tvmazeShow.id);
     }catch(e){console.warn('TVmaze indisponível para esta série:',e);}
+
+    // TheTVDB is loaded as a fallback source, and also supplies role-specific
+    // landscape artwork when available.
+    try{
+      tvdbSeries=await getTheTvdbSeriesExtended(details);
+      tvdbCharacters=tvdbSeries&&Array.isArray(tvdbSeries.characters)?tvdbSeries.characters:[];
+    }catch(e){console.warn('TheTVDB indisponível para esta série:',e);}
+
     var rows=[];
     cast.slice(0,80).forEach(function(p){
       characterRolesForCast(p).slice(0,4).forEach(function(role){
         var row=characterRowFromCast(cat,p,role);if(!row)return;
+
+        // 1) TVmaze remains the first source for a dedicated character portrait.
         var maze=findTvmazeCharacterMatch(p,role,tvmazeCast);
         if(maze&&maze.character){
           row.tvmaze_character_id=Number(maze.character.id)||null;
           row.tvmaze_show_id=tvmazeShow&&Number(tvmazeShow.id)||null;
           row.character_image_url=safeTvmazeImage(maze.character.image&&(maze.character.image.original||maze.character.image.medium));
+          if(row.character_image_url)row.character_image_source='tvmaze';
         }else if(tvmazeShow&&tvmazeShow.id){
           row.tvmaze_show_id=Number(tvmazeShow.id);
         }
+
+        // 2) If TVmaze has no dedicated character portrait, TheTVDB is the fallback.
+        // TheTVDB may also have a role-specific landscape artwork suitable for the banner.
+        var tvdbCharacter=findTheTvdbCharacterMatch(p,role,tvdbCharacters);
+        if(tvdbCharacter)enrichRowFromTheTvdb(row,tvdbCharacter,tvdbSeries);
+
         characterLocalCache[row.character_key]=row;
         rows.push(row);
       });
     });
+
     if(!rows.length){cat.charactersIndexed=true;return;}
     try{
       var result=await supabaseClient.rpc('index_bingeo_characters',{p_rows:rows});
@@ -1760,7 +1854,17 @@
       var result=await supabaseClient.rpc('get_bingeo_character',{p_character_key:characterKey});
       if(result.error)throw result.error;
       if(state.characterOpen!==characterKey)return;
-      if(result.data){state.characterData=result.data;characterLocalCache[characterKey]=result.data;}
+      if(result.data){
+        state.characterData=result.data;
+        characterLocalCache[characterKey]=result.data;
+        if(!characterImageUrl(result.data)&&tmdbConfigured()){
+          var artCat=ensureCharacterSeriesCatalog(result.data);
+          if(artCat&&!artCat.characterArtworkAttempted){
+            artCat.characterArtworkAttempted=true;
+            loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível enriquecer a arte do personagem:',e);});
+          }
+        }
+      }
       else if(!state.characterData)throw new Error('Personagem não encontrado.');
     }catch(e){
       if(state.characterOpen===characterKey&&!state.characterData)state.characterError=e.message||'Não foi possível carregar o personagem.';
@@ -2203,8 +2307,41 @@
     url=String(url||'');
     return /^https:\/\/static\.tvmaze\.com\//i.test(url)?url:'';
   }
+  async function theTvdbFetch(path,params){
+    params=params||{};
+    var qs=[];
+    Object.keys(params).forEach(function(k){
+      if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));
+    });
+    var url='/api/thetvdb/'+String(path||'').replace(/^\/+/, '')+(qs.length?'?'+qs.join('&'):'');
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},14000);
+    try{
+      var res=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+      if(!res.ok){
+        var msg='TheTVDB HTTP '+res.status;
+        try{var body=await res.json();if(body&&(body.message||body.error))msg=body.message||body.error;}catch(e){}
+        throw new Error(msg);
+      }
+      return await res.json();
+    }catch(err){
+      if(err&&err.name==='AbortError')throw new Error('A TheTVDB demorou para responder.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
+  function safeTheTvdbImage(url){
+    url=String(url||'').trim();
+    if(!url)return '';
+    if(/^https:\/\/(artworks\.)?thetvdb\.com\//i.test(url)||/^https:\/\/images\.thetvdb\.com\//i.test(url))return url;
+    if(/^\/\//.test(url))return 'https:'+url;
+    if(/^\/banners\//i.test(url))return 'https://artworks.thetvdb.com'+url;
+    if(/^banners\//i.test(url))return 'https://artworks.thetvdb.com/'+url;
+    return '';
+  }
   function characterImageUrl(ch){
-    return safeTvmazeImage(ch&&ch.character_image_url);
+    return safeTvmazeImage(ch&&ch.character_image_url) || safeTheTvdbImage(ch&&ch.tvdb_character_image_url);
+  }
+  function characterBannerImageUrl(ch){
+    return safeTheTvdbImage(ch&&ch.character_banner_url);
   }
 
   function normalizeSeriesTitle(value){
@@ -2557,7 +2694,7 @@
     characterLocalCache[ch.character_key]=ch;
     var cat=ensureCharacterSeriesCatalog(ch);
     var portrait=characterImageUrl(ch);
-    var banner=tmdbImageUrl(ch.series_backdrop_path,'original')||portrait||tmdbImageUrl(ch.series_poster_path,'original');
+    var banner=characterBannerImageUrl(ch)||tmdbImageUrl(ch.series_backdrop_path,'original')||portrait||tmdbImageUrl(ch.series_poster_path,'original');
     var favorite=isCharacterFavorite(ch.character_key);
     var about='<strong>'+escapeHtml(ch.character_name||'Este personagem')+'</strong> é um personagem de <strong>'+escapeHtml(ch.tv_name||'esta série')+'</strong>, interpretado por <strong>'+escapeHtml(ch.actor_name||'um integrante do elenco')+'</strong>.';
     if(Number(ch.episode_count||0)>0)about+=' Nos créditos agregados da TMDB, aparece em '+Number(ch.episode_count)+' episódio'+(Number(ch.episode_count)===1?'':'s')+'.';
@@ -2567,6 +2704,7 @@
         '<div class="character-portrait" style="'+(portrait?'background-image:url(\''+portrait.replace(/'/g,'%27')+'\')':'')+'">'+(portrait?'':'<span class="character-image-missing">Imagem do personagem indisponível</span>')+'</div>'+
         '<div class="character-copy"><div class="character-kicker">Personagem</div><h1 class="character-name">'+escapeHtml(ch.character_name||'Personagem')+'</h1>'+
           '<div class="character-sub">Interpretado por <strong>'+escapeHtml(ch.actor_name||'Profissional')+'</strong> · '+escapeHtml(ch.tv_name||'Série')+'</div>'+
+          (portrait?'<div class="character-source-note" style="margin-top:6px;">Imagem do personagem: '+escapeHtml(ch.character_image_source==='thetvdb'?'TheTVDB':'TVmaze')+'</div>':'')+
           '<div class="character-actions">'+
             '<button class="btn '+(favorite?'btn-primary':'btn-ghost')+' btn-sm" data-action="toggle-character-favorite" data-character="'+escapeHtml(ch.character_key)+'">'+(favorite?'♥ Personagem favorito':'♡ Favoritar personagem')+'</button>'+
             '<button class="btn btn-ghost btn-sm" data-action="open-professional" data-person="'+Number(ch.person_id)+'">Ver '+escapeHtml(ch.actor_name||'ator/atriz')+'</button>'+
@@ -2574,7 +2712,7 @@
           '</div></div>'+
       '</section>'+
       '<section class="character-about"><h2>Sobre o personagem</h2><p>'+about+'</p>'+
-      '<div class="character-source-note">A foto do personagem vem da TVmaze quando existe uma imagem própria cadastrada. O Bingeo não usa a foto do ator ou dublador como foto do personagem. O banner usa a arte horizontal oficial da série quando disponível.</div></section>'+
+      '<div class="character-source-note">A imagem principal usa primeiro uma arte própria do personagem da TVmaze e, quando ela não existe, tenta uma imagem de personagem da TheTVDB. O Bingeo nunca usa a foto comum do ator ou dublador como foto do personagem. Para o banner, uma arte horizontal ligada ao personagem na TheTVDB tem prioridade; quando não existe, entra o backdrop oficial da série.</div></section>'+
     '</div>';
   }
   function characterSearchResultsHtml(){
