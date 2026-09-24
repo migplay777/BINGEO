@@ -893,11 +893,13 @@
         loadOwnProfileFromSupabase(),
         loadLibraryFromSupabase(),
         loadListsFromSupabase(),
-        loadFollowingFeed()
+        loadFollowingFeed(),
+        loadOwnPeopleFavorites()
       ]);
       if(currentUserId!==nextUserId)return;
       appBooted=true;
       render();
+      setTimeout(indexCharactersFromLibrary,700);
       await openSharedProfileTarget();
     }else{
       await openSharedProfileTarget();
@@ -1016,6 +1018,7 @@
     trendingUsers:{},
     tmdbSearchResults:[],
     tmdbPersonResults:[],
+    characterSearchResults:[],
     userSearchResults:[],
     tmdbSearchLoading:false,
     tmdbSearchError:'',
@@ -1034,6 +1037,13 @@
     professionalBackView:'descobrir',
     professionalRoleTab:null,
     professionalHydrating:false,
+    favoriteProfessionals:[],
+    favoriteCharacters:[],
+    characterOpen:null,
+    characterData:null,
+    characterLoading:false,
+    characterError:'',
+    characterBackView:'descobrir',
     userProfileOpen:null,
     userProfileData:null,
     userProfileLoading:false,
@@ -1044,6 +1054,7 @@
     socialFeedError:''
   };
   var tmdbHydrationPromises={};
+  var characterLocalCache={};
   var tmdbSearchTimer=null;
   var TMDB_CACHE_KEY='bingeo-tmdb-cache-v1';
   var tmdbCacheMemory=null;
@@ -1198,6 +1209,14 @@
     state.professionalError='';
     state.professionalRoleTab=null;
     state.professionalHydrating=false;
+    state.favoriteProfessionals=[];
+    state.favoriteCharacters=[];
+    state.characterSearchResults=[];
+    state.characterOpen=null;
+    state.characterData=null;
+    state.characterLoading=false;
+    state.characterError='';
+    characterLocalCache={};
     state.modalCatalogId=null;
     state.listOpen=null;
     state.query='';
@@ -1471,6 +1490,149 @@
     if(result.error)throw result.error;
     return Array.isArray(result.data)?result.data:[];
   }
+  function characterKeyFor(tvId,personId,characterName){
+    return 'tv:'+Number(tvId)+':person:'+Number(personId)+':'+slugify(characterName||'personagem');
+  }
+  function characterRolesForCast(p){
+    var roles=Array.isArray(p&&p.roles)?p.roles.filter(function(r){return r&&String(r.character||'').trim();}):[];
+    if(!roles.length&&p&&String(p.character||'').trim())roles=[{character:p.character,episode_count:p.total_episode_count||0}];
+    return roles;
+  }
+  function characterRowFromCast(cat,p,role){
+    if(!cat||!cat.tmdbId||!p||!p.id||!role||!role.character)return null;
+    var row={
+      character_key:characterKeyFor(cat.tmdbId,p.id,role.character),
+      character_name:String(role.character).trim(),
+      tv_id:Number(cat.tmdbId),
+      tv_name:(cat.tmdbData&&cat.tmdbData.name)||cat.title||'Série',
+      person_id:Number(p.id),
+      actor_name:p.name||'Profissional',
+      profile_path:p.profile_path||null,
+      series_poster_path:cat.poster_path||null,
+      series_backdrop_path:cat.backdrop_path||null,
+      episode_count:Number(role.episode_count||p.total_episode_count||0)
+    };
+    characterLocalCache[row.character_key]=row;
+    return row;
+  }
+  async function indexSeriesCharacters(cat,details){
+    if(!currentUserId||!cat||!cat.tmdbId||!details||cat.charactersIndexed)return;
+    var cast=details.aggregate_credits&&Array.isArray(details.aggregate_credits.cast)?details.aggregate_credits.cast:[];
+    var rows=[];
+    cast.slice(0,80).forEach(function(p){
+      characterRolesForCast(p).slice(0,4).forEach(function(role){
+        var row=characterRowFromCast(cat,p,role);if(row)rows.push(row);
+      });
+    });
+    if(!rows.length){cat.charactersIndexed=true;return;}
+    try{
+      var result=await supabaseClient.rpc('index_bingeo_characters',{p_rows:rows});
+      if(result.error)throw result.error;
+      cat.charactersIndexed=true;
+    }catch(e){console.error('Erro ao indexar personagens:',e);}
+  }
+  async function indexCharactersFromLibrary(){
+    if(!currentUserId||!tmdbConfigured())return;
+    var cats=state.entries.map(function(e){return getCatalog(e.catalogId);}).filter(function(cat){return cat&&cat.tmdbId;}).slice(0,12);
+    for(var i=0;i<cats.length;i+=3){
+      if(!currentUserId)return;
+      await Promise.allSettled(cats.slice(i,i+3).map(function(cat){return loadTmdbSeries(cat);}));
+    }
+  }
+  async function searchBingeoCharacters(query){
+    var q=String(query||'').trim();
+    if(q.length<2||!currentUserId)return [];
+    var result=await supabaseClient.rpc('search_bingeo_characters',{p_query:q,p_limit:12});
+    if(result.error)throw result.error;
+    (result.data||[]).forEach(function(ch){characterLocalCache[ch.character_key]=ch;});
+    return Array.isArray(result.data)?result.data:[];
+  }
+  async function loadPeopleFavorites(userId){
+    if(!userId||!currentUserId)return {professionals:[],characters:[]};
+    var result=await supabaseClient.rpc('get_user_people_favorites',{p_user_id:userId});
+    if(result.error)throw result.error;
+    var data=result.data||{professionals:[],characters:[]};
+    data.professionals=Array.isArray(data.professionals)?data.professionals:[];
+    data.characters=Array.isArray(data.characters)?data.characters:[];
+    data.characters.forEach(function(ch){characterLocalCache[ch.character_key]=ch;});
+    return data;
+  }
+  async function loadOwnPeopleFavorites(){
+    if(!currentUserId)return;
+    var userId=currentUserId;
+    try{
+      var data=await loadPeopleFavorites(userId);
+      if(currentUserId!==userId)return;
+      state.favoriteProfessionals=data.professionals;
+      state.favoriteCharacters=data.characters;
+      if(appBooted&&state.view==='perfil'&&!state.userProfileOpen&&!state.professionalOpen&&!state.characterOpen)renderMainViewOnly();
+    }catch(e){console.error('Erro ao carregar favoritos de pessoas/personagens:',e);}
+  }
+  function isProfessionalFavorite(personId){
+    return state.favoriteProfessionals.some(function(p){return Number(p.person_id)===Number(personId);});
+  }
+  function isCharacterFavorite(characterKey){
+    return state.favoriteCharacters.some(function(ch){return ch.character_key===characterKey;});
+  }
+  async function toggleProfessionalFavorite(person){
+    if(!currentUserId||!person||!person.id)return;
+    var favorite=isProfessionalFavorite(person.id);
+    if(favorite){
+      var del=await supabaseClient.from('user_favorite_professionals').delete().eq('user_id',currentUserId).eq('person_id',Number(person.id));
+      if(del.error)throw del.error;
+    }else{
+      var ins=await supabaseClient.from('user_favorite_professionals').upsert({
+        user_id:currentUserId,
+        person_id:Number(person.id),
+        name:person.name||'Profissional',
+        profile_path:person.profile_path||null,
+        known_for_department:person.known_for_department||''
+      },{onConflict:'user_id,person_id'});
+      if(ins.error)throw ins.error;
+    }
+    await loadOwnPeopleFavorites();
+    if(state.professionalOpen===Number(person.id))renderMainViewOnly();
+    if(state.modalCatalogId)renderModalPreserveScroll();
+  }
+  async function ensureCharacterIndexed(character){
+    if(!character||!character.character_key)return;
+    characterLocalCache[character.character_key]=character;
+    var result=await supabaseClient.rpc('index_bingeo_characters',{p_rows:[character]});
+    if(result.error)throw result.error;
+  }
+  async function toggleCharacterFavorite(character){
+    if(!currentUserId||!character||!character.character_key)return;
+    await ensureCharacterIndexed(character);
+    var favorite=isCharacterFavorite(character.character_key);
+    if(favorite){
+      var del=await supabaseClient.from('user_favorite_characters').delete().eq('user_id',currentUserId).eq('character_key',character.character_key);
+      if(del.error)throw del.error;
+    }else{
+      var ins=await supabaseClient.from('user_favorite_characters').insert({user_id:currentUserId,character_key:character.character_key});
+      if(ins.error)throw ins.error;
+    }
+    await loadOwnPeopleFavorites();
+    if(state.characterOpen===character.character_key)renderMainViewOnly();
+    if(state.modalCatalogId)renderModalPreserveScroll();
+  }
+  async function loadCharacter(characterKey){
+    if(!characterKey)return;
+    state.characterLoading=true;state.characterError='';
+    var local=characterLocalCache[characterKey];
+    if(local){state.characterData=local;state.characterLoading=false;renderMainViewOnly();}
+    try{
+      var result=await supabaseClient.rpc('get_bingeo_character',{p_character_key:characterKey});
+      if(result.error)throw result.error;
+      if(state.characterOpen!==characterKey)return;
+      if(result.data){state.characterData=result.data;characterLocalCache[characterKey]=result.data;}
+      else if(!state.characterData)throw new Error('Personagem não encontrado.');
+    }catch(e){
+      if(state.characterOpen===characterKey&&!state.characterData)state.characterError=e.message||'Não foi possível carregar o personagem.';
+    }finally{
+      if(state.characterOpen===characterKey){state.characterLoading=false;renderMainViewOnly();}
+    }
+  }
+
   function ensureRemoteUserCatalog(item){
     if(!item)return null;
     var cid=item.catalog_id||((item.tmdb_id!=null)?('tmdb-'+item.tmdb_id):null);
@@ -1946,7 +2108,7 @@
     tmdbCacheSet(key,results);
     return results;
   }
-  async function loadTmdbSeries(cat,force){if(!tmdbConfigured())return null;if(cat.tmdbLoaded&&!force)return cat.tmdbData;if(tmdbHydrationPromises[cat.id]&&!force)return tmdbHydrationPromises[cat.id];tmdbHydrationPromises[cat.id]=(async function(){var found;if(cat.tmdbId)found={id:cat.tmdbId};else{var sr=await tmdbSearchTV(cat.title);found=chooseTmdbMatch(sr,cat);if(!found)throw new Error('Série não encontrada na TMDB.');}var details=tmdbCacheGet('series:'+found.id,86400000);if(!details){details=await tmdbFetch('/tv/'+found.id,{language:'pt-BR',append_to_response:'aggregate_credits'});tmdbCacheSet('series:'+found.id,details);}cat.tmdbId=details.id;cat.tmdbData=details;cat.tmdbLoaded=true;cat.tmdbError='';cat.poster_path=details.poster_path||cat.poster_path||null;cat.backdrop_path=details.backdrop_path||cat.backdrop_path||null;cat.overview=details.overview||cat.overview||'';cat.tmdbData=details;cat.genre=(details.genres&&details.genres[0]&&details.genres[0].name)||cat.genre||'Série';cat.year=parseInt((details.first_air_date||'').slice(0,4),10)||cat.year||null;cat.platform=(details.networks&&details.networks[0]&&details.networks[0].name)||cat.platform||'';if(Array.isArray(details.seasons))cat.seasons=details.seasons.filter(function(se){return Number(se.season_number)>0;}).map(function(se){return Number(se.episode_count)||0;});cat.tmdbSeasons=cat.tmdbSeasons||{};return details;})().catch(function(err){cat.tmdbLoaded=false;cat.tmdbError=err.message||'Erro ao carregar TMDB';throw err;}).finally(function(){delete tmdbHydrationPromises[cat.id];});return tmdbHydrationPromises[cat.id];}
+  async function loadTmdbSeries(cat,force){if(!tmdbConfigured())return null;if(cat.tmdbLoaded&&!force)return cat.tmdbData;if(tmdbHydrationPromises[cat.id]&&!force)return tmdbHydrationPromises[cat.id];tmdbHydrationPromises[cat.id]=(async function(){var found;if(cat.tmdbId)found={id:cat.tmdbId};else{var sr=await tmdbSearchTV(cat.title);found=chooseTmdbMatch(sr,cat);if(!found)throw new Error('Série não encontrada na TMDB.');}var details=tmdbCacheGet('series:'+found.id,86400000);if(!details){details=await tmdbFetch('/tv/'+found.id,{language:'pt-BR',append_to_response:'aggregate_credits'});tmdbCacheSet('series:'+found.id,details);}cat.tmdbId=details.id;cat.tmdbData=details;cat.tmdbLoaded=true;cat.tmdbError='';cat.poster_path=details.poster_path||cat.poster_path||null;cat.backdrop_path=details.backdrop_path||cat.backdrop_path||null;cat.overview=details.overview||cat.overview||'';cat.tmdbData=details;cat.genre=(details.genres&&details.genres[0]&&details.genres[0].name)||cat.genre||'Série';cat.year=parseInt((details.first_air_date||'').slice(0,4),10)||cat.year||null;cat.platform=(details.networks&&details.networks[0]&&details.networks[0].name)||cat.platform||'';if(Array.isArray(details.seasons))cat.seasons=details.seasons.filter(function(se){return Number(se.season_number)>0;}).map(function(se){return Number(se.episode_count)||0;});cat.tmdbSeasons=cat.tmdbSeasons||{};indexSeriesCharacters(cat,details);return details;})().catch(function(err){cat.tmdbLoaded=false;cat.tmdbError=err.message||'Erro ao carregar TMDB';throw err;}).finally(function(){delete tmdbHydrationPromises[cat.id];});return tmdbHydrationPromises[cat.id];}
   async function loadTmdbSeason(cat,seasonNum){if(!tmdbConfigured()||!cat.tmdbId)return null;cat.tmdbSeasons=cat.tmdbSeasons||{};if(cat.tmdbSeasons[seasonNum])return cat.tmdbSeasons[seasonNum];var key='season:'+cat.tmdbId+':'+seasonNum,cached=tmdbCacheGet(key,86400000);if(cached){cat.tmdbSeasons[seasonNum]=cached;return cached;}var data=await tmdbFetch('/tv/'+cat.tmdbId+'/season/'+seasonNum,{language:'pt-BR'});cat.tmdbSeasons[seasonNum]=data;tmdbCacheSet(key,data);return data;}
   function tmdbCastHtml(credits){var cast=(credits&&credits.cast||[]).slice(0,12);if(!cast.length)return '<span style="color:var(--text-dim);font-size:12px;">Elenco não disponível.</span>';return '<div class="tmdb-people-row">'+cast.map(function(p){var img=tmdbImageUrl(p.profile_path,'w185');return '<div class="tmdb-person" data-action="open-professional" data-person="'+p.id+'">'+(img?'<img src="'+img+'" alt="" loading="lazy">':'<div class="tmdb-person-placeholder">•</div>')+'<span class="tmdb-person-name">'+escapeHtml(p.name||'')+'</span><span class="tmdb-person-role">'+escapeHtml(p.character||'')+'</span></div>';}).join('')+'</div>';}
   function tmdbCrewChips(crew,department,jobMatcher){var list=[];(crew||[]).forEach(function(p){if(department&&p.department!==department)return;var jobs=(p.jobs||[]).map(function(j){return j.job||'';}),job=p.job||'';if(jobMatcher&&!jobMatcher(job,jobs))return;if(!list.some(function(x){return x.id===p.id;}))list.push(p);});return list.slice(0,12).map(function(p){return '<span class="tmdb-credit-chip" data-action="open-professional" data-person="'+p.id+'">'+escapeHtml(p.name||'')+'</span>';}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';}
