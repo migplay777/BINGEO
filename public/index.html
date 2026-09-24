@@ -1547,7 +1547,8 @@
     return Array.isArray(result.data)?result.data:[];
   }
   function characterKeyFor(tvId,personId,characterName){
-    return 'tv:'+Number(tvId)+':person:'+Number(personId)+':'+slugify(characterName||'personagem');
+    var raw=String(characterName||'personagem');
+    return 'tv:'+Number(tvId)+':person:'+Number(personId)+':'+slugify(raw)+'-'+hashHue(raw).toString(36);
   }
   function characterRolesForCast(p){
     var roles=Array.isArray(p&&p.roles)?p.roles.filter(function(r){return r&&String(r.character||'').trim();}):[];
@@ -1596,12 +1597,19 @@
     }
   }
   async function searchBingeoCharacters(query){
-    var q=String(query||'').trim();
+    var q=String(query||'').trim(),needle=q.toLowerCase();
     if(q.length<2||!currentUserId)return [];
+    var local=Object.keys(characterLocalCache).map(function(k){return characterLocalCache[k];}).filter(function(ch){
+      return [ch.character_name,ch.actor_name,ch.tv_name].some(function(v){return String(v||'').toLowerCase().indexOf(needle)>-1;});
+    });
     var result=await supabaseClient.rpc('search_bingeo_characters',{p_query:q,p_limit:12});
     if(result.error)throw result.error;
-    (result.data||[]).forEach(function(ch){characterLocalCache[ch.character_key]=ch;});
-    return Array.isArray(result.data)?result.data:[];
+    var merged=[],seen={};
+    local.concat(result.data||[]).forEach(function(ch){
+      if(!ch||!ch.character_key||seen[ch.character_key]||merged.length>=12)return;
+      seen[ch.character_key]=1;characterLocalCache[ch.character_key]=ch;merged.push(ch);
+    });
+    return merged;
   }
   async function loadPeopleFavorites(userId){
     if(!userId||!currentUserId)return {professionals:[],characters:[]};
@@ -2188,7 +2196,7 @@
     }).join('')+'</div>';
   }
   function tmdbCrewChips(crew,department,jobMatcher){var list=[];(crew||[]).forEach(function(p){if(department&&p.department!==department)return;var jobs=(p.jobs||[]).map(function(j){return j.job||'';}),job=p.job||'';if(jobMatcher&&!jobMatcher(job,jobs))return;if(!list.some(function(x){return x.id===p.id;}))list.push(p);});return list.slice(0,12).map(function(p){return professionalCreditFavoriteHtml(p,department);}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';}
-  function tmdbSeriesInfoHtml(cat){if(!tmdbConfigured())return '';if(!cat.tmdbLoaded){return '<div class="tmdb-loading">Carregando dados oficiais da TMDB…</div>';}var d=cat.tmdbData||{},credits=d.aggregate_credits||{},overview=d.overview||'Sinopse não disponível.';var creators=(d.created_by||[]).map(function(p){return professionalCreditFavoriteHtml(p,'Writing');}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';var directors=tmdbCrewChips(credits.crew,'Directing',function(job,jobs){return /director/i.test(job)||jobs.some(function(x){return /director/i.test(x);});});var writers=tmdbCrewChips(credits.crew,'Writing',function(job,jobs){return /writer|screenplay|teleplay/i.test(job)||jobs.some(function(x){return /writer|screenplay|teleplay/i.test(x);});});var producers=tmdbCrewChips(credits.crew,'Production',function(job,jobs){return /producer/i.test(job)||jobs.some(function(x){return /producer/i.test(x);});});return '<div class="tmdb-series-header"><div class="tmdb-series-poster" style="'+posterBackgroundStyle(cat,'w500')+'"></div><div class="tmdb-series-copy"><div class="modal-title">'+escapeHtml(d.name||cat.title)+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+escapeHtml([d.first_air_date?d.first_air_date.slice(0,4):'',d.number_of_seasons?d.number_of_seasons+' temporadas':'',d.number_of_episodes?d.number_of_episodes+' episódios':''].filter(Boolean).join(' · '))+'</div><p class="tmdb-overview">'+escapeHtml(overview)+'</p></div></div><div class="tmdb-credit-grid"><div class="tmdb-credit-block"><h4>Criador(es)</h4><div class="tmdb-credit-list">'+creators+'</div></div><div class="tmdb-credit-block"><h4>Direção</h4><div class="tmdb-credit-list">'+directors+'</div></div><div class="tmdb-credit-block"><h4>Roteiro</h4><div class="tmdb-credit-list">'+writers+'</div></div><div class="tmdb-credit-block"><h4>Produção</h4><div class="tmdb-credit-list">'+producers+'</div></div><div class="tmdb-credit-block"><h4>Elenco principal</h4>'+tmdbCastHtml(credits)+'</div></div>';}
+  function tmdbSeriesInfoHtml(cat){if(!tmdbConfigured())return '';if(!cat.tmdbLoaded){return '<div class="tmdb-loading">Carregando dados oficiais da TMDB…</div>';}var d=cat.tmdbData||{},credits=d.aggregate_credits||{},overview=d.overview||'Sinopse não disponível.';var creators=(d.created_by||[]).map(function(p){return professionalCreditFavoriteHtml(p,'Writing');}).join('')||'<span style="color:var(--text-dim);font-size:12px;">Não disponível.</span>';var directors=tmdbCrewChips(credits.crew,'Directing',function(job,jobs){return /director/i.test(job)||jobs.some(function(x){return /director/i.test(x);});});var writers=tmdbCrewChips(credits.crew,'Writing',function(job,jobs){return /writer|screenplay|teleplay/i.test(job)||jobs.some(function(x){return /writer|screenplay|teleplay/i.test(x);});});var producers=tmdbCrewChips(credits.crew,'Production',function(job,jobs){return /producer/i.test(job)||jobs.some(function(x){return /producer/i.test(x);});});return '<div class="tmdb-series-header"><div class="tmdb-series-poster" style="'+posterBackgroundStyle(cat,'w500')+'"></div><div class="tmdb-series-copy"><div class="modal-title">'+escapeHtml(d.name||cat.title)+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+escapeHtml([d.first_air_date?d.first_air_date.slice(0,4):'',d.number_of_seasons?d.number_of_seasons+' temporadas':'',d.number_of_episodes?d.number_of_episodes+' episódios':''].filter(Boolean).join(' · '))+'</div><p class="tmdb-overview">'+escapeHtml(overview)+'</p></div></div><div class="tmdb-credit-grid"><div class="tmdb-credit-block"><h4>Criador(es)</h4><div class="tmdb-credit-list">'+creators+'</div></div><div class="tmdb-credit-block"><h4>Direção</h4><div class="tmdb-credit-list">'+directors+'</div></div><div class="tmdb-credit-block"><h4>Roteiro</h4><div class="tmdb-credit-list">'+writers+'</div></div><div class="tmdb-credit-block"><h4>Produção</h4><div class="tmdb-credit-list">'+producers+'</div></div><div class="tmdb-credit-block"><h4>Elenco principal</h4>'+tmdbCastHtml(cat,credits)+'</div></div>';}
   function professionalDepartmentLabel(value){
     var v=String(value||'').toLowerCase();
     if(v==='acting')return 'Atuação';
