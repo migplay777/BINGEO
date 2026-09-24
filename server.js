@@ -191,7 +191,12 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
   }
 });
 
-app.get('/api/health', (_req, res) => res.json({ ok: true }));
+app.get('/api/health', (_req, res) => res.json({
+  ok: true,
+  tmdbConfigured: !!TMDB_READ_TOKEN,
+  tvmazeConfigured: true,
+  thetvdbConfigured: !!THETVDB_API_KEY
+}));
 
 
 app.listen(PORT, () => console.log('Bingeo rodando na porta ' + PORT));
