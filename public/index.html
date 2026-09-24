@@ -1648,6 +1648,11 @@
       var result=await supabaseClient.rpc('index_bingeo_characters',{p_rows:rows});
       if(result.error)throw result.error;
       cat.charactersIndexed=true;
+      rows.forEach(function(row){
+        var fav=state.favoriteCharacters.find(function(ch){return ch.character_key===row.character_key;});
+        if(fav)Object.assign(fav,row);
+      });
+      if(state.view==='perfil'&&!state.userProfileOpen&&!state.professionalOpen&&!state.characterOpen)renderMainViewOnly();
       if(state.modalCatalogId===cat.id)renderModalPreserveScroll();
       if(state.characterOpen&&state.characterData&&Number(state.characterData.tv_id)===Number(cat.tmdbId)){
         var refreshed=characterLocalCache[state.characterOpen];
