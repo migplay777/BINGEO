@@ -832,7 +832,7 @@
     <button class="nav-link" data-view="perfil">Perfil</button>
   </nav>
   <div class="search-wrap">
-    <input type="text" id="searchInput" placeholder="Buscar séries, profissionais ou usuários…">
+    <input type="text" id="searchInput" placeholder="Buscar séries, personagens, profissionais ou usuários…">
   </div>
   <button class="account-btn" id="logoutBtn">Sair</button>
 </header>
@@ -1727,6 +1727,8 @@
       if(result.error)throw result.error;
       if(state.userProfileOpen!==userId)return;
       if(!result.data)throw new Error('Usuário não encontrado.');
+      try{result.data.people_favorites=await loadPeopleFavorites(userId);}catch(ignore){result.data.people_favorites={professionals:[],characters:[]};}
+      if(state.userProfileOpen!==userId)return;
       state.userProfileData=result.data;
       [].concat(result.data.top_five||[],result.data.evaluations||[],result.data.recent_activity||[]).forEach(ensureRemoteUserCatalog);
       state.userProfileLoading=false;
@@ -1802,14 +1804,14 @@
       if(tmdbConfigured()&&feedCats.length){
         var unique={};feedCats=feedCats.filter(function(cat){if(unique[cat.id])return false;unique[cat.id]=1;return true;}).slice(0,12);
         Promise.allSettled(feedCats.map(function(cat){return loadTmdbSeries(cat);})).then(function(){
-          if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen)renderMainViewOnly();
+          if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
         });
       }
     }catch(e){
       state.socialFeedError=e.message||'Não foi possível carregar o feed.';
     }finally{
       state.socialFeedLoading=false;
-      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen)renderMainViewOnly();
+      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
     }
   }
   function userNameClass(user){
@@ -1995,7 +1997,7 @@
     if(top.length){
       html+='<div class="user-top5-row">'+top.map(function(item,i){var cat=ensureRemoteUserCatalog(item),poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'';return '<div class="user-top5-card" data-action="open-show" data-catalog="'+escapeHtml(item.catalog_id||'')+'"><span class="user-top5-rank">#'+(i+1)+'</span><div class="user-top5-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div></div>';}).join('')+'</div>';
     }else html+='<div class="empty">Esse usuário ainda não montou o Top 5.</div>';
-    html+='</section><section class="user-profile-section"><div class="user-profile-section-title">Avaliações</div>';
+    html+='</section>'+peopleFavoritesSectionsHtml(u.people_favorites||{})+'<section class="user-profile-section"><div class="user-profile-section-title">Avaliações</div>';
     html+=evals.length?'<div class="user-eval-grid">'+evals.map(userEvaluationCardHtml).join('')+'</div>':'<div class="empty">Nenhuma avaliação registrada ainda.</div>';
     html+='</section>'+userFavoritesHtml(u)+'<section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
     html+=acts.length?'<div class="social-feed-list">'+acts.map(function(a){a.user_id=u.user_id;a.username=u.username;a.avatar_url=u.avatar_url;a.plan=u.plan;a.name_style=u.name_style;return socialActivityHtml(a,false);}).join('')+'</div>':'<div class="empty">Nenhuma atividade recente.</div>';
@@ -2060,7 +2062,7 @@
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
       await loadTrending();
-      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen)renderMainViewOnly();
+      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
     }catch(e){
       console.error('Erro ao registrar interação global:',e);
     }
@@ -2407,6 +2409,61 @@
       return state.profile.topFive.indexOf(cat.id)>-1;
     });
   }
+  function ensureCharacterSeriesCatalog(ch){
+    if(!ch||!ch.tv_id)return null;
+    var cid='tmdb-'+Number(ch.tv_id),cat=getCatalog(cid);
+    if(!cat){
+      cat={id:cid,tmdbId:Number(ch.tv_id),title:ch.tv_name||'Série',type:'serie',genre:'Série',year:null,platform:'',seasons:[],
+        poster_path:ch.series_poster_path||null,backdrop_path:ch.series_backdrop_path||null,overview:'',tmdbSource:true};
+      CATALOG.push(cat);
+    }else{
+      if(ch.tv_name&&(!cat.title||cat.title==='Série'))cat.title=ch.tv_name;
+      if(ch.series_poster_path&&!cat.poster_path)cat.poster_path=ch.series_poster_path;
+      if(ch.series_backdrop_path&&!cat.backdrop_path)cat.backdrop_path=ch.series_backdrop_path;
+    }
+    return cat;
+  }
+  function viewCharacter(){
+    if(state.characterLoading&&!state.characterData)return '<div class="character-page"><button class="btn btn-ghost btn-sm character-back" data-action="close-character">← Voltar</button><div class="professional-loading">Carregando personagem…</div></div>';
+    if(state.characterError&&!state.characterData)return '<div class="character-page"><button class="btn btn-ghost btn-sm character-back" data-action="close-character">← Voltar</button><div class="empty"><strong>Não foi possível carregar este personagem.</strong>'+escapeHtml(state.characterError)+'</div></div>';
+    var ch=state.characterData;if(!ch)return '';
+    characterLocalCache[ch.character_key]=ch;
+    var cat=ensureCharacterSeriesCatalog(ch);
+    var portrait=tmdbImageUrl(ch.profile_path,'h632')||tmdbImageUrl(ch.series_poster_path,'w500');
+    var banner=tmdbImageUrl(ch.series_backdrop_path,'original')||tmdbImageUrl(ch.profile_path,'original')||tmdbImageUrl(ch.series_poster_path,'original');
+    var favorite=isCharacterFavorite(ch.character_key);
+    var about='<strong>'+escapeHtml(ch.character_name||'Este personagem')+'</strong> é um personagem de <strong>'+escapeHtml(ch.tv_name||'esta série')+'</strong>, interpretado por <strong>'+escapeHtml(ch.actor_name||'um integrante do elenco')+'</strong>.';
+    if(Number(ch.episode_count||0)>0)about+=' Nos créditos agregados da TMDB, aparece em '+Number(ch.episode_count)+' episódio'+(Number(ch.episode_count)===1?'':'s')+'.';
+    return '<div class="character-page"><button class="btn btn-ghost btn-sm character-back" data-action="close-character">← Voltar</button>'+
+      (banner?'<div class="character-banner" style="background-image:url(\''+banner.replace(/'/g,'%27')+'\')"></div>':'')+
+      '<section class="character-hero">'+
+        '<div class="character-portrait" style="'+(portrait?'background-image:url(\''+portrait.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+        '<div class="character-copy"><div class="character-kicker">Personagem</div><h1 class="character-name">'+escapeHtml(ch.character_name||'Personagem')+'</h1>'+
+          '<div class="character-sub">Interpretado por <strong>'+escapeHtml(ch.actor_name||'Profissional')+'</strong> · '+escapeHtml(ch.tv_name||'Série')+'</div>'+
+          '<div class="character-actions">'+
+            '<button class="btn '+(favorite?'btn-primary':'btn-ghost')+' btn-sm" data-action="toggle-character-favorite" data-character="'+escapeHtml(ch.character_key)+'">'+(favorite?'♥ Personagem favorito':'♡ Favoritar personagem')+'</button>'+
+            '<button class="btn btn-ghost btn-sm" data-action="open-professional" data-person="'+Number(ch.person_id)+'">Ver '+escapeHtml(ch.actor_name||'ator/atriz')+'</button>'+
+            (cat?'<button class="btn btn-ghost btn-sm" data-action="open-show" data-catalog="'+cat.id+'">Abrir série</button>':'')+
+          '</div></div>'+
+      '</section>'+
+      '<section class="character-about"><h2>Sobre o personagem</h2><p>'+about+'</p>'+
+      '<div class="character-source-note">A TMDB não fornece biografias individuais nem artes exclusivas para todos os personagens. O Bingeo usa os créditos do elenco e, quando disponível, o backdrop oficial da série para montar esta página.</div></section>'+
+    '</div>';
+  }
+  function characterSearchResultsHtml(){
+    if(!state.query.trim()||!state.characterSearchResults.length)return '';
+    return '<div class="character-search-wrap"><div class="section-head"><div class="section-title">Personagens</div><div class="section-count">'+state.characterSearchResults.length+' encontrados</div></div>'+
+      '<div class="character-search-row">'+state.characterSearchResults.map(function(ch){
+        characterLocalCache[ch.character_key]=ch;
+        var img=tmdbImageUrl(ch.profile_path,'w342')||tmdbImageUrl(ch.series_poster_path,'w342');
+        return '<div class="character-search-card" data-action="open-character" data-character="'+escapeHtml(ch.character_key)+'">'+
+          '<div class="character-search-photo" style="'+(img?'background-image:url(\''+img.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+          '<div class="character-search-body"><div class="character-search-name">'+escapeHtml(ch.character_name||'Personagem')+'</div>'+
+          '<div class="character-search-series">'+escapeHtml(ch.tv_name||'Série')+'</div>'+
+          '<div class="character-search-actor">Interpretado por '+escapeHtml(ch.actor_name||'')+'</div></div></div>';
+      }).join('')+'</div></div>';
+  }
+
   function tmdbPersonResultsHtml(){
     if(!state.query.trim()||!state.tmdbPersonResults.length)return '';
     return '<div class="people-search-wrap"><div class="section-head"><div class="section-title">Profissionais</div><div class="section-count">'+state.tmdbPersonResults.length+' encontrados</div></div><div class="people-search-row">'+
@@ -2419,8 +2476,9 @@
   }
   function tmdbSearchResultsHtml(){
     if(!state.query.trim())return '';
-    if(state.tmdbSearchLoading)return '<div class="tmdb-loading">Buscando séries, profissionais e usuários no Bingeo…</div>';
+    if(state.tmdbSearchLoading)return '<div class="tmdb-loading">Buscando séries, personagens, profissionais e usuários no Bingeo…</div>';
     var users=userSearchResultsHtml();
+    var characters=characterSearchResultsHtml();
     var people=tmdbConfigured()?tmdbPersonResultsHtml():'';
     if(tmdbConfigured())pruneTransientTmdbCatalog();
     var series='';
@@ -2430,10 +2488,10 @@
         return '<div class="card tmdb-search-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="type-pill">Série</span>')+'<div class="card-body"><div class="card-title">'+escapeHtml(cat.title)+'</div><div class="card-meta"><span>'+(r.first_air_date?r.first_air_date.slice(0,4):'')+'</span>'+(r.vote_average?'<span class="card-stars">★ '+Number(r.vote_average).toFixed(1)+'</span>':'')+'</div></div></div>';
       }).join('')+'</div>';
     }
-    if(!users&&!people&&!series){
-      return '<div class="empty"><strong>Nada encontrado.</strong>Tente outro nome de série, profissional ou usuário.'+(state.tmdbSearchError?'<br><span style="font-size:11px;color:var(--text-dim);">'+escapeHtml(state.tmdbSearchError)+'</span>':'')+'</div>';
+    if(!users&&!characters&&!people&&!series){
+      return '<div class="empty"><strong>Nada encontrado.</strong>Tente outro nome de série, personagem, profissional ou usuário.'+(state.tmdbSearchError?'<br><span style="font-size:11px;color:var(--text-dim);">'+escapeHtml(state.tmdbSearchError)+'</span>':'')+'</div>';
     }
-    return users+people+series;
+    return users+characters+people+series;
   }
   function hydrateCatalogs(cats){
     if(!tmdbConfigured()||!cats||!cats.length)return;
@@ -3302,7 +3360,8 @@
   function renderMainViewOnly(){
     var root=document.getElementById('viewRoot');
     if(!root)return;
-    if(state.userProfileOpen)root.innerHTML=viewBingeoUserProfile();
+    if(state.characterOpen)root.innerHTML=viewCharacter();
+    else if(state.userProfileOpen)root.innerHTML=viewBingeoUserProfile();
     else if(state.professionalOpen)root.innerHTML=viewProfessional();
     else if(state.view==='descobrir')root.innerHTML=viewDescobrir();
     else if(state.view==='estante')root.innerHTML=viewEstante();
@@ -3319,7 +3378,8 @@
     });
     renderTicker();
     var root = document.getElementById('viewRoot');
-    if(state.userProfileOpen) root.innerHTML = viewBingeoUserProfile();
+    if(state.characterOpen) root.innerHTML = viewCharacter();
+    else if(state.userProfileOpen) root.innerHTML = viewBingeoUserProfile();
     else if(state.professionalOpen) root.innerHTML = viewProfessional();
     else if(state.view==='descobrir') root.innerHTML = viewDescobrir();
     else if(state.view==='estante') root.innerHTML = viewEstante();
@@ -3328,7 +3388,7 @@
     else if(state.view==='perfil') root.innerHTML = viewPerfil();
     renderModal();
     bindFormsForCurrentView();
-    if(state.professionalOpen||state.userProfileOpen)return;
+    if(state.professionalOpen||state.userProfileOpen||state.characterOpen)return;
     if(tmdbConfigured()){var visible=[];if(state.view==='descobrir'){var tids=Object.keys(state.trending).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);visible=tids.map(getCatalog);}else if(state.view==='estante'){visible=state.entries.slice(0,8).map(function(e){return getCatalog(e.catalogId);});}else if(state.view==='perfil'){visible=state.profile.topFive.filter(Boolean).slice(0,5).map(getCatalog);}hydrateCatalogs(visible);}
   }
 
@@ -3462,7 +3522,7 @@
                 var failures=results.filter(function(x){return x.status==='rejected';});
                 state.tmdbSearchError=failures.length===results.length?(failures[0].reason&&failures[0].reason.message||'Erro ao buscar.'):'';
                 state.tmdbSearchLoading=false;
-                if(state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen){
+                if(state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen){
                   var searchRoot=document.getElementById('viewRoot');
                   searchRoot.innerHTML=viewDescobrir();
                   var ni=document.getElementById('searchInput');if(ni){ni.focus();ni.setSelectionRange(pos,pos);}
@@ -3573,6 +3633,7 @@
       state.view = navBtn.dataset.view;
       state.listOpen = null;
       state.professionalOpen=null;state.professionalData=null;state.professionalError='';
+      state.characterOpen=null;state.characterData=null;state.characterError='';state.characterLoading=false;
       state.userProfileOpen=null;state.userProfileData=null;state.userProfileError='';state.userProfileLoading=false;
       state.query = '';
       if(state.view==='descobrir'){ Promise.allSettled([loadTrending(),loadFollowingFeed()]).then(render); return; }
@@ -3588,6 +3649,39 @@
       if(!currentUserId)return;
       shareBingeoProfile(currentUserId,state.profile.username||'meu perfil');
     }
+    else if(action==='toggle-professional-favorite'){
+      var fpId=Number(el.dataset.person);if(!fpId)return;
+      var fp=(state.professionalData&&Number(state.professionalData.id)===fpId)?state.professionalData:{
+        id:fpId,
+        name:el.dataset.name||'Profissional',
+        profile_path:el.dataset.profile||null,
+        known_for_department:el.dataset.department||''
+      };
+      el.disabled=true;
+      toggleProfessionalFavorite(fp).catch(function(err){alert(err.message||'Não foi possível atualizar este favorito.');}).finally(function(){el.disabled=false;});
+    }
+    else if(action==='open-character'){
+      var characterKey=el.dataset.character;if(!characterKey)return;
+      state.characterBackView=state.view||'descobrir';
+      state.characterOpen=characterKey;
+      state.characterData=characterLocalCache[characterKey]||null;
+      state.characterError='';state.characterLoading=!state.characterData;
+      state.professionalOpen=null;state.professionalData=null;
+      state.userProfileOpen=null;state.userProfileData=null;
+      state.modalCatalogId=null;
+      renderMainViewOnly();
+      loadCharacter(characterKey);
+    }
+    else if(action==='close-character'){
+      state.characterOpen=null;state.characterData=null;state.characterError='';state.characterLoading=false;
+      state.view=state.characterBackView||'descobrir';render();
+    }
+    else if(action==='toggle-character-favorite'){
+      var favKey=el.dataset.character,ch=characterLocalCache[favKey]||(state.characterData&&state.characterData.character_key===favKey?state.characterData:null);
+      if(!ch){loadCharacter(favKey);return;}
+      el.disabled=true;
+      toggleCharacterFavorite(ch).catch(function(err){alert(err.message||'Não foi possível atualizar este personagem favorito.');}).finally(function(){el.disabled=false;});
+    }
     else if(action==='open-user-profile'){
       var userId=el.dataset.user;if(!userId)return;
       if(userId===currentUserId){
@@ -3595,7 +3689,7 @@
       }
       state.userProfileBackView=state.view||'descobrir';
       state.userProfileOpen=userId;state.userProfileData=null;state.userProfileError='';state.userProfileLoading=true;
-      state.professionalOpen=null;state.professionalData=null;state.modalCatalogId=null;
+      state.professionalOpen=null;state.professionalData=null;state.characterOpen=null;state.characterData=null;state.modalCatalogId=null;
       renderMainViewOnly();loadBingeoUserProfile(userId);
     }
     else if(action==='close-user-profile'){
@@ -3614,6 +3708,8 @@
     else if(action==='open-professional'){
       var personId=Number(el.dataset.person);if(!personId)return;
       state.professionalBackView=state.view||'descobrir';
+      state.characterOpen=null;state.characterData=null;state.characterError='';
+      state.userProfileOpen=null;state.userProfileData=null;
       state.professionalOpen=personId;
       state.modalCatalogId=null;
       state.professionalData=null;state.professionalError='';
