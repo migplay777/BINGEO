@@ -2704,7 +2704,7 @@
         '<div class="character-portrait" style="'+(portrait?'background-image:url(\''+portrait.replace(/'/g,'%27')+'\')':'')+'">'+(portrait?'':'<span class="character-image-missing">Imagem do personagem indisponível</span>')+'</div>'+
         '<div class="character-copy"><div class="character-kicker">Personagem</div><h1 class="character-name">'+escapeHtml(ch.character_name||'Personagem')+'</h1>'+
           '<div class="character-sub">Interpretado por <strong>'+escapeHtml(ch.actor_name||'Profissional')+'</strong> · '+escapeHtml(ch.tv_name||'Série')+'</div>'+
-          (portrait?'<div class="character-source-note" style="margin-top:6px;">Imagem do personagem: '+escapeHtml(ch.character_image_source==='thetvdb'?'TheTVDB':'TVmaze')+'</div>':'')+
+          (portrait?'<div class="character-source-note" style="margin-top:6px;">Imagem do personagem: '+escapeHtml(ch.character_image_source==='thetvdb'||(!safeTvmazeImage(ch.character_image_url)&&safeTheTvdbImage(ch.tvdb_character_image_url))?'TheTVDB':'TVmaze')+'</div>':'')+
           '<div class="character-actions">'+
             '<button class="btn '+(favorite?'btn-primary':'btn-ghost')+' btn-sm" data-action="toggle-character-favorite" data-character="'+escapeHtml(ch.character_key)+'">'+(favorite?'♥ Personagem favorito':'♡ Favoritar personagem')+'</button>'+
             '<button class="btn btn-ghost btn-sm" data-action="open-professional" data-person="'+Number(ch.person_id)+'">Ver '+escapeHtml(ch.actor_name||'ator/atriz')+'</button>'+
@@ -2715,6 +2715,20 @@
       '<div class="character-source-note">A imagem principal usa primeiro uma arte própria do personagem da TVmaze e, quando ela não existe, tenta uma imagem de personagem da TheTVDB. O Bingeo nunca usa a foto comum do ator ou dublador como foto do personagem. Para o banner, uma arte horizontal ligada ao personagem na TheTVDB tem prioridade; quando não existe, entra o backdrop oficial da série.</div></section>'+
     '</div>';
   }
+  function hydrateCharacterSearchArtwork(items){
+    if(!tmdbConfigured()||!Array.isArray(items)||!items.length)return;
+    var unique={},cats=[];
+    items.filter(function(ch){return ch&&!characterImageUrl(ch);}).forEach(function(ch){
+      var cat=ensureCharacterSeriesCatalog(ch);
+      if(cat&&!unique[cat.id]){unique[cat.id]=1;cats.push(cat);}
+    });
+    cats.slice(0,6).forEach(function(cat){
+      if(cat.characterArtworkAttempted)return;
+      cat.characterArtworkAttempted=true;
+      loadTmdbSeries(cat,true).catch(function(e){console.warn('Não foi possível completar a arte do personagem:',e);});
+    });
+  }
+
   function characterSearchResultsHtml(){
     if(!state.query.trim()||!state.characterSearchResults.length)return '';
     return '<div class="character-search-wrap"><div class="section-head"><div class="section-title">Personagens</div><div class="section-count">'+state.characterSearchResults.length+' encontrados</div></div>'+
@@ -3789,6 +3803,7 @@
                 state.tmdbPersonResults=results[1].status==='fulfilled'?(results[1].value||[]):[];
                 state.characterSearchResults=results[2].status==='fulfilled'?(results[2].value||[]):[];
                 state.userSearchResults=results[3].status==='fulfilled'?(results[3].value||[]):[];
+                hydrateCharacterSearchArtwork(state.characterSearchResults);
                 var failures=results.filter(function(x){return x.status==='rejected';});
                 state.tmdbSearchError=failures.length===results.length?(failures[0].reason&&failures[0].reason.message||'Erro ao buscar.'):'';
                 state.tmdbSearchLoading=false;
