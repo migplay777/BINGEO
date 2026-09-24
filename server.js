@@ -52,6 +52,43 @@ app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
   }
 });
 
+app.get(/^\/api\/tvmaze\/(.*)/, async (req, res) => {
+  const tvmazePath = req.params[0] || '';
+  const query = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(req.query)) {
+    if (Array.isArray(value)) value.forEach(v => query.append(key, v));
+    else if (value != null) query.append(key, value);
+  }
+
+  const url = 'https://api.tvmaze.com/' + tvmazePath +
+    (query.toString() ? '?' + query.toString() : '');
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Bingeo/1.0'
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10000)
+    });
+
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+
+    if (response.ok) {
+      res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao acessar TVmaze:', error);
+    res.status(502).json({ error: 'Não foi possível acessar a TVmaze.' });
+  }
+});
+
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 
