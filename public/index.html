@@ -2457,6 +2457,28 @@
     }finally{clearTimeout(timer);}
   }
 
+  async function anilistFetchSearch(title){
+    title=String(title||'').trim();
+    if(!title)return [];
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
+    try{
+      var res=await fetch('/api/anilist/search?q='+encodeURIComponent(title),{
+        headers:{'Accept':'application/json'},
+        signal:controller.signal
+      });
+      if(!res.ok){
+        var msg='AniList HTTP '+res.status;
+        try{var body=await res.json();if(body&&(body.error||body.message))msg=body.error||body.message;}catch(e){}
+        throw new Error(msg);
+      }
+      var data=await res.json();
+      var page=data&&data.data&&data.data.Page;
+      return page&&Array.isArray(page.media)?page.media:[];
+    }catch(err){
+      if(err&&err.name==='AbortError')throw new Error('A AniList demorou para responder.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
   function normalizeCreditName(value){
     return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   }
@@ -2524,6 +2546,10 @@
     if(/^banners\//i.test(url))return 'https://artworks.thetvdb.com/'+url;
     return '';
   }
+  function safeAniListImage(url){
+    url=String(url||'').trim();
+    return /^https:\/\/s4\.anilist\.co\/file\/anilistcdn\//i.test(url)?url:'';
+  }
   function characterImageUrl(ch){
     return safeTvmazeImage(ch&&ch.character_image_url) || safeTheTvdbImage(ch&&ch.tvdb_character_image_url);
   }
@@ -2533,6 +2559,53 @@
 
   function normalizeSeriesTitle(value){
     return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+  }
+  function isAnimeSeries(cat,details){
+    var genres=Array.isArray(details&&details.genres)?details.genres:[];
+    var hasAnimation=genres.some(function(g){
+      return String(g&&g.name||'').toLowerCase()==='animation';
+    });
+    var originalLang=String(details&&details.original_language||'').toLowerCase();
+    var countries=Array.isArray(details&&details.origin_country)?details.origin_country:[];
+    var fromJapan=originalLang==='ja'||countries.indexOf('JP')>-1;
+    var label=(String(cat&&cat.genre||'')+' '+String(cat&&cat.title||'')).toLowerCase();
+    return (hasAnimation&&fromJapan)||/\banime\b/.test(label);
+  }
+  function aniListTitleVariants(media){
+    var t=media&&media.title||{},values=[
+      t.userPreferred,t.english,t.romaji,t.native
+    ].concat(Array.isArray(media&&media.synonyms)?media.synonyms:[]);
+    return values.filter(Boolean).map(normalizeSeriesTitle).filter(Boolean);
+  }
+  function chooseAniListMatch(results,cat,details){
+    if(!Array.isArray(results)||!results.length)return null;
+    var targetTitles=[
+      cat&&cat.title,
+      details&&details.name,
+      details&&details.original_name
+    ].filter(Boolean).map(normalizeSeriesTitle).filter(Boolean);
+    var year=Number(cat&&cat.year)||parseInt((details&&details.first_air_date||'').slice(0,4),10)||0;
+    var best=null,bestScore=-Infinity;
+    results.forEach(function(media){
+      var titles=aniListTitleVariants(media),score=0;
+      targetTitles.forEach(function(target){
+        titles.forEach(function(candidate){
+          if(candidate===target)score=Math.max(score,120);
+          else if(candidate&&target&&(candidate.indexOf(target)>-1||target.indexOf(candidate)>-1))score=Math.max(score,75);
+        });
+      });
+      var mediaYear=Number(media&&media.seasonYear)||Number(media&&media.startDate&&media.startDate.year)||0;
+      if(year&&mediaYear){
+        if(mediaYear===year)score+=35;
+        else if(Math.abs(mediaYear-year)<=1)score+=15;
+        else if(Math.abs(mediaYear-year)>=4)score-=25;
+      }
+      var format=String(media&&media.format||'').toUpperCase();
+      if(format==='TV'||format==='TV_SHORT'||format==='ONA')score+=8;
+      if(String(media&&media.countryOfOrigin||'').toUpperCase()==='JP')score+=5;
+      if(score>bestScore){best=media;bestScore=score;}
+    });
+    return bestScore>=75?best:null;
   }
   function tmdbResultYear(r){return parseInt((r&&r.first_air_date||'').slice(0,4),10)||0;}
   function chooseTmdbMatch(results,cat){
@@ -3376,12 +3449,13 @@
     value=String(value||'').trim();
     if(!value)return '';
     if(/^\/[A-Za-z0-9._\/-]+$/.test(value))return tmdbImageUrl(value,size||'w500');
-    return safeTheTvdbImage(value)||safeTvmazeImage(value);
+    return safeTheTvdbImage(value)||safeAniListImage(value)||safeTvmazeImage(value);
   }
   function seriesArtworkSourceForValue(value){
     value=String(value||'');
     if(/^\/[A-Za-z0-9._\/-]+$/.test(value))return 'TMDB';
     if(safeTheTvdbImage(value))return 'TheTVDB';
+    if(safeAniListImage(value))return 'AniList';
     if(safeTvmazeImage(value))return 'TVmaze';
     return 'Imagem';
   }
@@ -3513,12 +3587,18 @@
   }
   function seriesArtworkLanguageAllowed(item){
     if(!item)return false;
+    // A AniList não informa o idioma visual da capa. A exceção é permitida
+    // somente quando o Bingeo confirmou que a série é um anime.
+    if(item.source==='AniList'&&item.anime===true)return true;
     if(item.textless===true)return true;
     var lang=normalizeSeriesArtworkLanguage(item.language);
     return lang==='pt'||lang==='en';
   }
   function seriesArtworkFitsTop5(item){
     if(!item)return false;
+    // coverImage da AniList é uma capa vertical própria para anime, porém a API
+    // não expõe width/height. Permitimos a capa somente na fonte AniList + anime.
+    if(item.source==='AniList'&&item.anime===true)return true;
     var w=Number(item.width||0),h=Number(item.height||0);
     if(!w||!h||h<=w)return false;
     var ratio=w/h;
@@ -3540,6 +3620,7 @@
     }
     if(item.source==='TheTVDB')score+=7;
     else if(item.source==='TMDB')score+=5;
+    else if(item.source==='AniList')score+=4;
     else if(item.source==='TVmaze')score+=3;
     var lang=normalizeSeriesArtworkLanguage(item.language);
     if(item.textless===true)score+=14;
@@ -3580,7 +3661,8 @@
       if(!cat.tmdbId||!details)details=await loadTmdbSeries(cat);
       if(!cat.tmdbId||!details)throw new Error('Série sem ID da TMDB.');
 
-      var cacheKey='series-posters-v7-core-sources:'+cat.tmdbId;
+      var animeSeries=isAnimeSeries(cat,details);
+      var cacheKey='series-posters-v8-anilist-anime:'+cat.tmdbId;
       var cached=tmdbCacheGet(cacheKey,604800000);
       if(Array.isArray(cached)&&cached.length){
         state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,cached.slice());
@@ -3592,12 +3674,14 @@
       var settled=await Promise.allSettled([
         tmdbFetch('/tv/'+cat.tmdbId+'/images',{include_image_language:'pt,en,null'}),
         getTheTvdbSeriesExtended(details),
-        (tvmazeShow&&tvmazeShow.id)?tvmazeFetch('shows/'+tvmazeShow.id+'/images',{}):Promise.resolve([])
+        (tvmazeShow&&tvmazeShow.id)?tvmazeFetch('shows/'+tvmazeShow.id+'/images',{}):Promise.resolve([]),
+        animeSeries?anilistFetchSearch(cat.title||details.name||details.original_name||''):Promise.resolve([])
       ]);
 
       var tmdbImages=settled[0].status==='fulfilled'?(settled[0].value||{}):{};
       var tvdbSeries=settled[1].status==='fulfilled'?settled[1].value:null;
       var tvmazeImages=settled[2].status==='fulfilled'&&Array.isArray(settled[2].value)?settled[2].value:[];
+      var anilistResults=settled[3].status==='fulfilled'&&Array.isArray(settled[3].value)?settled[3].value:[];
 
       var defaultPath=cat.poster_path||(details&&details.poster_path)||'';
       var defaultUrl=defaultPath?tmdbImageUrl(defaultPath,'w500'):'';
@@ -3651,6 +3735,24 @@
             providerScore:Number(art.score||0)
           });
         });
+      }
+
+      if(animeSeries&&anilistResults.length){
+        var anilistMatch=chooseAniListMatch(anilistResults,cat,details);
+        if(anilistMatch&&anilistMatch.coverImage){
+          var anilistUrl=safeAniListImage(
+            anilistMatch.coverImage.extraLarge||
+            anilistMatch.coverImage.large||
+            anilistMatch.coverImage.medium
+          );
+          if(anilistUrl){
+            add({
+              value:anilistUrl,url:anilistUrl,source:'AniList',
+              width:0,height:0,language:'',textless:false,anime:true,
+              providerScore:2
+            });
+          }
+        }
       }
 
       // O TVmaze fornece todos os pôsteres e dimensões, mas não informa
@@ -3728,7 +3830,7 @@
     if(!options.length)return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Nenhuma arte alternativa foi encontrada agora.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div></div>';
     var sources=[];
     options.forEach(function(opt){if(opt&&opt.source&&sources.indexOf(opt.source)===-1)sources.push(opt.source);});
-    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Somente pôsteres verticais compatíveis com o formato 2:3 do Top 5, sem letreiro ou em português/inglês.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
+    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Somente pôsteres verticais compatíveis com o formato 2:3 do Top 5, sem letreiro ou em português/inglês. Para animes, capas da AniList também são aceitas mesmo sem idioma identificado.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
       '<div class="artwork-picker-summary">'+sources.map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+'</span>';}).join('')+'</div>'+
       '<div class="artwork-grid">'+options.map(function(opt){
         var isSelected=opt.isDefault?(!selected||selected===opt.value):selected===opt.value;
