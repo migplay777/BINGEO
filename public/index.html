@@ -3503,8 +3503,21 @@
     }
     return html+'</section>';
   }
+  function normalizeSeriesArtworkLanguage(value){
+    var lang=String(value||'').trim().toLowerCase().replace(/_/g,'-');
+    if(!lang)return '';
+    if(lang==='eng'||lang==='english'||lang.indexOf('en-')===0)return 'en';
+    if(lang==='por'||lang==='pob'||lang==='portuguese'||lang.indexOf('pt-')===0)return 'pt';
+    return lang;
+  }
+  function seriesArtworkLanguageAllowed(item){
+    if(!item)return false;
+    if(item.textless===true)return true;
+    var lang=normalizeSeriesArtworkLanguage(item.language);
+    return lang==='pt'||lang==='en';
+  }
   function seriesArtworkCandidateScore(item){
-    if(!item||!item.url)return -Infinity;
+    if(!item||!item.url||!seriesArtworkLanguageAllowed(item))return -Infinity;
     var score=55,w=Number(item.width||0),h=Number(item.height||0);
     if(w&&h){
       var ratio=w/h;
@@ -3519,12 +3532,9 @@
     if(item.source==='TheTVDB')score+=7;
     else if(item.source==='TMDB')score+=5;
     else if(item.source==='TVmaze')score-=12;
-    if(item.textless===true)score+=10;
-    var lang=String(item.language||'').toLowerCase();
-    if(!lang)score+=8;
-    else if(lang!=='pt'&&lang!=='en')score+=7;
-    else if(lang==='en')score+=4;
-    else score+=3;
+    var lang=normalizeSeriesArtworkLanguage(item.language);
+    if(item.textless===true)score+=14;
+    else if(lang==='pt'||lang==='en')score+=5;
     score+=Math.min(18,Number(item.voteAverage||0)*1.6);
     score+=Math.min(14,Math.log10(Number(item.voteCount||0)+1)*6);
     score+=Math.min(18,Math.max(0,Number(item.providerScore||0))*6);
@@ -3548,15 +3558,9 @@
     return out;
   }
   function preserveSelectedSeriesArtwork(cat,options){
-    var selected=(state.profile.topFiveArtwork||{})[cat.id]||'';
-    if(!selected||options.some(function(x){return x&&x.value===selected;}))return options;
-    var url=seriesArtworkUrl(selected,'w500');
-    if(!url)return options;
-    options.unshift({
-      value:selected,url:url,source:seriesArtworkSourceForValue(selected),width:0,height:0,
-      language:'',isDefault:false,score:999,preserved:true
-    });
-    return options;
+    // Não reinsere artes antigas sem metadados: o seletor deve exibir somente
+    // pôsteres sem letreiro ou identificados como português/inglês.
+    return (options||[]).filter(seriesArtworkLanguageAllowed);
   }
   async function loadSeriesArtworkOptions(cat){
     if(!cat||!hasPro())return;
@@ -3567,7 +3571,7 @@
       if(!cat.tmdbId||!details)details=await loadTmdbSeries(cat);
       if(!cat.tmdbId||!details)throw new Error('Série sem ID da TMDB.');
 
-      var cacheKey='series-posters-v3:'+cat.tmdbId;
+      var cacheKey='series-posters-v4-pt-en-textless:'+cat.tmdbId;
       var cached=tmdbCacheGet(cacheKey,604800000);
       if(Array.isArray(cached)&&cached.length){
         state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,cached.slice());
@@ -3598,6 +3602,8 @@
       var candidates=[],seen={};
       function add(item){
         if(!item||!item.value||!item.url)return;
+        item.language=item.textless===true?'':normalizeSeriesArtworkLanguage(item.language);
+        if(!seriesArtworkLanguageAllowed(item))return;
         var key=normalizedArtworkUrlKey(item.url)||String(item.value);
         if(defaultUrl&&key===normalizedArtworkUrlKey(defaultUrl))return;
         item.score=seriesArtworkCandidateScore(item);
@@ -3646,10 +3652,33 @@
       }
 
       var ordered=diversifySeriesArtworkCandidates(candidates,24);
-      if(defaultUrl){
+      var defaultMeta=null;
+      if(defaultUrl&&defaultSource==='TMDB'){
+        var tmdbDefaultPoster=(tmdbImages.posters||[]).find(function(p){return p&&p.file_path===defaultPath;});
+        if(tmdbDefaultPoster){
+          defaultMeta={
+            language:tmdbDefaultPoster.iso_639_1||'',
+            textless:!tmdbDefaultPoster.iso_639_1
+          };
+        }
+      }else if(defaultUrl&&defaultSource==='TheTVDB'&&tvdbSeries&&Array.isArray(tvdbSeries.artworks)){
+        var defaultKey=normalizedArtworkUrlKey(defaultUrl);
+        var tvdbDefaultArt=tvdbSeries.artworks.find(function(art){
+          return art&&normalizedArtworkUrlKey(safeTheTvdbImage(art.image||art.thumbnail))===defaultKey;
+        });
+        if(tvdbDefaultArt){
+          defaultMeta={
+            language:tvdbDefaultArt.language||tvdbDefaultArt.languageCode||'',
+            textless:tvdbDefaultArt.includesText===false
+          };
+        }
+      }
+      if(defaultUrl&&defaultMeta&&seriesArtworkLanguageAllowed(defaultMeta)){
         ordered.splice(Math.min(4,ordered.length),0,{
           value:defaultValue,url:defaultUrl,source:defaultSource||'Padrão',
-          width:0,height:0,language:'',isDefault:true,score:-999
+          width:0,height:0,
+          language:defaultMeta.textless===true?'':normalizeSeriesArtworkLanguage(defaultMeta.language),
+          textless:defaultMeta.textless===true,isDefault:true,score:-999
         });
       }
       ordered=ordered.slice(0,25);
@@ -3675,7 +3704,7 @@
     if(!options.length)return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Nenhuma arte alternativa foi encontrada agora.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div></div>';
     var sources=[];
     options.forEach(function(opt){if(opt&&opt.source&&sources.indexOf(opt.source)===-1)sources.push(opt.source);});
-    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Artes alternativas e diferentes aparecem primeiro; o pôster padrão aparece apenas uma vez.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
+    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Somente pôsteres sem letreiro ou com título em português/inglês. Artes alternativas aparecem primeiro.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
       '<div class="artwork-picker-summary">'+sources.map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+'</span>';}).join('')+'</div>'+
       '<div class="artwork-grid">'+options.map(function(opt){
         var isSelected=opt.isDefault?(!selected||selected===opt.value):selected===opt.value;
