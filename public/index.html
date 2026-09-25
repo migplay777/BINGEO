@@ -1975,6 +1975,10 @@
     if(favorite){
       var del=await supabaseClient.from('user_favorite_characters').delete().eq('user_id',currentUserId).eq('character_key',character.character_key);
       if(del.error)throw del.error;
+      state.profile.topCharacters=(state.profile.topCharacters||[]).filter(function(key){return key!==character.character_key;});
+      if(state.profile.topCharacterArtwork)delete state.profile.topCharacterArtwork[character.character_key];
+      if(state.characterArtPickerKey===character.character_key)state.characterArtPickerKey=null;
+      await saveData();syncProfileToSupabase();
     }else{
       var ins=await supabaseClient.from('user_favorite_characters').insert({user_id:currentUserId,character_key:character.character_key});
       if(ins.error)throw ins.error;
