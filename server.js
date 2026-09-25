@@ -191,11 +191,89 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
   }
 });
 
+app.get('/api/anilist/search', async (req, res) => {
+  const search = String(req.query.q || '').trim();
+  const year = Number(req.query.year || 0) || null;
+
+  if (!search) {
+    return res.status(400).json({ error: 'Título do anime é obrigatório.' });
+  }
+
+  const query = `
+    query ($search: String, $year: Int) {
+      Page(page: 1, perPage: 8) {
+        media(
+          search: $search,
+          type: ANIME,
+          seasonYear: $year,
+          sort: SEARCH_MATCH
+        ) {
+          id
+          idMal
+          title {
+            romaji
+            english
+            native
+            userPreferred
+          }
+          seasonYear
+          startDate {
+            year
+          }
+          format
+          countryOfOrigin
+          coverImage {
+            extraLarge
+            large
+            medium
+          }
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'Bingeo/1.0'
+      },
+      body: JSON.stringify({
+        query,
+        variables: {
+          search,
+          year
+        }
+      }),
+      signal: AbortSignal.timeout(12000)
+    });
+
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+
+    const retryAfter = response.headers.get('retry-after');
+    if (retryAfter) res.set('Retry-After', retryAfter);
+
+    if (response.ok) {
+      res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao acessar AniList:', error);
+    res.status(502).json({ error: 'Não foi possível acessar a AniList.' });
+  }
+});
+
 app.get('/api/health', (_req, res) => res.json({
   ok: true,
   tmdbConfigured: !!TMDB_READ_TOKEN,
   tvmazeConfigured: true,
-  thetvdbConfigured: !!THETVDB_API_KEY
+  thetvdbConfigured: !!THETVDB_API_KEY,
+  anilistConfigured: true
 }));
 
 
