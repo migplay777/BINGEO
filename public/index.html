@@ -2456,6 +2456,27 @@
       throw err;
     }finally{clearTimeout(timer);}
   }
+
+  async function fanartFetchTv(tvdbId){
+    if(!tvdbId)return null;
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
+    try{
+      var res=await fetch('/api/fanart/tv/'+encodeURIComponent(tvdbId),{
+        headers:{'Accept':'application/json'},
+        signal:controller.signal
+      });
+      if(res.status===404)return null;
+      if(!res.ok){
+        var msg='Fanart.tv HTTP '+res.status;
+        try{var body=await res.json();if(body&&(body.error||body.message))msg=body.error||body.message;}catch(e){}
+        throw new Error(msg);
+      }
+      return await res.json();
+    }catch(err){
+      if(err&&err.name==='AbortError')throw new Error('A Fanart.tv demorou para responder.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
   function normalizeCreditName(value){
     return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   }
@@ -2522,6 +2543,10 @@
     if(/^\/banners\//i.test(url))return 'https://artworks.thetvdb.com'+url;
     if(/^banners\//i.test(url))return 'https://artworks.thetvdb.com/'+url;
     return '';
+  }
+  function safeFanartImage(url){
+    url=String(url||'').trim();
+    return /^https:\/\/assets\.fanart\.tv\//i.test(url)?url:'';
   }
   function characterImageUrl(ch){
     return safeTvmazeImage(ch&&ch.character_image_url) || safeTheTvdbImage(ch&&ch.tvdb_character_image_url);
@@ -3374,13 +3399,14 @@
   function seriesArtworkUrl(value,size){
     value=String(value||'').trim();
     if(!value)return '';
-    if(/^\/[A-Za-z0-9._/-]+$/.test(value))return tmdbImageUrl(value,size||'w500');
-    return safeTheTvdbImage(value)||safeTvmazeImage(value);
+    if(/^\/[A-Za-z0-9._\/-]+$/.test(value))return tmdbImageUrl(value,size||'w500');
+    return safeTheTvdbImage(value)||safeFanartImage(value)||safeTvmazeImage(value);
   }
   function seriesArtworkSourceForValue(value){
     value=String(value||'');
-    if(/^\/[A-Za-z0-9._/-]+$/.test(value))return 'TMDB';
+    if(/^\/[A-Za-z0-9._\/-]+$/.test(value))return 'TMDB';
     if(safeTheTvdbImage(value))return 'TheTVDB';
+    if(safeFanartImage(value))return 'Fanart.tv';
     if(safeTvmazeImage(value))return 'TVmaze';
     return 'Imagem';
   }
@@ -3537,9 +3563,10 @@
       else if(w>=680&&h>=1000)score+=7;
       else if(w<400||h<600)score-=28;
     }
-    if(item.source==='TheTVDB')score+=7;
+    if(item.source==='Fanart.tv')score+=9;
+    else if(item.source==='TheTVDB')score+=7;
     else if(item.source==='TMDB')score+=5;
-    else if(item.source==='TVmaze')score-=12;
+    else if(item.source==='TVmaze')score+=3;
     var lang=normalizeSeriesArtworkLanguage(item.language);
     if(item.textless===true)score+=14;
     else if(lang==='pt'||lang==='en')score+=5;
@@ -3579,21 +3606,28 @@
       if(!cat.tmdbId||!details)details=await loadTmdbSeries(cat);
       if(!cat.tmdbId||!details)throw new Error('Série sem ID da TMDB.');
 
-      var cacheKey='series-posters-v5-top5-ratio-pt-en-textless:'+cat.tmdbId;
+      var cacheKey='series-posters-v6-multi-source:'+cat.tmdbId;
       var cached=tmdbCacheGet(cacheKey,604800000);
       if(Array.isArray(cached)&&cached.length){
         state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,cached.slice());
         return;
       }
 
+      var tvdbId=await resolveTheTvdbSeriesId(details).catch(function(){return 0;});
+      var tvmazeShow=await findTvmazeShowForTmdb(details).catch(function(){return null;});
+
       var settled=await Promise.allSettled([
-        tmdbFetch('/tv/'+cat.tmdbId+'/images',{}),
+        tmdbFetch('/tv/'+cat.tmdbId+'/images',{include_image_language:'pt,en,null'}),
         getTheTvdbSeriesExtended(details),
-        findTvmazeShowForTmdb(details)
+        tvdbId?fanartFetchTv(tvdbId):Promise.resolve(null),
+        (tvmazeShow&&tvmazeShow.id)?tvmazeFetch('shows/'+tvmazeShow.id+'/images',{}):Promise.resolve([])
       ]);
+
       var tmdbImages=settled[0].status==='fulfilled'?(settled[0].value||{}):{};
       var tvdbSeries=settled[1].status==='fulfilled'?settled[1].value:null;
-      var tvmazeShow=settled[2].status==='fulfilled'?settled[2].value:null;
+      var fanartData=settled[2].status==='fulfilled'?settled[2].value:null;
+      var tvmazeImages=settled[3].status==='fulfilled'&&Array.isArray(settled[3].value)?settled[3].value:[];
+
       var defaultPath=cat.poster_path||(details&&details.poster_path)||'';
       var defaultUrl=defaultPath?tmdbImageUrl(defaultPath,'w500'):'';
       var defaultSource=defaultUrl?'TMDB':'';
@@ -3611,7 +3645,7 @@
       function add(item){
         if(!item||!item.value||!item.url)return;
         item.language=item.textless===true?'':normalizeSeriesArtworkLanguage(item.language);
-        if(!seriesArtworkLanguageAllowed(item))return;
+        if(!seriesArtworkLanguageAllowed(item)||!seriesArtworkFitsTop5(item))return;
         var key=normalizedArtworkUrlKey(item.url)||String(item.value);
         if(defaultUrl&&key===normalizedArtworkUrlKey(defaultUrl))return;
         item.score=seriesArtworkCandidateScore(item);
@@ -3636,10 +3670,9 @@
         tvdbSeries.artworks.forEach(function(art){
           if(!art||art.seriesPeopleId||art.peopleId)return;
           var url=safeTheTvdbImage(art.image||art.thumbnail),w=Number(art.width||0),h=Number(art.height||0);
-          if(!url)return;
+          if(!url||!w||!h)return;
           var typeText=String(art.typeName||art.type_name||art.name||'').toLowerCase();
           if(/banner|background|fanart|logo|icon|clearart/.test(typeText))return;
-          if(!w||!h)return;
           add({
             value:url,url:url,source:'TheTVDB',width:w,height:h,
             language:art.language||art.languageCode||'',
@@ -3649,17 +3682,36 @@
         });
       }
 
-      // TVmaze exposes one main show image, not a full poster gallery. It is
-      // still queried as a configured source and used as fallback without
-      // duplicating the standard artwork.
-      if(!candidates.length&&tvmazeShow&&tvmazeShow.image){
-        var mazeUrl=safeTvmazeImage(tvmazeShow.image.original||tvmazeShow.image.medium);
-        // TVmaze não fornece dimensões confiáveis da imagem neste retorno.
-        // Sem poder validar a proporção 2:3, não adicionamos ao seletor do Top 5.
-        if(mazeUrl&&mazeUrl!==defaultUrl){
-          console.debug('Pôster do TVmaze ignorado no Top 5 por falta de dimensões confiáveis.');
-        }
+      if(fanartData&&Array.isArray(fanartData.tvposter)){
+        fanartData.tvposter.forEach(function(art){
+          var url=safeFanartImage(art&&art.url),w=Number(art&&art.width||0),h=Number(art&&art.height||0);
+          if(!url||!w||!h)return;
+          var rawLang=String(art.lang||'').toLowerCase();
+          add({
+            value:url,url:url,source:'Fanart.tv',width:w,height:h,
+            language:rawLang==='00'?'':rawLang,
+            textless:rawLang==='00'||!rawLang,
+            providerScore:Math.log10(Number(art.likes||0)+1)*2,
+            voteCount:Number(art.likes||0)
+          });
+        });
       }
+
+      // O TVmaze fornece todos os pôsteres e dimensões, mas hoje não informa
+      // idioma/textless. Mantemos a consulta pronta, porém sem furar a regra
+      // PT/EN/sem texto definida para o Top 5.
+      tvmazeImages.forEach(function(img){
+        if(!img||img.type!=='poster'||!img.resolutions||!img.resolutions.original)return;
+        var original=img.resolutions.original,url=safeTvmazeImage(original.url);
+        var lang=img.language||img.lang||'';
+        var textless=img.textless===true||img.includesText===false;
+        if(!url||(!lang&&!textless))return;
+        add({
+          value:url,url:url,source:'TVmaze',
+          width:Number(original.width||0),height:Number(original.height||0),
+          language:lang,textless:textless,providerScore:img.main?2:0
+        });
+      });
 
       var ordered=diversifySeriesArtworkCandidates(candidates,24);
       var defaultMeta=null;
@@ -3687,6 +3739,7 @@
           };
         }
       }
+
       if(defaultUrl&&defaultMeta&&seriesArtworkLanguageAllowed(defaultMeta)&&seriesArtworkFitsTop5(defaultMeta)){
         ordered.splice(Math.min(4,ordered.length),0,{
           value:defaultValue,url:defaultUrl,source:defaultSource||'Padrão',
@@ -3695,6 +3748,7 @@
           textless:defaultMeta.textless===true,isDefault:true,score:-999
         });
       }
+
       ordered=ordered.slice(0,25);
       tmdbCacheSet(cacheKey,ordered);
       state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,ordered.slice());
