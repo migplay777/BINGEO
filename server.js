@@ -193,19 +193,17 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
 
 app.get('/api/anilist/search', async (req, res) => {
   const search = String(req.query.q || '').trim();
-  const year = Number(req.query.year || 0) || null;
 
   if (!search) {
     return res.status(400).json({ error: 'Título do anime é obrigatório.' });
   }
 
   const query = `
-    query ($search: String, $year: Int) {
-      Page(page: 1, perPage: 8) {
+    query ($search: String) {
+      Page(page: 1, perPage: 10) {
         media(
           search: $search,
           type: ANIME,
-          seasonYear: $year,
           sort: SEARCH_MATCH
         ) {
           id
@@ -216,6 +214,7 @@ app.get('/api/anilist/search', async (req, res) => {
             native
             userPreferred
           }
+          synonyms
           seasonYear
           startDate {
             year
@@ -242,10 +241,7 @@ app.get('/api/anilist/search', async (req, res) => {
       },
       body: JSON.stringify({
         query,
-        variables: {
-          search,
-          year
-        }
+        variables: { search }
       }),
       signal: AbortSignal.timeout(12000)
     });
