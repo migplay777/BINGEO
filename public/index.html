@@ -798,6 +798,59 @@
 
   .character-image-missing{display:flex;width:100%;height:100%;min-height:72px;align-items:center;justify-content:center;text-align:center;padding:10px;color:var(--text-dim);font-size:9.5px;line-height:1.35;background:linear-gradient(145deg,rgba(139,92,246,.09),rgba(76,124,240,.035));}
 
+
+  /* ---- Top 3 personagens + seleção de arte Pro ---- */
+  .top3-section{margin:28px 0 6px;padding-top:22px;border-top:1px solid var(--line);}
+  .top3-row{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:14px;}
+  .top3-card{position:relative;min-height:320px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0d0f16 center/cover no-repeat;cursor:pointer;box-shadow:0 16px 36px rgba(0,0,0,.14);}
+  .top3-card::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,6,10,.02) 30%,rgba(5,6,10,.18) 56%,rgba(5,6,10,.88) 100%);pointer-events:none;}
+  .top3-card:first-child{min-height:380px;}
+  .top3-card:hover{border-color:rgba(139,92,246,.55);transform:translateY(-2px);}
+  .top3-empty{display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;color:var(--text-dim);border-style:dashed;cursor:default;background:var(--panel);}
+  .top3-empty::after{display:none;}
+  .top3-rank{position:absolute;top:10px;left:10px;z-index:3;padding:4px 9px;border-radius:999px;background:rgba(0,0,0,.62);backdrop-filter:blur(8px);font:700 12px 'Space Grotesk',sans-serif;color:#fff;}
+  .top3-info{position:absolute;left:14px;right:14px;bottom:14px;z-index:3;}
+  .top3-name{font:700 18px 'Space Grotesk',sans-serif;letter-spacing:-.02em;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.5);}
+  .top3-series{font-size:10.5px;color:rgba(255,255,255,.7);margin-top:4px;}
+  .top3-controls{position:absolute;top:10px;right:10px;z-index:4;display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+  .top3-control-btn{border:1px solid rgba(255,255,255,.25);background:rgba(0,0,0,.62);color:#fff;border-radius:7px;padding:5px 7px;font-size:10px;cursor:pointer;backdrop-filter:blur(8px);}
+  .top3-control-btn:hover{background:var(--violet);}
+  .top3-picker{margin-top:14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel);}
+  .top3-picker-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;}
+  .top3-picker-row:hover{background:var(--panel-2);}
+  .top3-picker-thumb{width:42px;height:54px;border-radius:7px;background:#0d0f16 center/cover no-repeat;flex:0 0 42px;}
+  .top3-picker-copy{flex:1;min-width:0;}
+  .top3-picker-name{font-size:12.5px;font-weight:700;}
+  .top3-picker-meta{font-size:10px;color:var(--text-muted);margin-top:2px;}
+
+  .artwork-picker{margin-top:12px;padding:13px;border:1px solid rgba(139,92,246,.32);border-radius:12px;background:linear-gradient(145deg,rgba(139,92,246,.08),rgba(76,124,240,.03)),var(--panel);}
+  .artwork-picker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;}
+  .artwork-picker-title{font:700 12.5px 'Space Grotesk',sans-serif;}
+  .artwork-picker-note{font-size:9.5px;color:var(--text-dim);}
+  .artwork-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px;}
+  .artwork-choice{position:relative;aspect-ratio:2/3;border:1px solid var(--line);border-radius:9px;background:#0d0f16 center/cover no-repeat;cursor:pointer;overflow:hidden;}
+  .artwork-choice.landscape{aspect-ratio:16/10;}
+  .artwork-choice:hover,.artwork-choice.selected{border-color:var(--violet);box-shadow:0 0 0 2px rgba(139,92,246,.16);}
+  .artwork-choice-label{position:absolute;left:6px;right:6px;bottom:6px;padding:3px 5px;border-radius:5px;background:rgba(0,0,0,.68);color:#fff;font-size:8.5px;text-align:center;}
+  .pro-art-btn{background:rgba(139,92,246,.75)!important;}
+  .pro-art-btn.locked{opacity:.7;}
+
+  .top5-slot .top5-profile-poster{width:100%;aspect-ratio:2/3;background:#0d0f16 center/contain no-repeat;}
+  .user-top5-poster.custom-profile-art{background-size:contain;background-color:#0d0f16;}
+  .own-evaluations-section{margin:28px 0 4px;padding-top:22px;border-top:1px solid var(--line);}
+
+  @media(max-width:760px){
+    .top3-row{grid-template-columns:1fr 1fr;}
+    .top3-card:first-child{grid-column:1/-1;min-height:360px;}
+    .top3-card{min-height:270px;}
+  }
+  @media(max-width:480px){
+    .top3-row{grid-template-columns:1fr;}
+    .top3-card:first-child{grid-column:auto;min-height:330px;}
+    .top3-card{min-height:300px;}
+    .artwork-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
+  }
+
 </style>
 </head>
 <body>
