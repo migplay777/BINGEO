@@ -4381,6 +4381,8 @@
         state.diary = state.diary.filter(function(d){ return d.catalogId!==cid; });
         state.lists.forEach(function(l){ l.showIds = l.showIds.filter(function(id){ return id!==cid; }); });
         state.profile.topFive = state.profile.topFive.map(function(id){ return id===cid ? null : id; });
+        if(state.profile.topFiveArtwork)delete state.profile.topFiveArtwork[cid];
+        if(state.seriesArtPickerId===cid)state.seriesArtPickerId=null;
         state.modalCatalogId = null;
         saveData(); deleteEntryFromSupabase(cid); syncProfileToSupabase(); render();
       }
@@ -4565,7 +4567,82 @@ else if(action==='choose-list-cover'){
         return loadListExtras(rlist);
       }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível remover o colaborador.');});
     }
-    else if(action==='toggle-top5-editor'){ top5EditorOpen = !top5EditorOpen; render(); }
+    else if(action==='toggle-top3-editor'){
+      top3EditorOpen=!top3EditorOpen;
+      if(!top3EditorOpen)state.characterArtPickerKey=null;
+      render();
+    }
+    else if(action==='top3-add'){
+      var addKey=el.dataset.character;
+      if(!addKey)return;
+      state.profile.topCharacters=Array.isArray(state.profile.topCharacters)?state.profile.topCharacters:[];
+      if(state.profile.topCharacters.indexOf(addKey)===-1&&state.profile.topCharacters.filter(Boolean).length<3){
+        state.profile.topCharacters.push(addKey);
+        saveData();syncProfileToSupabase();render();
+      }
+    }
+    else if(action==='top3-remove'){
+      var top3Idx=parseInt(el.dataset.index,10);
+      var removedKey=state.profile.topCharacters[top3Idx];
+      state.profile.topCharacters.splice(top3Idx,1);
+      if(removedKey&&state.profile.topCharacterArtwork)delete state.profile.topCharacterArtwork[removedKey];
+      if(state.characterArtPickerKey===removedKey)state.characterArtPickerKey=null;
+      saveData();syncProfileToSupabase();render();
+    }
+    else if(action==='top3-move'){
+      var top3MoveIdx=parseInt(el.dataset.index,10),top3Dir=el.dataset.dir;
+      var top3Swap=top3Dir==='up'?top3MoveIdx-1:top3MoveIdx+1;
+      if(top3Swap<0||top3Swap>2||!state.profile.topCharacters[top3MoveIdx])return;
+      var top3Tmp=state.profile.topCharacters[top3MoveIdx];
+      state.profile.topCharacters[top3MoveIdx]=state.profile.topCharacters[top3Swap];
+      state.profile.topCharacters[top3Swap]=top3Tmp;
+      saveData();syncProfileToSupabase();render();
+    }
+    else if(action==='top3-art-picker'){
+      if(!hasPro()){alert('A escolha personalizada de imagem do Top 3 é exclusiva do Bingeo Pro.');return;}
+      var artKey=el.dataset.character;if(!artKey)return;
+      state.characterArtPickerKey=state.characterArtPickerKey===artKey?null:artKey;
+      state.seriesArtPickerId=null;
+      var artCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===artKey;})||characterLocalCache[artKey];
+      if(artCharacter){
+        var artCat=ensureCharacterSeriesCatalog(artCharacter);
+        if(artCat)loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível carregar mais artes do personagem:',e);});
+      }
+      render();
+    }
+    else if(action==='close-character-art-picker'){state.characterArtPickerKey=null;render();}
+    else if(action==='top3-select-art'){
+      if(!hasPro())return;
+      var selectKey=el.dataset.character,selectUrl=el.dataset.url||'';
+      var selectCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===selectKey;})||characterLocalCache[selectKey];
+      if(!selectCharacter)return;
+      var allowed=topCharacterArtworkOptions(selectCharacter);
+      if(selectUrl&&allowed.indexOf(selectUrl)===-1)return;
+      state.profile.topCharacterArtwork=state.profile.topCharacterArtwork||{};
+      if(selectUrl)state.profile.topCharacterArtwork[selectKey]=selectUrl;
+      else delete state.profile.topCharacterArtwork[selectKey];
+      saveData();syncProfileToSupabase();render();
+    }
+    else if(action==='top5-art-picker'){
+      if(!hasPro()){alert('A escolha personalizada de pôster do Top 5 é exclusiva do Bingeo Pro.');return;}
+      var seriesArtId=el.dataset.catalog,seriesArtCat=getCatalog(seriesArtId);if(!seriesArtCat)return;
+      state.seriesArtPickerId=state.seriesArtPickerId===seriesArtId?null:seriesArtId;
+      state.characterArtPickerKey=null;
+      render();
+      if(state.seriesArtPickerId)loadSeriesArtworkOptions(seriesArtCat);
+    }
+    else if(action==='close-series-art-picker'){state.seriesArtPickerId=null;render();}
+    else if(action==='top5-select-art'){
+      if(!hasPro())return;
+      var artCatalog=el.dataset.catalog,artPath=el.dataset.path||'';
+      var allowedPaths=state.seriesArtworkOptions[artCatalog]||[];
+      if(artPath&&allowedPaths.indexOf(artPath)===-1)return;
+      state.profile.topFiveArtwork=state.profile.topFiveArtwork||{};
+      if(artPath)state.profile.topFiveArtwork[artCatalog]=artPath;
+      else delete state.profile.topFiveArtwork[artCatalog];
+      saveData();syncProfileToSupabase();render();
+    }
+    else if(action==='toggle-top5-editor'){ top5EditorOpen = !top5EditorOpen; if(!top5EditorOpen)state.seriesArtPickerId=null; render(); }
     else if(action==='top5-add'){
       if(state.profile.topFive.filter(Boolean).length<5){
         var emptyIdx = -1;
@@ -4577,7 +4654,10 @@ else if(action==='choose-list-cover'){
     }
     else if(action==='top5-remove'){
       var idx2 = parseInt(el.dataset.index,10);
+      var removedTop5=state.profile.topFive[idx2];
       state.profile.topFive[idx2] = null;
+      if(removedTop5&&state.profile.topFiveArtwork)delete state.profile.topFiveArtwork[removedTop5];
+      if(state.seriesArtPickerId===removedTop5)state.seriesArtPickerId=null;
       saveData(); syncProfileToSupabase(); render();
     }
     else if(action==='top5-move'){
