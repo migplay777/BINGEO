@@ -1648,7 +1648,8 @@
       tvdb_series_id:previous.tvdb_series_id||null,
       tvdb_character_image_url:previous.tvdb_character_image_url||null,
       character_banner_url:previous.character_banner_url||null,
-      character_image_source:previous.character_image_source||null
+      character_image_source:previous.character_image_source||null,
+      character_artwork_options:Array.isArray(previous.character_artwork_options)?previous.character_artwork_options.slice(0,12):[]
     };
     characterLocalCache[row.character_key]=row;
     return row;
@@ -3355,10 +3356,9 @@
     return values.slice(0,12);
   }
   function topCharacterDisplayArt(ch,profile,selectedOverride){
-    var selected=selectedOverride||'';
-    if(!selected&&profile&&profile.plan==='pro'){
-      selected=(profile.topCharacterArtwork||{})[ch.character_key]||'';
-    }
+    var pro=!!(profile&&profile.plan==='pro');
+    var selected=pro?(selectedOverride||''):'';
+    if(!selected&&pro)selected=(profile.topCharacterArtwork||{})[ch.character_key]||'';
     selected=safeTvmazeImage(selected)||safeTheTvdbImage(selected);
     return selected||characterImageUrl(ch)||characterBannerImageUrl(ch)||'';
   }
