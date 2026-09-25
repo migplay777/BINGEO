@@ -6,6 +6,7 @@ const PORT = process.env.PORT || 3000;
 const TMDB_READ_TOKEN = process.env.TMDB_READ_TOKEN;
 const THETVDB_API_KEY = process.env.THETVDB_API_KEY;
 const THETVDB_PIN = process.env.THETVDB_PIN || '';
+const FANART_TV_API_KEY = process.env.FANART_TV_API_KEY;
 let theTvdbToken = null;
 let theTvdbTokenExpiresAt = 0;
 
@@ -191,11 +192,53 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
   }
 });
 
+app.get('/api/fanart/tv/:tvdbId', async (req, res) => {
+  if (!FANART_TV_API_KEY) {
+    return res.status(503).json({ error: 'Fanart.tv não configurada no servidor.' });
+  }
+
+  const tvdbId = String(req.params.tvdbId || '').trim();
+  if (!/^\d+$/.test(tvdbId)) {
+    return res.status(400).json({ error: 'TheTVDB ID inválido.' });
+  }
+
+  const url = 'https://webservice.fanart.tv/v3.2/tv/' +
+    encodeURIComponent(tvdbId) +
+    '?api_key=' + encodeURIComponent(FANART_TV_API_KEY);
+
+  try {
+    const response = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'User-Agent': 'Bingeo/1.0'
+      },
+      signal: AbortSignal.timeout(12000)
+    });
+
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+
+    if (response.ok) {
+      res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+    } else if (response.status === 429) {
+      const retryAfter = response.headers.get('retry-after');
+      if (retryAfter) res.set('Retry-After', retryAfter);
+    }
+
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao acessar Fanart.tv:', error);
+    res.status(502).json({ error: 'Não foi possível acessar a Fanart.tv.' });
+  }
+});
+
 app.get('/api/health', (_req, res) => res.json({
   ok: true,
   tmdbConfigured: !!TMDB_READ_TOKEN,
   tvmazeConfigured: true,
-  thetvdbConfigured: !!THETVDB_API_KEY
+  thetvdbConfigured: !!THETVDB_API_KEY,
+  fanartConfigured: !!FANART_TV_API_KEY
 }));
 
 
