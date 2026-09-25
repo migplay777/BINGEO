@@ -832,6 +832,15 @@
   .artwork-choice.landscape{aspect-ratio:16/10;}
   .artwork-choice:hover,.artwork-choice.selected{border-color:var(--violet);box-shadow:0 0 0 2px rgba(139,92,246,.16);}
   .artwork-choice-label{position:absolute;left:6px;right:6px;bottom:6px;padding:3px 5px;border-radius:5px;background:rgba(0,0,0,.68);color:#fff;font-size:8.5px;text-align:center;}
+  .artwork-choice-source{position:absolute;top:6px;left:6px;z-index:2;padding:3px 5px;border-radius:5px;background:rgba(0,0,0,.72);color:rgba(255,255,255,.88);font-size:8px;letter-spacing:.02em;opacity:0;transform:translateY(-2px);transition:opacity .14s ease,transform .14s ease;pointer-events:none;}
+  .artwork-choice:hover .artwork-choice-source,.artwork-choice.selected .artwork-choice-source{opacity:1;transform:none;}
+  .artwork-choice.selected::after{content:"✓";position:absolute;top:6px;right:6px;z-index:3;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:var(--violet);color:#fff;font-size:12px;font-weight:800;box-shadow:0 4px 14px rgba(0,0,0,.35);}
+  .artwork-picker-summary{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px;}
+  .artwork-source-chip{padding:4px 7px;border:1px solid var(--line);border-radius:999px;background:var(--panel-2);font-size:8.5px;color:var(--text-muted);}
+  .artwork-skeleton-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:9px;margin-top:10px;}
+  .artwork-skeleton{aspect-ratio:2/3;border-radius:9px;background:linear-gradient(100deg,var(--panel-2) 20%,rgba(255,255,255,.06) 38%,var(--panel-2) 56%);background-size:220% 100%;animation:artworkShimmer 1.25s ease-in-out infinite;border:1px solid var(--line);}
+  @keyframes artworkShimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
   .pro-art-btn{background:rgba(139,92,246,.75)!important;}
   .pro-art-btn.locked{opacity:.7;}
 
@@ -3362,14 +3371,36 @@
     selected=safeTvmazeImage(selected)||safeTheTvdbImage(selected);
     return selected||characterImageUrl(ch)||characterBannerImageUrl(ch)||'';
   }
+  function seriesArtworkUrl(value,size){
+    value=String(value||'').trim();
+    if(!value)return '';
+    if(/^\/[A-Za-z0-9._/-]+$/.test(value))return tmdbImageUrl(value,size||'w500');
+    return safeTheTvdbImage(value)||safeTvmazeImage(value);
+  }
+  function seriesArtworkSourceForValue(value){
+    value=String(value||'');
+    if(/^\/[A-Za-z0-9._/-]+$/.test(value))return 'TMDB';
+    if(safeTheTvdbImage(value))return 'TheTVDB';
+    if(safeTvmazeImage(value))return 'TVmaze';
+    return 'Imagem';
+  }
+  function normalizedArtworkUrlKey(url){
+    return String(url||'').trim().toLowerCase()
+      .replace(/^https?:\/\//,'')
+      .replace(/[?#].*$/,'')
+      .replace(/\/(?:w92|w154|w185|w342|w500|w780|original)\//g,'/');
+  }
   function seriesProfilePosterUrl(cat,profile){
     if(!cat)return '';
     var custom='';
-    if(profile&&profile.plan==='pro'){
-      custom=(profile.topFiveArtwork||{})[cat.id]||'';
-    }
-    if(custom&&/^\/[A-Za-z0-9._/-]+$/.test(custom))return tmdbImageUrl(custom,'w500');
-    return tmdbImageUrl(cat.poster_path||(cat.tmdbData&&cat.tmdbData.poster_path),'w500');
+    if(profile&&profile.plan==='pro')custom=(profile.topFiveArtwork||{})[cat.id]||'';
+    var customUrl=seriesArtworkUrl(custom,'w500');
+    if(customUrl)return customUrl;
+    var standard=tmdbImageUrl(cat.poster_path||(cat.tmdbData&&cat.tmdbData.poster_path),'w500');
+    if(standard)return standard;
+    var known=(state.seriesArtworkOptions&&state.seriesArtworkOptions[cat.id])||[];
+    var fallback=known.find(function(x){return x&&x.isDefault&&x.url;});
+    return fallback&&fallback.url||'';
   }
   function ownEvaluationItems(){
     return state.entries.filter(function(e){
@@ -3472,35 +3503,187 @@
     }
     return html+'</section>';
   }
+  function seriesArtworkCandidateScore(item){
+    if(!item||!item.url)return -Infinity;
+    var score=55,w=Number(item.width||0),h=Number(item.height||0);
+    if(w&&h){
+      var ratio=w/h;
+      if(ratio<.48||ratio>.88)return -Infinity;
+      score+=Math.max(0,30-(Math.abs(ratio-(2/3))*120));
+      var area=w*h;
+      score+=Math.min(24,area/120000);
+      if(w>=1000&&h>=1400)score+=12;
+      else if(w>=680&&h>=1000)score+=7;
+      else if(w<400||h<600)score-=28;
+    }else score-=3;
+    if(item.source==='TheTVDB')score+=7;
+    else if(item.source==='TMDB')score+=5;
+    else if(item.source==='TVmaze')score-=12;
+    if(item.textless===true)score+=10;
+    var lang=String(item.language||'').toLowerCase();
+    if(!lang)score+=8;
+    else if(lang!=='pt'&&lang!=='en')score+=7;
+    else if(lang==='en')score+=4;
+    else score+=3;
+    score+=Math.min(18,Number(item.voteAverage||0)*1.6);
+    score+=Math.min(14,Math.log10(Number(item.voteCount||0)+1)*6);
+    score+=Math.min(18,Math.max(0,Number(item.providerScore||0))*6);
+    if(item.likelyDefault)score-=80;
+    return score;
+  }
+  function diversifySeriesArtworkCandidates(rows,maxItems){
+    var pool=(rows||[]).slice().sort(function(a,b){return b.score-a.score;});
+    var out=[],sourceCount={},langCount={};
+    while(pool.length&&out.length<maxItems){
+      var bestIndex=0,bestEffective=-Infinity;
+      pool.forEach(function(item,idx){
+        var source=item.source||'Imagem',lang=item.language||'sem-texto';
+        var effective=item.score-(sourceCount[source]||0)*5-(langCount[lang]||0)*2;
+        if(out.length&&out[out.length-1].source===source)effective-=3;
+        if(effective>bestEffective){bestEffective=effective;bestIndex=idx;}
+      });
+      var chosen=pool.splice(bestIndex,1)[0],source=chosen.source||'Imagem',lang=chosen.language||'sem-texto';
+      out.push(chosen);sourceCount[source]=(sourceCount[source]||0)+1;langCount[lang]=(langCount[lang]||0)+1;
+    }
+    return out;
+  }
+  function preserveSelectedSeriesArtwork(cat,options){
+    var selected=(state.profile.topFiveArtwork||{})[cat.id]||'';
+    if(!selected||options.some(function(x){return x&&x.value===selected;}))return options;
+    var url=seriesArtworkUrl(selected,'w500');
+    if(!url)return options;
+    options.unshift({
+      value:selected,url:url,source:seriesArtworkSourceForValue(selected),width:0,height:0,
+      language:'',isDefault:false,score:999,preserved:true
+    });
+    return options;
+  }
   async function loadSeriesArtworkOptions(cat){
     if(!cat||!hasPro())return;
     if(state.seriesArtworkOptions[cat.id]||state.seriesArtworkLoading[cat.id])return;
     state.seriesArtworkLoading[cat.id]=true;renderMainViewOnly();
     try{
-      if(!cat.tmdbId)await loadTmdbSeries(cat);
-      if(!cat.tmdbId)throw new Error('Série sem ID da TMDB.');
-      var data=await tmdbFetch('/tv/'+cat.tmdbId+'/images',{include_image_language:'pt,en,null'});
-      var rows=(data.posters||[]).slice().sort(function(a,b){
-        var as=Number(a.vote_average||0)*100+Number(a.vote_count||0)+Number(a.width||0)*Number(a.height||0)/1000000;
-        var bs=Number(b.vote_average||0)*100+Number(b.vote_count||0)+Number(b.width||0)*Number(b.height||0)/1000000;
-        return bs-as;
+      var details=cat.tmdbData||null;
+      if(!cat.tmdbId||!details)details=await loadTmdbSeries(cat);
+      if(!cat.tmdbId||!details)throw new Error('Série sem ID da TMDB.');
+
+      var cacheKey='series-posters-v3:'+cat.tmdbId;
+      var cached=tmdbCacheGet(cacheKey,604800000);
+      if(Array.isArray(cached)&&cached.length){
+        state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,cached.slice());
+        return;
+      }
+
+      var settled=await Promise.allSettled([
+        tmdbFetch('/tv/'+cat.tmdbId+'/images',{}),
+        getTheTvdbSeriesExtended(details),
+        findTvmazeShowForTmdb(details)
+      ]);
+      var tmdbImages=settled[0].status==='fulfilled'?(settled[0].value||{}):{};
+      var tvdbSeries=settled[1].status==='fulfilled'?settled[1].value:null;
+      var tvmazeShow=settled[2].status==='fulfilled'?settled[2].value:null;
+      var defaultPath=cat.poster_path||(details&&details.poster_path)||'';
+      var defaultUrl=defaultPath?tmdbImageUrl(defaultPath,'w500'):'';
+      var defaultSource=defaultUrl?'TMDB':'';
+      var defaultValue='';
+      if(!defaultUrl&&tvdbSeries){
+        var tvdbMain=safeTheTvdbImage(tvdbSeries.image);
+        if(tvdbMain){defaultUrl=tvdbMain;defaultSource='TheTVDB';defaultValue=tvdbMain;}
+      }
+      if(!defaultUrl&&tvmazeShow&&tvmazeShow.image){
+        var mazeMain=safeTvmazeImage(tvmazeShow.image.original||tvmazeShow.image.medium);
+        if(mazeMain){defaultUrl=mazeMain;defaultSource='TVmaze';defaultValue=mazeMain;}
+      }
+
+      var candidates=[],seen={};
+      function add(item){
+        if(!item||!item.value||!item.url)return;
+        var key=normalizedArtworkUrlKey(item.url)||String(item.value);
+        if(defaultUrl&&key===normalizedArtworkUrlKey(defaultUrl))return;
+        item.score=seriesArtworkCandidateScore(item);
+        if(!isFinite(item.score))return;
+        if(seen[key]!=null){
+          if(candidates[seen[key]].score<item.score)candidates[seen[key]]=item;
+          return;
+        }
+        seen[key]=candidates.length;candidates.push(item);
+      }
+
+      (tmdbImages.posters||[]).forEach(function(p){
+        if(!p||!p.file_path||p.file_path===defaultPath)return;
+        add({
+          value:p.file_path,url:tmdbImageUrl(p.file_path,'w500'),source:'TMDB',
+          width:Number(p.width||0),height:Number(p.height||0),language:p.iso_639_1||'',
+          textless:!p.iso_639_1,voteAverage:Number(p.vote_average||0),voteCount:Number(p.vote_count||0)
+        });
       });
-      var paths=[];if(cat.poster_path)paths.push(cat.poster_path);
-      rows.forEach(function(x){if(x.file_path&&paths.indexOf(x.file_path)===-1)paths.push(x.file_path);});
-      state.seriesArtworkOptions[cat.id]=paths.slice(0,10);
-    }catch(e){console.error('Erro ao buscar pôsteres alternativos:',e);state.seriesArtworkOptions[cat.id]=[];}
-    finally{state.seriesArtworkLoading[cat.id]=false;if(state.view==='perfil')renderMainViewOnly();}
+
+      if(tvdbSeries&&Array.isArray(tvdbSeries.artworks)){
+        tvdbSeries.artworks.forEach(function(art){
+          if(!art||art.seriesPeopleId||art.peopleId)return;
+          var url=safeTheTvdbImage(art.image||art.thumbnail),w=Number(art.width||0),h=Number(art.height||0);
+          if(!url)return;
+          var typeText=String(art.typeName||art.type_name||art.name||'').toLowerCase();
+          if(/banner|background|fanart|logo|icon|clearart/.test(typeText))return;
+          if(w&&h){var ratio=w/h;if(ratio<.48||ratio>.88)return;}
+          add({
+            value:url,url:url,source:'TheTVDB',width:w,height:h,
+            language:art.language||art.languageCode||'',
+            textless:art.includesText===false,
+            providerScore:Number(art.score||0)
+          });
+        });
+      }
+
+      // TVmaze exposes one main show image, not a full poster gallery. It is
+      // still queried as a configured source and used as fallback without
+      // duplicating the standard artwork.
+      if(!candidates.length&&tvmazeShow&&tvmazeShow.image){
+        var mazeUrl=safeTvmazeImage(tvmazeShow.image.original||tvmazeShow.image.medium);
+        if(mazeUrl&&mazeUrl!==defaultUrl){
+          add({value:mazeUrl,url:mazeUrl,source:'TVmaze',width:0,height:0,language:'',likelyDefault:true});
+        }
+      }
+
+      var ordered=diversifySeriesArtworkCandidates(candidates,24);
+      if(defaultUrl){
+        ordered.splice(Math.min(4,ordered.length),0,{
+          value:defaultValue,url:defaultUrl,source:defaultSource||'Padrão',
+          width:0,height:0,language:'',isDefault:true,score:-999
+        });
+      }
+      ordered=ordered.slice(0,25);
+      tmdbCacheSet(cacheKey,ordered);
+      state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,ordered.slice());
+    }catch(e){
+      console.error('Erro ao buscar pôsteres alternativos:',e);
+      state.seriesArtworkOptions[cat.id]=preserveSelectedSeriesArtwork(cat,[]);
+    }finally{
+      state.seriesArtworkLoading[cat.id]=false;
+      if(state.view==='perfil')renderMainViewOnly();
+    }
   }
   function top5ArtworkPickerHtml(){
     var catId=state.seriesArtPickerId;if(!catId)return '';
     var cat=getCatalog(catId);if(!cat)return '';
     var selected=(state.profile.topFiveArtwork||{})[catId]||'';
-    if(state.seriesArtworkLoading[catId])return '<div class="artwork-picker"><div class="tmdb-loading">Buscando pôsteres alternativos…</div></div>';
-    var paths=state.seriesArtworkOptions[catId]||[];
-    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Escolha exclusiva do Bingeo Pro para o seu perfil.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
-      '<div class="artwork-grid"><div class="artwork-choice '+(!selected?'selected':'')+'" data-action="top5-select-art" data-catalog="'+cat.id+'" data-path=""><span class="artwork-choice-label">Padrão</span></div>'+
-      paths.map(function(path,idx){var url=tmdbImageUrl(path,'w342');return '<div class="artwork-choice '+(selected===path?'selected':'')+'" data-action="top5-select-art" data-catalog="'+cat.id+'" data-path="'+escapeHtml(path)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-label">Pôster '+(idx+1)+'</span></div>';}).join('')+
-      '</div></div>';
+    if(state.seriesArtworkLoading[catId]){
+      return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Buscando artes alternativas nas fontes configuradas…</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
+        '<div class="artwork-skeleton-grid">'+Array(10).fill('<div class="artwork-skeleton"></div>').join('')+'</div></div>';
+    }
+    var options=state.seriesArtworkOptions[catId]||[];
+    if(!options.length)return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Nenhuma arte alternativa foi encontrada agora.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div></div>';
+    var sources=[];
+    options.forEach(function(opt){if(opt&&opt.source&&sources.indexOf(opt.source)===-1)sources.push(opt.source);});
+    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Artes alternativas e diferentes aparecem primeiro; o pôster padrão aparece apenas uma vez.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
+      '<div class="artwork-picker-summary">'+sources.map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+'</span>';}).join('')+'</div>'+
+      '<div class="artwork-grid">'+options.map(function(opt){
+        var isSelected=opt.isDefault?(!selected||selected===opt.value):selected===opt.value;
+        var label=opt.isDefault?'Padrão':'Alternativo';
+        var meta=[opt.source,opt.language?String(opt.language).toUpperCase():'',opt.width&&opt.height?(opt.width+'×'+opt.height):''].filter(Boolean).join(' · ');
+        return '<div class="artwork-choice '+(isSelected?'selected':'')+'" data-action="top5-select-art" data-catalog="'+cat.id+'" data-value="'+escapeHtml(opt.value||'')+'" title="'+escapeHtml(meta)+'" style="background-image:url(\''+String(opt.url||'').replace(/'/g,'%27')+'\')">'+
+          '<span class="artwork-choice-source">'+escapeHtml(opt.source||'Imagem')+'</span><span class="artwork-choice-label">'+label+'</span></div>';
+      }).join('')+'</div></div>';
   }
 
   /* ---------------- view: perfil ---------------- */
@@ -4634,11 +4817,11 @@ else if(action==='choose-list-cover'){
     else if(action==='close-series-art-picker'){state.seriesArtPickerId=null;render();}
     else if(action==='top5-select-art'){
       if(!hasPro())return;
-      var artCatalog=el.dataset.catalog,artPath=el.dataset.path||'';
-      var allowedPaths=state.seriesArtworkOptions[artCatalog]||[];
-      if(artPath&&allowedPaths.indexOf(artPath)===-1)return;
+      var artCatalog=el.dataset.catalog,artValue=el.dataset.value||el.dataset.path||'';
+      var allowedOptions=state.seriesArtworkOptions[artCatalog]||[];
+      if(artValue&&!allowedOptions.some(function(opt){return opt&&opt.value===artValue;}))return;
       state.profile.topFiveArtwork=state.profile.topFiveArtwork||{};
-      if(artPath)state.profile.topFiveArtwork[artCatalog]=artPath;
+      if(artValue)state.profile.topFiveArtwork[artCatalog]=artValue;
       else delete state.profile.topFiveArtwork[artCatalog];
       saveData();syncProfileToSupabase();render();
     }
