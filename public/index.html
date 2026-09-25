@@ -3334,6 +3334,166 @@
       (chars.length?'<div class="favorite-people-grid">'+chars.map(favoriteCharacterCardHtml).join('')+'</div>':empty('Nenhum personagem favoritado ainda.'))+'</section>';
   }
 
+  function topCharacterArtworkOptions(ch){
+    var values=[];
+    function add(url){
+      url=safeTvmazeImage(url)||safeTheTvdbImage(url);
+      if(url&&values.indexOf(url)===-1)values.push(url);
+    }
+    add(ch&&ch.character_image_url);
+    add(ch&&ch.tvdb_character_image_url);
+    (ch&&Array.isArray(ch.character_artwork_options)?ch.character_artwork_options:[]).forEach(add);
+    add(ch&&ch.character_banner_url);
+    return values.slice(0,12);
+  }
+  function topCharacterDisplayArt(ch,profile,selectedOverride){
+    var selected=selectedOverride||'';
+    if(!selected&&profile&&profile.plan==='pro'){
+      selected=(profile.topCharacterArtwork||{})[ch.character_key]||'';
+    }
+    selected=safeTvmazeImage(selected)||safeTheTvdbImage(selected);
+    return selected||characterImageUrl(ch)||characterBannerImageUrl(ch)||'';
+  }
+  function seriesProfilePosterUrl(cat,profile){
+    if(!cat)return '';
+    var custom='';
+    if(profile&&profile.plan==='pro'){
+      custom=(profile.topFiveArtwork||{})[cat.id]||'';
+    }
+    if(custom&&/^\/[A-Za-z0-9._/-]+$/.test(custom))return tmdbImageUrl(custom,'w500');
+    return tmdbImageUrl(cat.poster_path||(cat.tmdbData&&cat.tmdbData.poster_path),'w500');
+  }
+  function ownEvaluationItems(){
+    return state.entries.filter(function(e){
+      return e.rating!=null||String(e.review||'').trim()||
+        (e.premiumRating&&e.premiumRating.value!=null)||
+        (e.premiumRating&&Array.isArray(e.premiumRating.reactions)&&e.premiumRating.reactions.length)||
+        Object.keys(e.criteriaRatings||{}).some(function(k){return e.criteriaRatings[k]!=null;})||
+        (e.badges||[]).length||
+        Object.keys(e.seasonRatings||{}).some(function(k){return e.seasonRatings[k]!=null;})||
+        Object.keys(e.episodeRatings||{}).some(function(k){return e.episodeRatings[k]!=null;});
+    }).sort(function(a,b){return String(b.dateUpdated||'').localeCompare(String(a.dateUpdated||''));})
+      .slice(0,18).map(function(e){
+        var cat=getCatalog(e.catalogId);
+        return {
+          catalog_id:e.catalogId,
+          tmdb_id:cat&&cat.tmdbId||null,
+          title:cat&&cat.title||e.catalogId,
+          genre:cat&&cat.genre||'Série',
+          poster_path:cat&&cat.poster_path||null,
+          backdrop_path:cat&&cat.backdrop_path||null,
+          rating:e.rating,
+          review:e.review||'',
+          season_ratings:e.seasonRatings||{},
+          episode_ratings:e.episodeRatings||{},
+          premium_rating:e.premiumRating||{},
+          criteria_ratings:e.criteriaRatings||{},
+          badges:e.badges||[],
+          spoiler_level:e.spoilerLevel||'none',
+          spoiler_season:e.spoilerSeason,
+          spoiler_episode:e.spoilerEpisode,
+          updated_at:e.dateUpdated||''
+        };
+      });
+  }
+  function ownEvaluationsSectionHtml(){
+    var evals=ownEvaluationItems();
+    return '<section class="own-evaluations-section"><div class="section-title" style="margin-bottom:13px;">Avaliações</div>'+
+      (evals.length?'<div class="user-eval-grid">'+evals.map(userEvaluationCardHtml).join('')+'</div>':'<div class="empty">Nenhuma avaliação registrada ainda.</div>')+
+      '</section>';
+  }
+  function top3CharactersHtml(items,options){
+    items=Array.isArray(items)?items:[];
+    options=options||{};
+    var editable=!!options.editable,profile=options.profile||{},isOwn=!!options.isOwn;
+    var byKey={};items.forEach(function(ch){if(ch&&ch.character_key){byKey[ch.character_key]=ch;characterLocalCache[ch.character_key]=ch;}});
+    var ordered=[];
+    if(isOwn){
+      (state.profile.topCharacters||[]).slice(0,3).forEach(function(key){
+        var ch=state.favoriteCharacters.find(function(x){return x.character_key===key;})||characterLocalCache[key];
+        if(ch)ordered.push(ch);
+      });
+    }else ordered=items.slice(0,3);
+
+    var slots=[0,1,2].map(function(i){
+      var ch=ordered[i];
+      if(!ch)return '<div class="top3-card top3-empty"><span>#'+(i+1)+' · vazio</span></div>';
+      var selectedOverride=!isOwn?ch.selected_artwork:'';
+      var art=topCharacterDisplayArt(ch,profile,selectedOverride);
+      return '<div class="top3-card" data-action="open-character" data-character="'+escapeHtml(ch.character_key)+'" style="'+(art?'background-image:url(\''+art.replace(/'/g,'%27')+'\')':'')+'">'+
+        '<span class="top3-rank">#'+(i+1)+'</span>'+
+        (editable?'<div class="top3-controls">'+
+          (i>0?'<button class="top3-control-btn" data-action="top3-move" data-index="'+i+'" data-dir="up" title="Mover">←</button>':'')+
+          (i<2?'<button class="top3-control-btn" data-action="top3-move" data-index="'+i+'" data-dir="down" title="Mover">→</button>':'')+
+          '<button class="top3-control-btn '+(hasPro()?'pro-art-btn':'locked')+'" data-action="top3-art-picker" data-character="'+escapeHtml(ch.character_key)+'" title="Escolher imagem">'+(hasPro()?'Imagem':'Imagem ✦ Pro')+'</button>'+
+          '<button class="top3-control-btn" data-action="top3-remove" data-index="'+i+'" title="Remover">✕</button>'+
+        '</div>':'')+
+        '<div class="top3-info"><div class="top3-name">'+escapeHtml(displayCharacterName(ch.character_name))+'</div><div class="top3-series">'+escapeHtml(ch.tv_name||'Série')+'</div></div>'+
+      '</div>';
+    }).join('');
+
+    var html='<section class="top3-section"><div class="section-head"><div><div class="section-title">Top 3 personagens</div><div class="artwork-picker-note">Seus personagens de séries que mais se destacam.</div></div>'+
+      (isOwn?'<button class="btn btn-ghost btn-sm" data-action="toggle-top3-editor">'+(top3EditorOpen?'Concluir':'Editar Top 3')+'</button>':'')+
+      '</div><div class="top3-row">'+slots+'</div>';
+
+    if(isOwn&&top3EditorOpen){
+      var free=3-(state.profile.topCharacters||[]).filter(Boolean).length;
+      var candidates=state.favoriteCharacters.filter(function(ch){return (state.profile.topCharacters||[]).indexOf(ch.character_key)===-1;});
+      html+='<div class="top3-picker"><div class="field-label">Adicionar personagem ('+free+' vaga'+(free===1?'':'s')+')</div>'+
+        (candidates.length?candidates.map(function(ch){
+          var img=characterImageUrl(ch);
+          return '<div class="top3-picker-row"><div class="top3-picker-thumb" style="'+(img?'background-image:url(\''+img.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+            '<div class="top3-picker-copy"><div class="top3-picker-name">'+escapeHtml(displayCharacterName(ch.character_name))+'</div><div class="top3-picker-meta">'+escapeHtml(ch.tv_name||'Série')+'</div></div>'+
+            (free>0?'<button class="btn btn-ghost btn-sm" data-action="top3-add" data-character="'+escapeHtml(ch.character_key)+'">Adicionar</button>':'')+
+          '</div>';
+        }).join(''):'<div class="empty" style="padding:16px;">Favorite personagens nas páginas das séries para adicioná-los ao Top 3.</div>')+
+      '</div>';
+    }
+
+    if(isOwn&&state.characterArtPickerKey){
+      var pick=state.favoriteCharacters.find(function(ch){return ch.character_key===state.characterArtPickerKey;})||characterLocalCache[state.characterArtPickerKey];
+      if(pick){
+        var choices=topCharacterArtworkOptions(pick),selected=(state.profile.topCharacterArtwork||{})[pick.character_key]||'';
+        html+='<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Personalização visual exclusiva do Bingeo Pro.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
+          '<div class="artwork-grid">'+
+            '<div class="artwork-choice '+(!selected?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url=""><span class="artwork-choice-label">Padrão</span></div>'+
+            choices.map(function(url,idx){return '<div class="artwork-choice '+(selected===url?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-label">Opção '+(idx+1)+'</span></div>';}).join('')+
+          '</div></div>';
+      }
+    }
+    return html+'</section>';
+  }
+  async function loadSeriesArtworkOptions(cat){
+    if(!cat||!hasPro())return;
+    if(state.seriesArtworkOptions[cat.id]||state.seriesArtworkLoading[cat.id])return;
+    state.seriesArtworkLoading[cat.id]=true;renderMainViewOnly();
+    try{
+      if(!cat.tmdbId)await loadTmdbSeries(cat);
+      if(!cat.tmdbId)throw new Error('Série sem ID da TMDB.');
+      var data=await tmdbFetch('/tv/'+cat.tmdbId+'/images',{include_image_language:'pt,en,null'});
+      var rows=(data.posters||[]).slice().sort(function(a,b){
+        var as=Number(a.vote_average||0)*100+Number(a.vote_count||0)+Number(a.width||0)*Number(a.height||0)/1000000;
+        var bs=Number(b.vote_average||0)*100+Number(b.vote_count||0)+Number(b.width||0)*Number(b.height||0)/1000000;
+        return bs-as;
+      });
+      var paths=[];if(cat.poster_path)paths.push(cat.poster_path);
+      rows.forEach(function(x){if(x.file_path&&paths.indexOf(x.file_path)===-1)paths.push(x.file_path);});
+      state.seriesArtworkOptions[cat.id]=paths.slice(0,10);
+    }catch(e){console.error('Erro ao buscar pôsteres alternativos:',e);state.seriesArtworkOptions[cat.id]=[];}
+    finally{state.seriesArtworkLoading[cat.id]=false;if(state.view==='perfil')renderMainViewOnly();}
+  }
+  function top5ArtworkPickerHtml(){
+    var catId=state.seriesArtPickerId;if(!catId)return '';
+    var cat=getCatalog(catId);if(!cat)return '';
+    var selected=(state.profile.topFiveArtwork||{})[catId]||'';
+    if(state.seriesArtworkLoading[catId])return '<div class="artwork-picker"><div class="tmdb-loading">Buscando pôsteres alternativos…</div></div>';
+    var paths=state.seriesArtworkOptions[catId]||[];
+    return '<div class="artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Pôster de '+escapeHtml(cat.title)+'</div><div class="artwork-picker-note">Escolha exclusiva do Bingeo Pro para o seu perfil.</div></div><button class="btn btn-ghost btn-sm" data-action="close-series-art-picker">Fechar</button></div>'+
+      '<div class="artwork-grid"><div class="artwork-choice '+(!selected?'selected':'')+'" data-action="top5-select-art" data-catalog="'+cat.id+'" data-path=""><span class="artwork-choice-label">Padrão</span></div>'+
+      paths.map(function(path,idx){var url=tmdbImageUrl(path,'w342');return '<div class="artwork-choice '+(selected===path?'selected':'')+'" data-action="top5-select-art" data-catalog="'+cat.id+'" data-path="'+escapeHtml(path)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-label">Pôster '+(idx+1)+'</span></div>';}).join('')+
+      '</div></div>';
+  }
+
   /* ---------------- view: perfil ---------------- */
   function viewPerfil(){
     var initials = state.profile.username ? state.profile.username.trim().charAt(0).toUpperCase() : '?';
