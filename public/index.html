@@ -1097,6 +1097,10 @@
     professionalHydrating:false,
     favoriteProfessionals:[],
     favoriteCharacters:[],
+    seriesArtworkOptions:{},
+    seriesArtworkLoading:{},
+    seriesArtPickerId:null,
+    characterArtPickerKey:null,
     characterOpen:null,
     characterData:null,
     characterLoading:false,
@@ -1118,6 +1122,7 @@
   var tmdbCacheMemory=null;
   var expandedSeasons = {};
   var top5EditorOpen = false;
+  var top3EditorOpen = false;
 
   function uid(){ return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8); }
   function slugify(value){return String(value||'lista').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,42)||'lista';}
@@ -1218,8 +1223,8 @@
   var DB_SCHEMA_VERSION=4; var DB_KEY_BASE='bingeo-db-v2'; var dbInitPromise=null;
   function currentDbKey(){return currentUserId?(DB_KEY_BASE+':'+currentUserId):null;}
   function currentIdbKey(){return currentUserId?('state:'+currentUserId):null;}
-  function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none'},socialLinks:[]}};}
-  function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
+  function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],topFiveArtwork:{},topCharacters:[],topCharacterArtwork:{},username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none'},socialLinks:[]}};}
+  function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];p.topFive=Array.isArray(p.topFive)?p.topFive.slice(0,5):[];p.topFiveArtwork=p.topFiveArtwork&&typeof p.topFiveArtwork==='object'?p.topFiveArtwork:{};p.topCharacters=Array.isArray(p.topCharacters)?p.topCharacters.slice(0,3):[];p.topCharacterArtwork=p.topCharacterArtwork&&typeof p.topCharacterArtwork==='object'?p.topCharacterArtwork:{};if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
   function readLocalDb(){var key=currentDbKey();if(!key)return null;try{var r=localStorage.getItem(key);return r?normalizeDb(JSON.parse(r)):null;}catch(e){return null;}}
   function writeLocalDb(db){var key=currentDbKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(db));return true;}catch(e){return false;}}
   function openBingeoDb(){if(dbInitPromise)return dbInitPromise;dbInitPromise=new Promise(function(resolve){if(!('indexedDB' in window)){resolve(null);return;}try{var req=indexedDB.open('BingeoDB',1);req.onupgradeneeded=function(e){if(!e.target.result.objectStoreNames.contains('app'))e.target.result.createObjectStore('app',{keyPath:'key'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){resolve(null);};}catch(e){resolve(null);}});return dbInitPromise;}
@@ -1269,6 +1274,12 @@
     state.professionalHydrating=false;
     state.favoriteProfessionals=[];
     state.favoriteCharacters=[];
+    state.seriesArtworkOptions={};
+    state.seriesArtworkLoading={};
+    state.seriesArtPickerId=null;
+    state.characterArtPickerKey=null;
+    top3EditorOpen=false;
+    top5EditorOpen=false;
     state.characterSearchResults=[];
     state.characterOpen=null;
     state.characterData=null;
@@ -1493,7 +1504,7 @@
     if(!currentUserId)return;
     var userId=currentUserId;
     try{
-      var result=await supabaseClient.from('profiles').select('username,bio,avatar_url,banner_url,plan,name_style,social_links,top_five').eq('id',userId).maybeSingle();
+      var result=await supabaseClient.from('profiles').select('username,bio,avatar_url,banner_url,plan,name_style,social_links,top_five,top_five_artwork,top_characters,top_character_artwork').eq('id',userId).maybeSingle();
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
       var row=result.data||{};
@@ -1507,6 +1518,9 @@
       state.profile.nameStyle=row.name_style&&typeof row.name_style==='object'?row.name_style:{color:null,effect:'none'};
       state.profile.socialLinks=Array.isArray(row.social_links)?row.social_links:[];
       state.profile.topFive=Array.isArray(row.top_five)?row.top_five.slice(0,5):[];
+      state.profile.topFiveArtwork=row.top_five_artwork&&typeof row.top_five_artwork==='object'?row.top_five_artwork:{};
+      state.profile.topCharacters=Array.isArray(row.top_characters)?row.top_characters.slice(0,3):[];
+      state.profile.topCharacterArtwork=row.top_character_artwork&&typeof row.top_character_artwork==='object'?row.top_character_artwork:{};
       state.profile.editing=false;
       await saveData();
       if(appBooted&&currentUserId===userId&&state.view==='perfil')renderMainViewOnly();
@@ -1534,6 +1548,9 @@
         name_style:state.profile.nameStyle||{color:null,effect:'none'},
         social_links:Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[],
         top_five:(state.profile.topFive||[]).filter(Boolean).slice(0,5),
+        top_five_artwork:state.profile.topFiveArtwork||{},
+        top_characters:(state.profile.topCharacters||[]).filter(Boolean).slice(0,3),
+        top_character_artwork:state.profile.topCharacterArtwork||{},
         updated_at:new Date().toISOString()
       };
       if(currentUserId!==userId)return;
@@ -1721,10 +1738,19 @@
     var rolePortrait=bestTheTvdbCharacterArtwork(tvdbCharacter,artworks,false);
     var roleBanner=bestTheTvdbCharacterArtwork(tvdbCharacter,artworks,true);
     var officialCharacterImage=safeTheTvdbImage(tvdbCharacter.image);
+    var roleArtworks=artworks.filter(function(art){
+      return Number(art&&art.seriesPeopleId||0)===Number(tvdbCharacter.id||0) ||
+        (tvdbCharacter.peopleId&&Number(art&&art.peopleId||0)===Number(tvdbCharacter.peopleId));
+    }).sort(function(a,b){return tvdbArtworkScore(b,false)-tvdbArtworkScore(a,false);})
+      .map(function(art){return safeTheTvdbImage(art&&art.image);}).filter(Boolean);
     row.tvdb_character_id=Number(tvdbCharacter.id)||null;
     row.tvdb_series_id=Number(tvdbSeries.id)||Number(tvdbCharacter.seriesId)||null;
     row.tvdb_character_image_url=rolePortrait||officialCharacterImage||null;
     row.character_banner_url=roleBanner||null;
+    row.character_artwork_options=Array.from(new Set(
+      [].concat(row.character_artwork_options||[],rolePortrait||[],officialCharacterImage||[],roleBanner||[],roleArtworks)
+        .filter(Boolean)
+    )).slice(0,12);
     if(!row.character_image_url&&row.tvdb_character_image_url)row.character_image_source='thetvdb';
     return row;
   }
@@ -1761,7 +1787,10 @@
           row.tvmaze_character_id=Number(maze.character.id)||null;
           row.tvmaze_show_id=tvmazeShow&&Number(tvmazeShow.id)||null;
           row.character_image_url=safeTvmazeImage(maze.character.image&&(maze.character.image.original||maze.character.image.medium));
-          if(row.character_image_url)row.character_image_source='tvmaze';
+          if(row.character_image_url){
+            row.character_image_source='tvmaze';
+            row.character_artwork_options=Array.from(new Set([row.character_image_url].concat(row.character_artwork_options||[]))).slice(0,12);
+          }
         }else if(tvmazeShow&&tvmazeShow.id){
           row.tvmaze_show_id=Number(tvmazeShow.id);
         }
@@ -1780,6 +1809,12 @@
     try{
       var result=await supabaseClient.rpc('index_bingeo_characters',{p_rows:rows});
       if(result.error)throw result.error;
+      var optionRows=rows.filter(function(row){return Array.isArray(row.character_artwork_options)&&row.character_artwork_options.length;})
+        .map(function(row){return {character_key:row.character_key,options:row.character_artwork_options};});
+      if(optionRows.length){
+        var savedOptions=await supabaseClient.rpc('save_character_artwork_options',{p_rows:optionRows});
+        if(savedOptions.error)console.warn('Não foi possível salvar todas as opções de arte do personagem:',savedOptions.error);
+      }
       cat.charactersIndexed=true;
       rows.forEach(function(row){
         var fav=state.favoriteCharacters.find(function(ch){return ch.character_key===row.character_key;});
