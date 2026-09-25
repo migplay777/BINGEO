@@ -3320,7 +3320,7 @@
     return '<div class="favorite-person-card" data-action="open-professional" data-person="'+Number(p.person_id)+'">'+
       '<div class="favorite-person-photo" style="'+(img?'background-image:url(\''+img.replace(/'/g,'%27')+'\')':'')+'"></div>'+
       '<div class="favorite-person-copy"><div class="favorite-person-name">'+escapeHtml(p.name||'Profissional')+'</div>'+
-      '<div class="favorite-person-role">'+escapeHtml(professionalDepartmentLabel(p.known_for_department||'Profissional'))+'</div></div></div>';
+      '<div class="favorite-person-role">'+escapeHtml(professionalFavoriteGroup(p)==='actor'?'Ator/Atriz':professionalDepartmentLabel(p.known_for_department||'Profissional'))+'</div></div></div>';
   }
   function favoriteCharacterCardHtml(ch){
     var img=characterImageUrl(ch);
