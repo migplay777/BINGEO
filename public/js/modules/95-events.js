@@ -203,7 +203,21 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
       state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark'},state.profile.nameStyle||{});
       state.profile.nameStyle.theme=selectedTheme;
       applyThemePreference(selectedTheme);
-      saveData();syncProfileToSupabase();renderMainViewOnly();
+      var themeSwitch=document.getElementById('themeSwitch');
+      if(themeSwitch){
+        themeSwitch.classList.toggle('is-light',selectedTheme==='light');
+        themeSwitch.classList.toggle('is-dark',selectedTheme==='dark');
+        themeSwitch.querySelectorAll('.theme-switch-option').forEach(function(btn){
+          var active=btn.dataset.theme===selectedTheme;
+          btn.classList.toggle('active',active);
+          btn.setAttribute('aria-checked',active?'true':'false');
+        });
+      }
+      var themeStatusText=document.getElementById('themeStatusText');
+      if(themeStatusText)themeStatusText.textContent=selectedTheme==='light'?'Claro':'Escuro';
+      var themePaletteDots=document.getElementById('themePaletteDots');
+      if(themePaletteDots){themePaletteDots.classList.toggle('light',selectedTheme==='light');themePaletteDots.classList.toggle('dark',selectedTheme==='dark');}
+      saveData();syncProfileToSupabase();
     }
     else if(action==='save-profile'){
       var pu=document.getElementById('profileUsername'),pb=document.getElementById('profileBio');
