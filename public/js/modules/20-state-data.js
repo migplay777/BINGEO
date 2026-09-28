@@ -10,7 +10,7 @@
     entries:[],
     diary:[],
     lists:[],
-    profile:{ photo:null, topFive:[], username:'', bio:'', plan:'free', editing:false, nameStyle:{color:null,effect:'none',theme:'dark'} },
+    profile:{ photo:null, topFive:[], username:'', bio:'', plan:'free', editing:false, nameStyle:{color:null,effect:'none',theme:'dark',highlights:{character:'',actor:null,creator:null}} },
     trending:{},
     trendingUsers:{},
     tmdbSearchResults:[],
@@ -886,6 +886,11 @@
     if(favorite){
       var del=await supabaseClient.from('user_favorite_professionals').delete().eq('user_id',currentUserId).eq('person_id',Number(person.id));
       if(del.error)throw del.error;
+      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{}},state.profile.nameStyle||{});
+      state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);
+      if(Number(state.profile.nameStyle.highlights.actor)===Number(person.id))state.profile.nameStyle.highlights.actor=null;
+      if(Number(state.profile.nameStyle.highlights.creator)===Number(person.id))state.profile.nameStyle.highlights.creator=null;
+      await saveData();syncProfileToSupabase();
     }else{
       var ins=await supabaseClient.from('user_favorite_professionals').upsert({
         user_id:currentUserId,
@@ -914,6 +919,10 @@
       var del=await supabaseClient.from('user_favorite_characters').delete().eq('user_id',currentUserId).eq('character_key',character.character_key);
       if(del.error)throw del.error;
       state.profile.topCharacters=(state.profile.topCharacters||[]).filter(function(key){return key!==character.character_key;});
+      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{}},state.profile.nameStyle||{});
+      state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);
+      if(state.profile.nameStyle.highlights.character===character.character_key)state.profile.nameStyle.highlights.character='';
+      state.profile.topCharacters=state.profile.nameStyle.highlights.character?[state.profile.nameStyle.highlights.character]:[];
       if(state.profile.topCharacterArtwork)delete state.profile.topCharacterArtwork[character.character_key];
       if(state.characterArtPickerKey===character.character_key)state.characterArtPickerKey=null;
       await saveData();syncProfileToSupabase();
