@@ -61,7 +61,7 @@
   var tmdbCacheMemory=null;
   var expandedSeasons = {};
   var top5EditorOpen = false;
-  var top3EditorOpen = false;
+  var profileHighlightsEditorOpen = false;
 
   function uid(){ return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8); }
   function slugify(value){return String(value||'lista').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,42)||'lista';}
@@ -81,6 +81,15 @@
     document.documentElement.setAttribute('data-theme',theme);
     try{localStorage.setItem(THEME_KEY,theme);}catch(e){}
     return theme;
+  }
+  function normalizeProfileHighlights(value,legacyTopCharacters){
+    value=value&&typeof value==='object'?value:{};
+    var legacy=Array.isArray(legacyTopCharacters)?legacyTopCharacters.filter(Boolean):[];
+    return {
+      character:String(value.character||legacy[0]||''),
+      actor:Number(value.actor||0)||null,
+      creator:Number(value.creator||0)||null
+    };
   }
   function hashHue(str){
     var h=0;
@@ -169,8 +178,8 @@
   var DB_SCHEMA_VERSION=4; var DB_KEY_BASE='bingeo-db-v2'; var dbInitPromise=null;
   function currentDbKey(){return currentUserId?(DB_KEY_BASE+':'+currentUserId):null;}
   function currentIdbKey(){return currentUserId?('state:'+currentUserId):null;}
-  function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],topFiveArtwork:{},topCharacters:[],topCharacterArtwork:{},username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none',theme:'dark'},socialLinks:[]}};}
-  function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.nameStyle.theme=normalizeTheme(p.nameStyle.theme);p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];p.topFive=Array.isArray(p.topFive)?p.topFive.slice(0,5):[];p.topFiveArtwork=p.topFiveArtwork&&typeof p.topFiveArtwork==='object'?p.topFiveArtwork:{};p.topCharacters=Array.isArray(p.topCharacters)?p.topCharacters.slice(0,3):[];p.topCharacterArtwork=p.topCharacterArtwork&&typeof p.topCharacterArtwork==='object'?p.topCharacterArtwork:{};if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
+  function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],topFiveArtwork:{},topCharacters:[],topCharacterArtwork:{},username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none',theme:'dark',highlights:{character:'',actor:null,creator:null}},socialLinks:[]}};}
+  function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.nameStyle.theme=normalizeTheme(p.nameStyle.theme);p.nameStyle.highlights=normalizeProfileHighlights(p.nameStyle.highlights,p.topCharacters);p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];p.topFive=Array.isArray(p.topFive)?p.topFive.slice(0,5):[];p.topFiveArtwork=p.topFiveArtwork&&typeof p.topFiveArtwork==='object'?p.topFiveArtwork:{};p.topCharacters=p.nameStyle.highlights.character?[p.nameStyle.highlights.character]:[];p.topCharacterArtwork=p.topCharacterArtwork&&typeof p.topCharacterArtwork==='object'?p.topCharacterArtwork:{};if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
   function readLocalDb(){var key=currentDbKey();if(!key)return null;try{var r=localStorage.getItem(key);return r?normalizeDb(JSON.parse(r)):null;}catch(e){return null;}}
   function writeLocalDb(db){var key=currentDbKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(db));return true;}catch(e){return false;}}
   function openBingeoDb(){if(dbInitPromise)return dbInitPromise;dbInitPromise=new Promise(function(resolve){if(!('indexedDB' in window)){resolve(null);return;}try{var req=indexedDB.open('BingeoDB',1);req.onupgradeneeded=function(e){if(!e.target.result.objectStoreNames.contains('app'))e.target.result.createObjectStore('app',{keyPath:'key'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){resolve(null);};}catch(e){resolve(null);}});return dbInitPromise;}
@@ -224,7 +233,7 @@
     state.seriesArtworkLoading={};
     state.seriesArtPickerId=null;
     state.characterArtPickerKey=null;
-    top3EditorOpen=false;
+    profileHighlightsEditorOpen=false;
     top5EditorOpen=false;
     state.characterSearchResults=[];
     state.characterOpen=null;
@@ -236,7 +245,7 @@
     state.listOpen=null;
     state.query='';
   }
-  async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark'},state.profile.nameStyle||{});state.profile.nameStyle.theme=normalizeTheme(state.profile.nameStyle.theme);applyThemePreference(state.profile.nameStyle.theme);state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
+  async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{character:'',actor:null,creator:null}},state.profile.nameStyle||{});state.profile.nameStyle.theme=normalizeTheme(state.profile.nameStyle.theme);state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);state.profile.topCharacters=state.profile.nameStyle.highlights.character?[state.profile.nameStyle.highlights.character]:[];applyThemePreference(state.profile.nameStyle.theme);state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
   if(!e.premiumRating)e.premiumRating={format:'classic',value:null,reactions:[]};
   if(!e.criteriaRatings||typeof e.criteriaRatings!=='object')e.criteriaRatings={};
   if(!Array.isArray(e.badges))e.badges=[];
@@ -461,13 +470,15 @@
       state.profile.photo=row.avatar_url||null;
       state.profile.banner=row.banner_url||null;
       state.profile.plan=row.plan==='pro'?'pro':'free';
-      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark'},row.name_style&&typeof row.name_style==='object'?row.name_style:{});
+      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{character:'',actor:null,creator:null}},row.name_style&&typeof row.name_style==='object'?row.name_style:{});
       state.profile.nameStyle.theme=normalizeTheme(state.profile.nameStyle.theme);
       applyThemePreference(state.profile.nameStyle.theme);
       state.profile.socialLinks=Array.isArray(row.social_links)?row.social_links:[];
       state.profile.topFive=Array.isArray(row.top_five)?row.top_five.slice(0,5):[];
       state.profile.topFiveArtwork=row.top_five_artwork&&typeof row.top_five_artwork==='object'?row.top_five_artwork:{};
       state.profile.topCharacters=Array.isArray(row.top_characters)?row.top_characters.slice(0,3):[];
+      state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);
+      state.profile.topCharacters=state.profile.nameStyle.highlights.character?[state.profile.nameStyle.highlights.character]:[];
       state.profile.topCharacterArtwork=row.top_character_artwork&&typeof row.top_character_artwork==='object'?row.top_character_artwork:{};
       state.profile.editing=false;
       await saveData();
@@ -497,7 +508,7 @@
         social_links:Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[],
         top_five:(state.profile.topFive||[]).filter(Boolean).slice(0,5),
         top_five_artwork:state.profile.topFiveArtwork||{},
-        top_characters:(state.profile.topCharacters||[]).filter(Boolean).slice(0,3),
+        top_characters:(state.profile.nameStyle&&state.profile.nameStyle.highlights&&state.profile.nameStyle.highlights.character)?[state.profile.nameStyle.highlights.character]:[],
         top_character_artwork:state.profile.topCharacterArtwork||{},
         updated_at:new Date().toISOString()
       };
@@ -1256,7 +1267,7 @@
     }else html+='<div class="empty">Esse usuário ainda não montou o Top 5.</div>';
     html+='</section><section class="user-profile-section"><div class="user-profile-section-title">Avaliações</div>';
     html+=evals.length?'<div class="user-eval-grid">'+evals.map(userEvaluationCardHtml).join('')+'</div>':'<div class="empty">Nenhuma avaliação registrada ainda.</div>';
-    html+='</section>'+top3CharactersHtml(u.top_characters||[],{editable:false,profile:u,isOwn:false})+peopleFavoritesSectionsHtml(u.people_favorites||{})+userFavoritesHtml(u)+'<section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
+    html+='</section>'+profileHighlightsHtml(u.people_favorites||{},{editable:false,profile:u,isOwn:false})+peopleFavoritesSectionsHtml(u.people_favorites||{})+userFavoritesHtml(u)+'<section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
     html+=acts.length?'<div class="social-feed-list">'+acts.map(function(a){a.user_id=u.user_id;a.username=u.username;a.avatar_url=u.avatar_url;a.plan=u.plan;a.name_style=u.name_style;return socialActivityHtml(a,false);}).join('')+'</div>':'<div class="empty">Nenhuma atividade recente.</div>';
     return html+'</section></div>';
   }

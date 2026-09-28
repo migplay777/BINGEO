@@ -147,9 +147,9 @@
   }
 
   // TESTE TEMPORÁRIO: false = exibe também as imagens padrão conhecidas
-  // do TVmaze/TheTVDB no seletor do Top 3. Volte para true quando quiser
-  // restaurar o modo que prioriza/exibe apenas alternativas antes do padrão.
-  var TOP3_ALTERNATIVE_FILTER_ENABLED=false;
+  // do TVmaze/TheTVDB no seletor do personagem em destaque. Volte para true
+  // quando quiser restaurar o modo que prioriza alternativas.
+  var CHARACTER_ALTERNATIVE_FILTER_ENABLED=false;
 
   function topCharacterArtworkSource(url){
     if(safeTheTvdbImage(url))return 'TheTVDB';
@@ -182,8 +182,8 @@
       if(source==='TheTVDB')score+=40;
       else if(source==='TVmaze')score+=20;
 
-      if(TOP3_ALTERNATIVE_FILTER_ENABLED&&isDefault)score-=2000;
-      else if(!TOP3_ALTERNATIVE_FILTER_ENABLED&&isProviderStandard)score+=500;
+      if(CHARACTER_ALTERNATIVE_FILTER_ENABLED&&isDefault)score-=2000;
+      else if(!CHARACTER_ALTERNATIVE_FILTER_ENABLED&&isProviderStandard)score+=500;
 
       rows.push({
         url:url,
@@ -201,8 +201,8 @@
     add(primary,120);
 
     rows.sort(function(a,b){
-      if(TOP3_ALTERNATIVE_FILTER_ENABLED&&a.isDefault!==b.isDefault)return a.isDefault?1:-1;
-      if(!TOP3_ALTERNATIVE_FILTER_ENABLED&&a.isProviderStandard!==b.isProviderStandard)return a.isProviderStandard?-1:1;
+      if(CHARACTER_ALTERNATIVE_FILTER_ENABLED&&a.isDefault!==b.isDefault)return a.isDefault?1:-1;
+      if(!CHARACTER_ALTERNATIVE_FILTER_ENABLED&&a.isProviderStandard!==b.isProviderStandard)return a.isProviderStandard?-1:1;
       return b.score-a.score;
     });
     return rows.slice(0,18);
@@ -289,77 +289,126 @@
       (evals.length?'<div class="user-eval-grid">'+evals.map(userEvaluationCardHtml).join('')+'</div>':'<div class="empty">Nenhuma avaliação registrada ainda.</div>')+
       '</section>';
   }
-  function top3CharactersHtml(items,options){
-    items=Array.isArray(items)?items:[];
+  function profileHighlightState(profile){
+    profile=profile||{};
+    var ns=profile.nameStyle||profile.name_style||{};
+    return normalizeProfileHighlights(ns.highlights,profile.topCharacters||profile.top_characters||[]);
+  }
+  function profileHighlightProfessional(data,personId,group){
+    var professionals=Array.isArray(data&&data.professionals)?data.professionals:[];
+    return professionals.find(function(p){
+      if(Number(p&&p.person_id)!==Number(personId))return false;
+      return !group||professionalFavoriteGroup(p)===group;
+    })||null;
+  }
+  function profileHighlightCharacter(data,key){
+    var characters=Array.isArray(data&&data.characters)?data.characters:[];
+    var found=characters.find(function(ch){return ch&&ch.character_key===key;})||characterLocalCache[key]||null;
+    if(found&&found.character_key)characterLocalCache[found.character_key]=found;
+    return found;
+  }
+  function profileHighlightCardHtml(type,item,options){
     options=options||{};
-    var editable=!!options.editable,profile=options.profile||{},isOwn=!!options.isOwn;
-    var byKey={};items.forEach(function(ch){if(ch&&ch.character_key){byKey[ch.character_key]=ch;characterLocalCache[ch.character_key]=ch;}});
-    var ordered=[];
-    if(isOwn){
-      (state.profile.topCharacters||[]).slice(0,3).forEach(function(key){
-        var ch=state.favoriteCharacters.find(function(x){return x.character_key===key;})||characterLocalCache[key];
-        if(ch)ordered.push(ch);
+    var editable=!!options.editable,profile=options.profile||{},label='',name='',meta='',image='',action='',actionAttr='';
+    if(type==='character'){
+      label='Personagem';
+      if(item){
+        name=displayCharacterName(item.character_name);
+        meta=item.tv_name||'Série';
+        image=topCharacterDisplayArt(item,profile,options.selectedArtwork||'');
+        action='open-character';actionAttr=' data-character="'+escapeHtml(item.character_key)+'"';
+      }
+    }else{
+      label=type==='actor'?'Ator/Atriz':'Diretor/Criador';
+      if(item){
+        name=item.name||'Profissional';
+        meta=type==='actor'?'Atuação':professionalDepartmentLabel(item.known_for_department||'Criação');
+        image=tmdbImageUrl(item.profile_path,'w500');
+        action='open-professional';actionAttr=' data-person="'+Number(item.person_id)+'"';
+      }
+    }
+    var typeLabel=type==='character'?'personagem':(type==='actor'?'ator/atriz':'diretor/criador');
+    if(!item){
+      return '<div class="profile-highlight-card empty-highlight"><div class="profile-highlight-category">'+escapeHtml(label)+'</div><div class="profile-highlight-empty-icon">＋</div><div class="profile-highlight-empty-text">Escolha seu '+escapeHtml(typeLabel)+'</div>'+
+        (editable?'<button class="btn btn-ghost btn-sm profile-highlight-empty-btn" data-action="highlight-focus-picker" data-type="'+type+'">Escolher</button>':'')+'</div>';
+    }
+    return '<div class="profile-highlight-card" data-action="'+action+'"'+actionAttr+' style="'+(image?'background-image:url(\''+image.replace(/'/g,'%27')+'\')':'')+'">'+
+      '<span class="profile-highlight-category">'+escapeHtml(label)+'</span>'+
+      (editable?'<div class="profile-highlight-controls">'+
+        '<button class="top3-control-btn" data-action="highlight-focus-picker" data-type="'+type+'" title="Trocar '+escapeHtml(typeLabel)+'">Trocar</button>'+
+        (type==='character'?'<button class="top3-control-btn '+(hasPro()?'pro-art-btn':'locked')+'" data-action="highlight-character-art-picker" data-character="'+escapeHtml(item.character_key)+'" title="Escolher imagem">'+(hasPro()?'Imagem':'Imagem ✦ Pro')+'</button>':'')+
+        '<button class="top3-control-btn" data-action="highlight-remove" data-type="'+type+'" title="Remover">✕</button>'+
+      '</div>':'')+
+      '<div class="profile-highlight-info"><div class="profile-highlight-name">'+escapeHtml(name)+'</div><div class="profile-highlight-meta">'+escapeHtml(meta)+'</div></div>'+
+    '</div>';
+  }
+  function profileHighlightPickerHtml(type,selectedKey,data){
+    var rows=[],title='';
+    if(type==='character'){
+      title='Personagem';
+      rows=(Array.isArray(data.characters)?data.characters:[]).map(function(ch){
+        var img=characterImageUrl(ch);
+        return {key:ch.character_key,name:displayCharacterName(ch.character_name),meta:ch.tv_name||'Série',image:img};
       });
-    }else ordered=items.slice(0,3);
-
-    var slots=[0,1,2].map(function(i){
-      var ch=ordered[i];
-      if(!ch)return '<div class="top3-card top3-empty"><span>#'+(i+1)+' · vazio</span></div>';
-      var selectedOverride=!isOwn?ch.selected_artwork:'';
-      var art=topCharacterDisplayArt(ch,profile,selectedOverride);
-      return '<div class="top3-card" data-action="open-character" data-character="'+escapeHtml(ch.character_key)+'" style="'+(art?'background-image:url(\''+art.replace(/'/g,'%27')+'\')':'')+'">'+
-        '<span class="top3-rank">#'+(i+1)+'</span>'+
-        (editable?'<div class="top3-controls">'+
-          (i>0?'<button class="top3-control-btn" data-action="top3-move" data-index="'+i+'" data-dir="up" title="Mover">←</button>':'')+
-          (i<2?'<button class="top3-control-btn" data-action="top3-move" data-index="'+i+'" data-dir="down" title="Mover">→</button>':'')+
-          '<button class="top3-control-btn '+(hasPro()?'pro-art-btn':'locked')+'" data-action="top3-art-picker" data-character="'+escapeHtml(ch.character_key)+'" title="Escolher imagem do personagem">'+(hasPro()?'Trocar imagem':'Imagem ✦ Pro')+'</button>'+
-          '<button class="top3-control-btn" data-action="top3-remove" data-index="'+i+'" title="Remover">✕</button>'+
-        '</div>':'')+
-        '<div class="top3-info"><div class="top3-name">'+escapeHtml(displayCharacterName(ch.character_name))+'</div><div class="top3-series">'+escapeHtml(ch.tv_name||'Série')+'</div></div>'+
+    }else{
+      var group=type==='actor'?'actor':'creator';
+      title=type==='actor'?'Ator/Atriz':'Diretor/Criador';
+      rows=(Array.isArray(data.professionals)?data.professionals:[]).filter(function(p){return professionalFavoriteGroup(p)===group;}).map(function(p){
+        return {key:String(p.person_id),name:p.name||'Profissional',meta:type==='actor'?'Atuação':professionalDepartmentLabel(p.known_for_department||'Criação'),image:tmdbImageUrl(p.profile_path,'w185')};
+      });
+    }
+    return '<div class="profile-highlight-picker" data-highlight-picker="'+type+'"><div class="profile-highlight-picker-head"><div><div class="field-label">'+escapeHtml(title)+'</div><div class="artwork-picker-note">Escolha entre seus favoritos.</div></div></div>'+
+      (rows.length?rows.map(function(row){
+        var selected=String(selectedKey||'')===String(row.key);
+        return '<div class="profile-highlight-picker-row '+(selected?'selected':'')+'">'+
+          '<div class="profile-highlight-picker-thumb" style="'+(row.image?'background-image:url(\''+row.image.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+          '<div class="profile-highlight-picker-copy"><div class="profile-highlight-picker-name">'+escapeHtml(row.name)+'</div><div class="profile-highlight-picker-meta">'+escapeHtml(row.meta)+'</div></div>'+
+          '<button class="btn '+(selected?'btn-primary':'btn-ghost')+' btn-sm" data-action="highlight-select" data-type="'+type+'" data-key="'+escapeHtml(row.key)+'">'+(selected?'Selecionado':'Selecionar')+'</button>'+
+        '</div>';
+      }).join(''):'<div class="empty" style="padding:14px;">Você ainda não favoritou nenhum '+escapeHtml(type==='character'?'personagem':type==='actor'?'ator ou atriz':'diretor ou criador')+'.</div>')+
+    '</div>';
+  }
+  function profileHighlightsHtml(data,options){
+    data=data||{};options=options||{};
+    var isOwn=!!options.isOwn,editable=!!options.editable,profile=options.profile||{};
+    var highlights=profileHighlightState(profile);
+    var character=profileHighlightCharacter(data,highlights.character);
+    var actor=profileHighlightProfessional(data,highlights.actor,'actor');
+    var creator=profileHighlightProfessional(data,highlights.creator,'creator');
+    var remoteSelectedArtwork=!isOwn&&character&&character.selected_artwork?character.selected_artwork:'';
+    var html='<section class="profile-highlights-section"><div class="section-head"><div><div class="section-title">Destaques do perfil</div><div class="artwork-picker-note">Seu personagem, ator/atriz e diretor/criador favoritos.</div></div>'+
+      (isOwn?'<button class="btn btn-ghost btn-sm" data-action="toggle-profile-highlights-editor">'+(profileHighlightsEditorOpen?'Concluir':'Editar destaques')+'</button>':'')+
+      '</div><div class="profile-highlights-grid">'+
+        profileHighlightCardHtml('character',character,{editable:editable,profile:profile,selectedArtwork:remoteSelectedArtwork})+
+        profileHighlightCardHtml('actor',actor,{editable:editable,profile:profile})+
+        profileHighlightCardHtml('creator',creator,{editable:editable,profile:profile})+
       '</div>';
-    }).join('');
 
-    var html='<section class="top3-section"><div class="section-head"><div><div class="section-title">Top 3 personagens</div><div class="artwork-picker-note">Seus personagens de séries que mais se destacam.</div></div>'+
-      (isOwn?'<button class="btn btn-ghost btn-sm" data-action="toggle-top3-editor">'+(top3EditorOpen?'Concluir':'Editar Top 3')+'</button>':'')+
-      '</div><div class="top3-row">'+slots+'</div>';
-
-    if(isOwn&&top3EditorOpen){
-      var free=3-(state.profile.topCharacters||[]).filter(Boolean).length;
-      var candidates=state.favoriteCharacters.filter(function(ch){return (state.profile.topCharacters||[]).indexOf(ch.character_key)===-1;});
-      html+='<div class="top3-picker"><div class="field-label">Adicionar personagem ('+free+' vaga'+(free===1?'':'s')+')</div>'+
-        (candidates.length?candidates.map(function(ch){
-          var img=characterImageUrl(ch);
-          return '<div class="top3-picker-row"><div class="top3-picker-thumb" style="'+(img?'background-image:url(\''+img.replace(/'/g,'%27')+'\')':'')+'"></div>'+
-            '<div class="top3-picker-copy"><div class="top3-picker-name">'+escapeHtml(displayCharacterName(ch.character_name))+'</div><div class="top3-picker-meta">'+escapeHtml(ch.tv_name||'Série')+'</div></div>'+
-            (free>0?'<button class="btn btn-ghost btn-sm" data-action="top3-add" data-character="'+escapeHtml(ch.character_key)+'">Adicionar</button>':'')+
-          '</div>';
-        }).join(''):'<div class="empty" style="padding:16px;">Favorite personagens nas páginas das séries para adicioná-los ao Top 3.</div>')+
+    if(isOwn&&profileHighlightsEditorOpen){
+      html+='<div class="profile-highlight-pickers">'+
+        profileHighlightPickerHtml('character',highlights.character,data)+
+        profileHighlightPickerHtml('actor',highlights.actor,data)+
+        profileHighlightPickerHtml('creator',highlights.creator,data)+
       '</div>';
     }
 
-    if(isOwn&&state.characterArtPickerKey){
-      var pick=state.favoriteCharacters.find(function(ch){return ch.character_key===state.characterArtPickerKey;})||characterLocalCache[state.characterArtPickerKey];
-      if(pick){
-        var choiceRows=topCharacterArtworkChoices(pick),selected=(state.profile.topCharacterArtwork||{})[pick.character_key]||'';
-        var defaultArt=characterImageUrl(pick);
-        if(!TOP3_ALTERNATIVE_FILTER_ENABLED){
-          var sourceCount={};choiceRows.forEach(function(item){sourceCount[item.source]=(sourceCount[item.source]||0)+1;});
-          html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Modo de teste: exibindo todas as imagens padrão/disponíveis do TVmaze e TheTVDB, sem filtrar apenas alternativas.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
-            '<div class="artwork-picker-summary"><span class="artwork-source-chip">Teste · filtro alternativo desativado</span><span class="artwork-source-chip">'+choiceRows.length+' imagem'+(choiceRows.length===1?'':'s')+'</span>'+
-              Object.keys(sourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+sourceCount[source]+'</span>';}).join('')+
-            '</div>'+
-            (choiceRows.length?'<div class="artwork-grid">'+choiceRows.map(function(item,idx){var url=item.url,label=item.isProviderStandard?('Padrão · '+item.source):('Imagem '+(idx+1));return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">'+escapeHtml(label)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Nenhuma imagem de personagem foi encontrada nas APIs atuais.</div>')+
-            '<div class="character-default-art"><div class="field-label">Automático do Bingeo</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar automático</span></div></div></div></div>';
-        }else{
-          var alternativeRows=choiceRows.filter(function(item){return !item.isDefault;});
-          var alternativeSourceCount={};alternativeRows.forEach(function(item){alternativeSourceCount[item.source]=(alternativeSourceCount[item.source]||0)+1;});
-          html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Imagens alternativas são priorizadas. A imagem padrão aparece por último.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
-            '<div class="artwork-picker-summary"><span class="artwork-source-chip">'+alternativeRows.length+' alternativa'+(alternativeRows.length===1?'':'s')+'</span>'+
-              Object.keys(alternativeSourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+alternativeSourceCount[source]+'</span>';}).join('')+
-            '</div>'+
-            (alternativeRows.length?'<div class="artwork-grid">'+alternativeRows.map(function(item,idx){var url=item.url;return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">Alternativa '+(idx+1)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Ainda não encontramos uma imagem alternativa vertical para este personagem.</div>')+
-            '<div class="character-default-art"><div class="field-label">Imagem padrão</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar padrão</span></div></div></div></div>';
-        }
+    if(isOwn&&state.characterArtPickerKey&&character&&state.characterArtPickerKey===character.character_key){
+      var pick=character;
+      var choiceRows=topCharacterArtworkChoices(pick),selected=(state.profile.topCharacterArtwork||{})[pick.character_key]||'';
+      var defaultArt=characterImageUrl(pick);
+      if(!CHARACTER_ALTERNATIVE_FILTER_ENABLED){
+        var sourceCount={};choiceRows.forEach(function(item){sourceCount[item.source]=(sourceCount[item.source]||0)+1;});
+        html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Modo de teste: exibindo todas as imagens padrão/disponíveis do TVmaze e TheTVDB.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
+          '<div class="artwork-picker-summary"><span class="artwork-source-chip">Filtro alternativo desativado</span><span class="artwork-source-chip">'+choiceRows.length+' imagem'+(choiceRows.length===1?'':'s')+'</span>'+
+            Object.keys(sourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+sourceCount[source]+'</span>';}).join('')+
+          '</div>'+
+          (choiceRows.length?'<div class="artwork-grid">'+choiceRows.map(function(item,idx){var url=item.url,label=item.isProviderStandard?('Padrão · '+item.source):('Imagem '+(idx+1));return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">'+escapeHtml(label)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Nenhuma imagem de personagem foi encontrada nas APIs atuais.</div>')+
+          '<div class="character-default-art"><div class="field-label">Automático do Bingeo</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar automático</span></div></div></div></div>';
+      }else{
+        var alternativeRows=choiceRows.filter(function(item){return !item.isDefault;});
+        html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Imagens alternativas são priorizadas. A imagem padrão aparece por último.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
+          (alternativeRows.length?'<div class="artwork-grid">'+alternativeRows.map(function(item,idx){var url=item.url;return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">Alternativa '+(idx+1)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Ainda não encontramos uma imagem alternativa para este personagem.</div>')+
+          '<div class="character-default-art"><div class="field-label">Imagem padrão</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-label">Usar padrão</span></div></div></div></div>';
       }
     }
     return html+'</section>';

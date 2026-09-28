@@ -332,39 +332,48 @@ else if(action==='choose-list-cover'){
         return loadListExtras(rlist);
       }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível remover o colaborador.');});
     }
-    else if(action==='toggle-top3-editor'){
-      top3EditorOpen=!top3EditorOpen;
-      if(!top3EditorOpen)state.characterArtPickerKey=null;
+    else if(action==='toggle-profile-highlights-editor'){
+      profileHighlightsEditorOpen=!profileHighlightsEditorOpen;
+      if(!profileHighlightsEditorOpen)state.characterArtPickerKey=null;
       render();
     }
-    else if(action==='top3-add'){
-      var addKey=el.dataset.character;
-      if(!addKey)return;
-      state.profile.topCharacters=Array.isArray(state.profile.topCharacters)?state.profile.topCharacters:[];
-      if(state.profile.topCharacters.indexOf(addKey)===-1&&state.profile.topCharacters.filter(Boolean).length<3){
-        state.profile.topCharacters.push(addKey);
-        saveData();syncProfileToSupabase();render();
+    else if(action==='highlight-focus-picker'){
+      if(!profileHighlightsEditorOpen)profileHighlightsEditorOpen=true;
+      state.characterArtPickerKey=null;
+      render();
+      var picker=document.querySelector('[data-highlight-picker="'+String(el.dataset.type||'')+'"]');
+      if(picker&&picker.scrollIntoView)picker.scrollIntoView({behavior:'smooth',block:'center'});
+    }
+    else if(action==='highlight-select'){
+      var highlightType=String(el.dataset.type||''),highlightKey=String(el.dataset.key||'');
+      if(['character','actor','creator'].indexOf(highlightType)===-1||!highlightKey)return;
+      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{}},state.profile.nameStyle||{});
+      state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);
+      if(highlightType==='character'){
+        state.profile.nameStyle.highlights.character=highlightKey;
+        state.profile.topCharacters=[highlightKey];
+      }else{
+        state.profile.nameStyle.highlights[highlightType]=Number(highlightKey)||null;
       }
-    }
-    else if(action==='top3-remove'){
-      var top3Idx=parseInt(el.dataset.index,10);
-      var removedKey=state.profile.topCharacters[top3Idx];
-      state.profile.topCharacters.splice(top3Idx,1);
-      if(removedKey&&state.profile.topCharacterArtwork)delete state.profile.topCharacterArtwork[removedKey];
-      if(state.characterArtPickerKey===removedKey)state.characterArtPickerKey=null;
+      state.characterArtPickerKey=null;
       saveData();syncProfileToSupabase();render();
     }
-    else if(action==='top3-move'){
-      var top3MoveIdx=parseInt(el.dataset.index,10),top3Dir=el.dataset.dir;
-      var top3Swap=top3Dir==='up'?top3MoveIdx-1:top3MoveIdx+1;
-      if(top3Swap<0||top3Swap>2||!state.profile.topCharacters[top3MoveIdx])return;
-      var top3Tmp=state.profile.topCharacters[top3MoveIdx];
-      state.profile.topCharacters[top3MoveIdx]=state.profile.topCharacters[top3Swap];
-      state.profile.topCharacters[top3Swap]=top3Tmp;
+    else if(action==='highlight-remove'){
+      var removeType=String(el.dataset.type||'');
+      if(['character','actor','creator'].indexOf(removeType)===-1)return;
+      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{}},state.profile.nameStyle||{});
+      state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);
+      if(removeType==='character'){
+        var oldCharacterKey=state.profile.nameStyle.highlights.character;
+        state.profile.nameStyle.highlights.character='';
+        state.profile.topCharacters=[];
+        if(oldCharacterKey&&state.profile.topCharacterArtwork)delete state.profile.topCharacterArtwork[oldCharacterKey];
+        state.characterArtPickerKey=null;
+      }else state.profile.nameStyle.highlights[removeType]=null;
       saveData();syncProfileToSupabase();render();
     }
-    else if(action==='top3-art-picker'){
-      if(!hasPro()){alert('A escolha personalizada de imagem do Top 3 é exclusiva do Bingeo Pro.');return;}
+    else if(action==='highlight-character-art-picker'){
+      if(!hasPro()){alert('A escolha personalizada de imagem do personagem é exclusiva do Bingeo Pro.');return;}
       var artKey=el.dataset.character;if(!artKey)return;
       state.characterArtPickerKey=state.characterArtPickerKey===artKey?null:artKey;
       state.seriesArtPickerId=null;
@@ -373,12 +382,12 @@ else if(action==='choose-list-cover'){
         var artCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===artKey;})||characterLocalCache[artKey];
         if(artCharacter){
           var artCat=ensureCharacterSeriesCatalog(artCharacter);
-          if(artCat)loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível carregar mais artes alternativas do personagem:',e);});
+          if(artCat)loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível carregar mais imagens do personagem:',e);});
         }
       }
     }
     else if(action==='close-character-art-picker'){state.characterArtPickerKey=null;render();}
-    else if(action==='top3-select-art'){
+    else if(action==='highlight-select-art'){
       if(!hasPro())return;
       var selectKey=el.dataset.character,selectUrl=el.dataset.url||'';
       var selectCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===selectKey;})||characterLocalCache[selectKey];
