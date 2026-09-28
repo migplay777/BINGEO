@@ -368,12 +368,14 @@ else if(action==='choose-list-cover'){
       var artKey=el.dataset.character;if(!artKey)return;
       state.characterArtPickerKey=state.characterArtPickerKey===artKey?null:artKey;
       state.seriesArtPickerId=null;
-      var artCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===artKey;})||characterLocalCache[artKey];
-      if(artCharacter){
-        var artCat=ensureCharacterSeriesCatalog(artCharacter);
-        if(artCat)loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível carregar mais artes do personagem:',e);});
-      }
       render();
+      if(state.characterArtPickerKey){
+        var artCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===artKey;})||characterLocalCache[artKey];
+        if(artCharacter){
+          var artCat=ensureCharacterSeriesCatalog(artCharacter);
+          if(artCat)loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível carregar mais artes alternativas do personagem:',e);});
+        }
+      }
     }
     else if(action==='close-character-art-picker'){state.characterArtPickerKey=null;render();}
     else if(action==='top3-select-art'){

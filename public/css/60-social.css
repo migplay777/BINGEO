@@ -210,3 +210,12 @@
     .artwork-grid{grid-template-columns:repeat(3,minmax(0,1fr));}
   }
 
+
+  .character-artwork-picker{margin-top:16px;}
+  .character-artwork-choice{background-size:cover;background-position:center top;}
+  .character-artwork-choice.default-choice{opacity:.94;}
+  .character-default-art{margin-top:13px;padding-top:12px;border-top:1px solid var(--line);}
+  .character-default-grid{margin-top:8px;max-width:130px;}
+  .character-artwork-empty{padding:16px;border:1px dashed var(--line);border-radius:9px;color:var(--text-muted);font-size:11px;background:var(--panel-2);margin-bottom:4px;}
+  .character-artwork-picker .artwork-choice-source{opacity:1;transform:none;}
+  .character-artwork-picker .artwork-choice-label{font-weight:700;}

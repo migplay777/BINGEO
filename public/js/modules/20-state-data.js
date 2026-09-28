@@ -544,7 +544,7 @@
       tvdb_character_image_url:previous.tvdb_character_image_url||null,
       character_banner_url:previous.character_banner_url||null,
       character_image_source:previous.character_image_source||null,
-      character_artwork_options:Array.isArray(previous.character_artwork_options)?previous.character_artwork_options.slice(0,12):[]
+      character_artwork_options:Array.isArray(previous.character_artwork_options)?previous.character_artwork_options.slice(0,18):[]
     };
     characterLocalCache[row.character_key]=row;
     return row;
@@ -684,22 +684,53 @@
   function enrichRowFromTheTvdb(row,tvdbCharacter,tvdbSeries){
     if(!row||!tvdbCharacter||!tvdbSeries)return row;
     var artworks=Array.isArray(tvdbSeries.artworks)?tvdbSeries.artworks:[];
-    var rolePortrait=bestTheTvdbCharacterArtwork(tvdbCharacter,artworks,false);
-    var roleBanner=bestTheTvdbCharacterArtwork(tvdbCharacter,artworks,true);
-    var officialCharacterImage=safeTheTvdbImage(tvdbCharacter.image);
-    var roleArtworks=artworks.filter(function(art){
+    var roleMatches=artworks.filter(function(art){
       return Number(art&&art.seriesPeopleId||0)===Number(tvdbCharacter.id||0) ||
         (tvdbCharacter.peopleId&&Number(art&&art.peopleId||0)===Number(tvdbCharacter.peopleId));
-    }).sort(function(a,b){return tvdbArtworkScore(b,false)-tvdbArtworkScore(a,false);})
-      .map(function(art){return safeTheTvdbImage(art&&art.image);}).filter(Boolean);
+    });
+    var portraitMatches=roleMatches.filter(function(art){
+      return isFinite(tvdbArtworkScore(art,false));
+    }).sort(function(a,b){
+      return tvdbArtworkScore(b,false)-tvdbArtworkScore(a,false);
+    });
+    var landscapeMatches=roleMatches.filter(function(art){
+      return isFinite(tvdbArtworkScore(art,true));
+    }).sort(function(a,b){
+      return tvdbArtworkScore(b,true)-tvdbArtworkScore(a,true);
+    });
+
+    var portraitUrls=portraitMatches.map(function(art){return safeTheTvdbImage(art&&art.image);}).filter(Boolean);
+    var rolePortrait=portraitUrls[0]||'';
+    var roleBanner=landscapeMatches.length?safeTheTvdbImage(landscapeMatches[0].image):'';
+    var officialCharacterImage=safeTheTvdbImage(tvdbCharacter.image);
+    var tvmazePrimary=safeTvmazeImage(row.character_image_url);
+    var oldOptions=Array.isArray(row.character_artwork_options)?row.character_artwork_options:[];
+
+    // Para o Top 3, artes alternativas próprias do personagem ficam primeiro.
+    // A imagem padrão/oficial é mantida, mas só entra depois das alternativas.
+    var alternatives=[];
+    function addAlternative(url){
+      url=safeTheTvdbImage(url)||safeTvmazeImage(url);
+      if(!url)return;
+      if(url===tvmazePrimary||url===officialCharacterImage)return;
+      if(alternatives.indexOf(url)===-1)alternatives.push(url);
+    }
+    portraitUrls.forEach(addAlternative);
+    oldOptions.forEach(addAlternative);
+
+    var orderedOptions=alternatives.slice();
+    function addDefault(url){
+      url=safeTheTvdbImage(url)||safeTvmazeImage(url);
+      if(url&&orderedOptions.indexOf(url)===-1)orderedOptions.push(url);
+    }
+    addDefault(officialCharacterImage);
+    addDefault(tvmazePrimary);
+
     row.tvdb_character_id=Number(tvdbCharacter.id)||null;
     row.tvdb_series_id=Number(tvdbSeries.id)||Number(tvdbCharacter.seriesId)||null;
     row.tvdb_character_image_url=rolePortrait||officialCharacterImage||null;
     row.character_banner_url=roleBanner||null;
-    row.character_artwork_options=Array.from(new Set(
-      [].concat(row.character_artwork_options||[],rolePortrait||[],officialCharacterImage||[],roleBanner||[],roleArtworks)
-        .filter(Boolean)
-    )).slice(0,12);
+    row.character_artwork_options=orderedOptions.slice(0,18);
     if(!row.character_image_url&&row.tvdb_character_image_url)row.character_image_source='thetvdb';
     return row;
   }
@@ -738,7 +769,7 @@
           row.character_image_url=safeTvmazeImage(maze.character.image&&(maze.character.image.original||maze.character.image.medium));
           if(row.character_image_url){
             row.character_image_source='tvmaze';
-            row.character_artwork_options=Array.from(new Set([row.character_image_url].concat(row.character_artwork_options||[]))).slice(0,12);
+            row.character_artwork_options=Array.from(new Set([].concat(row.character_artwork_options||[],row.character_image_url))).slice(0,18);
           }
         }else if(tvmazeShow&&tvmazeShow.id){
           row.tvmaze_show_id=Number(tvmazeShow.id);
