@@ -1,0 +1,51 @@
+/* ---- stars widget ---- */
+  .stars{position:relative; display:inline-block; font-size:19px; line-height:1; letter-spacing:2px; user-select:none;}
+  .stars-bg,.stars-fg{white-space:nowrap;}
+  .stars-bg{color:var(--line);}
+  .stars-fg{position:absolute; top:0; left:0; overflow:hidden; color:var(--amber); pointer-events:none;}
+  .stars-hit{position:absolute; top:0; left:0; width:100%; height:100%; display:flex;}
+  .stars-hit .hit{flex:1 1 0; background:transparent; border:0; cursor:pointer; padding:0;}
+  .stars.lg{font-size:26px;}
+  .stars.sm{font-size:14px; letter-spacing:1px;}
+
+  /* ---- diary ---- */
+  .diary-day{margin-bottom:22px;}
+  .diary-date{font-size:12.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; font-weight:700; margin-bottom:8px; font-family:'Space Grotesk',sans-serif;}
+  .diary-entry{display:flex; gap:12px; align-items:flex-start; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin-bottom:8px;}
+  .diary-dot{width:34px;height:34px;border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-weight:700; color:rgba(255,255,255,.8); font-size:14px;}
+  .diary-content{flex:1;}
+  .diary-title-row{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .diary-title{font-weight:600; font-size:14px; cursor:pointer;}
+  .diary-title:hover{color:var(--blue);}
+  .diary-note{font-size:13px; color:var(--text-muted); margin-top:4px;}
+  .diary-del{background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:12px;}
+  .diary-del:hover{color:#F16565;}
+
+  /* ---- lists (coleções visuais) ---- */
+  .list-card{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); overflow:hidden; cursor:pointer; transition:border-color .15s ease, transform .15s ease;}
+  .list-card:hover{border-color:var(--text-dim); transform:translateY(-2px);}
+  .list-card-body{padding:13px 15px 15px;}
+  .list-card-body h3{margin:0 0 4px; font-size:16px; font-weight:600;}
+  .list-card-body p{margin:0 0 8px; font-size:12.5px; color:var(--text-muted); min-height:16px;}
+  .list-card-body .count{font-size:11.5px; color:var(--text-dim);}
+  .lists-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-bottom:26px;}
+  .list-cover{height:140px; background:var(--panel-2);}
+  .list-cover-empty{display:flex; align-items:center; justify-content:center; color:var(--text-dim); font-size:12px; border-bottom:1px dashed var(--line);}
+  .list-cover-1 .list-cover-tile{width:100%; height:100%;}
+  .list-cover-2{display:grid; grid-template-columns:1fr 1fr; gap:2px; height:100%;}
+  .list-cover-4{display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:2px; height:100%;}
+  .list-cover-2 .list-cover-tile,.list-cover-4 .list-cover-tile{width:100%; height:100%;}
+  .list-visibility{font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; font-weight:700;}
+  .new-list-form{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:24px;}
+  .new-list-form input{flex:1; min-width:160px;}
+  .qa-input{background:var(--panel-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:7px; font-size:14px; outline:none;}
+  .qa-input:focus{border-color:var(--violet);}
+  .list-detail-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; gap:12px; flex-wrap:wrap;}
+  .pick-row{display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:7px; cursor:pointer; border:1px solid transparent;}
+  .pick-row:hover{background:var(--panel-2);}
+  .pick-row.in-list{border-color:var(--blue);}
+  .pick-swatch{width:26px;height:26px;border-radius:5px; flex-shrink:0;}
+  .pick-check{margin-left:auto; width:16px;height:16px;border-radius:4px;border:1.5px solid var(--text-dim); display:flex; align-items:center; justify-content:center; font-size:11px;}
+  .pick-row.in-list .pick-check{background:var(--blue); border-color:var(--blue); color:#0b0d0f;}
+
+  

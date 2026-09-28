@@ -1,0 +1,32 @@
+
+  :root{
+    --bg:#121319;
+    --panel:#1A1C25;
+    --panel-2:#20222D;
+    --line:#2C2E3C;
+    --text:#ECEBF3;
+    --text-muted:#9092A8;
+    --text-dim:#5F6178;
+    --violet:#8B5CF6;
+    --violet-dim:#6D4FC2;
+    --blue:#4C7CF0;
+    --amber:#F0B63B;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Manrope',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  h1,h2,h3,.brand,.nav-link,.section-title,.field-label,.btn,.chip{
+    font-family:'Space Grotesk',sans-serif;
+  }
+  button{font-family:inherit;}
+  input,select,textarea{font-family:'Manrope',sans-serif;}
+  ::selection{background:var(--violet);color:#fff;}
+
+  

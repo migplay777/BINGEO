@@ -1,4 +1,5 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 
 const app = express();
@@ -10,6 +11,38 @@ let theTvdbToken = null;
 let theTvdbTokenExpiresAt = 0;
 
 app.disable('x-powered-by');
+
+const APP_MODULE_FILES = [
+  'js/modules/00-auth.js',
+  'js/modules/10-catalog.js',
+  'js/modules/20-state-data.js',
+  'js/modules/30-integrations.js',
+  'js/modules/40-ui-components.js',
+  'js/modules/50-discover-library.js',
+  'js/modules/60-lists.js',
+  'js/modules/70-profile.js',
+  'js/modules/80-evaluations-modal.js',
+  'js/modules/90-render-uploads.js',
+  'js/modules/95-events.js',
+  'js/modules/99-boot.js'
+];
+
+function buildAppBundle() {
+  const parts = APP_MODULE_FILES.map((relativePath) => {
+    const absolutePath = path.join(__dirname, 'public', relativePath);
+    const source = fs.readFileSync(absolutePath, 'utf8');
+    return '\n/* ===== ' + relativePath + ' ===== */\n' + source;
+  });
+  return '(function(){\n' + parts.join('\n') + '\n})();\n';
+}
+
+const APP_BUNDLE = buildAppBundle();
+
+app.get('/js/app.bundle.js', (_req, res) => {
+  res.type('application/javascript');
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.send(APP_BUNDLE);
+});
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   setHeaders(res, filePath) {
