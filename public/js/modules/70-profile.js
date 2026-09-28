@@ -31,11 +31,18 @@
       '</div>' +
       '<div class="profile-edit-section">' +
         '<h3>Aparência</h3>' +
-        '<div class="theme-setting"><div class="field-label">Tema da interface</div>' +
-          '<div class="theme-picker">' +
-            '<button type="button" class="theme-choice '+(profileTheme==='dark'?'active':'')+'" data-action="set-theme" data-theme="dark" aria-pressed="'+(profileTheme==='dark'?'true':'false')+'"><span class="theme-choice-preview theme-preview-dark"><i></i><i></i><i></i></span><span class="theme-choice-copy"><strong>Escuro</strong><small>Tema original do Bingeo</small></span></button>' +
-            '<button type="button" class="theme-choice '+(profileTheme==='light'?'active':'')+'" data-action="set-theme" data-theme="light" aria-pressed="'+(profileTheme==='light'?'true':'false')+'"><span class="theme-choice-preview theme-preview-light"><i></i><i></i><i></i></span><span class="theme-choice-copy"><strong>Claro</strong><small>Visual claro e suave</small></span></button>' +
-          '</div><div class="theme-setting-note">O tema é aplicado e salvo automaticamente.</div></div>' +
+        '<div class="theme-setting">' +
+          '<div class="theme-setting-head"><div><div class="field-label">Tema da interface</div><div class="theme-setting-subtitle">Escolha como o Bingeo aparece para você.</div></div><span class="theme-current-pill"><span></span>'+(profileTheme==='light'?'Claro':'Escuro')+' ativo</span></div>' +
+          '<div class="theme-picker" role="radiogroup" aria-label="Tema da interface">' +
+            '<button type="button" class="theme-choice '+(profileTheme==='dark'?'active':'')+'" data-action="set-theme" data-theme="dark" role="radio" aria-checked="'+(profileTheme==='dark'?'true':'false')+'">' +
+              '<span class="theme-preview-window theme-preview-dark" aria-hidden="true"><span class="theme-preview-top"><i></i><i></i><i></i></span><span class="theme-preview-body"><span class="theme-preview-side"><i></i><i></i><i></i></span><span class="theme-preview-main"><b></b><i></i><i></i><i></i></span></span></span>' +
+              '<span class="theme-choice-footer"><span class="theme-choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/></svg></span><span class="theme-choice-copy"><strong>Escuro</strong><small>Confortável em ambientes com pouca luz</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></span>' +
+            '</button>' +
+            '<button type="button" class="theme-choice '+(profileTheme==='light'?'active':'')+'" data-action="set-theme" data-theme="light" role="radio" aria-checked="'+(profileTheme==='light'?'true':'false')+'">' +
+              '<span class="theme-preview-window theme-preview-light" aria-hidden="true"><span class="theme-preview-top"><i></i><i></i><i></i></span><span class="theme-preview-body"><span class="theme-preview-side"><i></i><i></i><i></i></span><span class="theme-preview-main"><b></b><i></i><i></i><i></i></span></span></span>' +
+              '<span class="theme-choice-footer"><span class="theme-choice-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg></span><span class="theme-choice-copy"><strong>Claro</strong><small>Limpo e confortável em ambientes iluminados</small></span><span class="theme-selected-mark" aria-hidden="true">✓</span></span>' +
+            '</button>' +
+          '</div><div class="theme-setting-note"><span>✓</span> Sua preferência é salva automaticamente nesta conta.</div></div>' +
         '<div class="appearance-pro-head">Personalização do perfil <span class="pro-badge">✦ PRO</span></div>' +
         (hasPro() ? '<div class="profile-tools"><button class="btn btn-ghost btn-sm" data-action="choose-banner">' + (banner?'Trocar banner':'Adicionar banner') + '</button>' + (banner?'<button class="btn btn-danger btn-sm" data-action="remove-banner">Remover banner</button>':'') + '<button class="btn btn-ghost btn-sm" data-action="choose-avatar">Adicionar GIF/foto</button></div>' +
           '<div style="margin-top:14px;"><label class="field-label">Cor do nome</label><div class="color-row"><input type="color" id="profileNameColor" class="color-input" value="' + escapeHtml((state.profile.nameStyle&&state.profile.nameStyle.color)||(profileTheme==='light'?'#181A23':'#ECEBF3')) + '"><button class="btn btn-ghost btn-sm" data-action="clear-name-color">Cor padrão</button></div></div>' +
