@@ -34,17 +34,17 @@
         '<div class="theme-setting">' +
           '<div class="theme-preference-card">' +
             '<div class="theme-preference-info">' +
-              '<div class="theme-preference-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9c0-1-.8-1.7-1.8-1.7h-1.4a2 2 0 0 1-2-2V6.8C15.8 4.7 14.2 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/></svg></div>' +
+              '<div class="theme-preference-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false"><path d="M12 3a9 9 0 1 0 9 9c0-1-.8-1.7-1.8-1.7h-1.4a2 2 0 0 1-2-2V6.8C15.8 4.7 14.2 3 12 3Z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10" cy="7.5" r="1"/></svg></div>' +
               '<div class="theme-preference-copy"><div class="field-label">Tema da interface</div><div class="theme-setting-subtitle">Escolha a aparência do Bingeo.</div></div>' +
               '<div class="theme-status" id="themeStatus"><span class="theme-status-dot"></span><span id="themeStatusText">'+(profileTheme==='light'?'Claro':'Escuro')+'</span></div>' +
             '</div>' +
             '<div class="theme-switch '+(profileTheme==='light'?'is-light':'is-dark')+'" id="themeSwitch" role="radiogroup" aria-label="Tema da interface">' +
               '<span class="theme-switch-indicator" aria-hidden="true"></span>' +
               '<button type="button" class="theme-switch-option '+(profileTheme==='dark'?'active':'')+'" data-action="set-theme" data-theme="dark" role="radio" aria-checked="'+(profileTheme==='dark'?'true':'false')+'">' +
-                '<span class="theme-switch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/></svg></span><span>Escuro</span>' +
+                '<span class="theme-switch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false"><path d="M20 15.2A8.4 8.4 0 0 1 8.8 4a8.5 8.5 0 1 0 11.2 11.2Z"/></svg></span><span>Escuro</span>' +
               '</button>' +
               '<button type="button" class="theme-switch-option '+(profileTheme==='light'?'active':'')+'" data-action="set-theme" data-theme="light" role="radio" aria-checked="'+(profileTheme==='light'?'true':'false')+'">' +
-                '<span class="theme-switch-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg></span><span>Claro</span>' +
+                '<span class="theme-switch-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false"><circle cx="12" cy="12" r="3.5"/><path d="M12 2v2.2M12 19.8V22M4.9 4.9l1.6 1.6M17.5 17.5l1.6 1.6M2 12h2.2M19.8 12H22M4.9 19.1l1.6-1.6M17.5 6.5l1.6-1.6"/></svg></span><span>Claro</span>' +
               '</button>' +
             '</div>' +
             '<div class="theme-palette-row" aria-hidden="true">' +

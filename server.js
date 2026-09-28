@@ -46,9 +46,9 @@ app.get('/js/app.bundle.js', (_req, res) => {
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: true,
   setHeaders(res, filePath) {
-    if (filePath.endsWith('.html')) {
-      // O HTML não pode ficar preso em cache, senão o usuário pode continuar
-      // vendo uma versão antiga mesmo depois de um novo deploy.
+    if (/\.(?:html|css|js)$/i.test(filePath)) {
+      // HTML, CSS e JS precisam permanecer sincronizados entre deploys.
+      // Revalidação evita que markup novo seja combinado com estilos/scripts antigos.
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     } else {
       res.setHeader('Cache-Control', 'public, max-age=3600');
