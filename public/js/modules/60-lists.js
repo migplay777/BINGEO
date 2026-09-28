@@ -146,6 +146,11 @@
       (chars.length?'<div class="favorite-people-grid">'+chars.map(favoriteCharacterCardHtml).join('')+'</div>':empty('Nenhum personagem favoritado ainda.'))+'</section>';
   }
 
+  // TESTE TEMPORÁRIO: false = exibe também as imagens padrão conhecidas
+  // do TVmaze/TheTVDB no seletor do Top 3. Volte para true quando quiser
+  // restaurar o modo que prioriza/exibe apenas alternativas antes do padrão.
+  var TOP3_ALTERNATIVE_FILTER_ENABLED=false;
+
   function topCharacterArtworkSource(url){
     if(safeTheTvdbImage(url))return 'TheTVDB';
     if(safeTvmazeImage(url))return 'TVmaze';
@@ -155,6 +160,10 @@
     if(!ch)return [];
     var primary=characterImageUrl(ch);
     var primaryKey=normalizedArtworkUrlKey(primary);
+    var tvmazeStandard=safeTvmazeImage(ch.character_image_url);
+    var tvdbStandard=safeTheTvdbImage(ch.tvdb_character_image_url);
+    var tvmazeKey=normalizedArtworkUrlKey(tvmazeStandard);
+    var tvdbKey=normalizedArtworkUrlKey(tvdbStandard);
     var seen={},rows=[];
 
     function add(url,originIndex){
@@ -163,13 +172,27 @@
       var key=normalizedArtworkUrlKey(url);
       if(!key||seen[key])return;
       seen[key]=1;
-      var isDefault=!!primaryKey&&key===primaryKey;
+
       var source=topCharacterArtworkSource(url);
+      var isPrimary=!!primaryKey&&key===primaryKey;
+      var isProviderStandard=(!!tvmazeKey&&key===tvmazeKey)||(!!tvdbKey&&key===tvdbKey);
+      var isDefault=isPrimary||isProviderStandard;
       var score=1000-(Number(originIndex||0)*3);
+
       if(source==='TheTVDB')score+=40;
       else if(source==='TVmaze')score+=20;
-      if(isDefault)score-=2000;
-      rows.push({url:url,source:source,isDefault:isDefault,score:score});
+
+      if(TOP3_ALTERNATIVE_FILTER_ENABLED&&isDefault)score-=2000;
+      else if(!TOP3_ALTERNATIVE_FILTER_ENABLED&&isProviderStandard)score+=500;
+
+      rows.push({
+        url:url,
+        source:source,
+        isDefault:isDefault,
+        isPrimary:isPrimary,
+        isProviderStandard:isProviderStandard,
+        score:score
+      });
     }
 
     (Array.isArray(ch.character_artwork_options)?ch.character_artwork_options:[]).forEach(function(url,idx){add(url,idx);});
@@ -178,7 +201,8 @@
     add(primary,120);
 
     rows.sort(function(a,b){
-      if(a.isDefault!==b.isDefault)return a.isDefault?1:-1;
+      if(TOP3_ALTERNATIVE_FILTER_ENABLED&&a.isDefault!==b.isDefault)return a.isDefault?1:-1;
+      if(!TOP3_ALTERNATIVE_FILTER_ENABLED&&a.isProviderStandard!==b.isProviderStandard)return a.isProviderStandard?-1:1;
       return b.score-a.score;
     });
     return rows.slice(0,18);
@@ -317,17 +341,25 @@
       var pick=state.favoriteCharacters.find(function(ch){return ch.character_key===state.characterArtPickerKey;})||characterLocalCache[state.characterArtPickerKey];
       if(pick){
         var choiceRows=topCharacterArtworkChoices(pick),selected=(state.profile.topCharacterArtwork||{})[pick.character_key]||'';
-        var alternativeRows=choiceRows.filter(function(item){return !item.isDefault;});
         var defaultArt=characterImageUrl(pick);
-        var sourceCount={};alternativeRows.forEach(function(item){sourceCount[item.source]=(sourceCount[item.source]||0)+1;});
-        html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Imagens alternativas são priorizadas. A imagem padrão aparece por último.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
-          '<div class="artwork-picker-summary"><span class="artwork-source-chip">'+alternativeRows.length+' alternativa'+(alternativeRows.length===1?'':'s')+'</span>'+
-            Object.keys(sourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+sourceCount[source]+'</span>';}).join('')+
-          '</div>'+
-          (alternativeRows.length?'<div class="artwork-grid">'+alternativeRows.map(function(item,idx){var url=item.url;return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">Alternativa '+(idx+1)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Ainda não encontramos uma imagem alternativa vertical para este personagem.</div>')+
-          '<div class="character-default-art"><div class="field-label">Imagem padrão</div>'+
-            '<div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar padrão</span></div></div>'+
-          '</div></div>';
+        if(!TOP3_ALTERNATIVE_FILTER_ENABLED){
+          var sourceCount={};choiceRows.forEach(function(item){sourceCount[item.source]=(sourceCount[item.source]||0)+1;});
+          html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Modo de teste: exibindo todas as imagens padrão/disponíveis do TVmaze e TheTVDB, sem filtrar apenas alternativas.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
+            '<div class="artwork-picker-summary"><span class="artwork-source-chip">Teste · filtro alternativo desativado</span><span class="artwork-source-chip">'+choiceRows.length+' imagem'+(choiceRows.length===1?'':'s')+'</span>'+
+              Object.keys(sourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+sourceCount[source]+'</span>';}).join('')+
+            '</div>'+
+            (choiceRows.length?'<div class="artwork-grid">'+choiceRows.map(function(item,idx){var url=item.url,label=item.isProviderStandard?('Padrão · '+item.source):('Imagem '+(idx+1));return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">'+escapeHtml(label)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Nenhuma imagem de personagem foi encontrada nas APIs atuais.</div>')+
+            '<div class="character-default-art"><div class="field-label">Automático do Bingeo</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar automático</span></div></div></div></div>';
+        }else{
+          var alternativeRows=choiceRows.filter(function(item){return !item.isDefault;});
+          var alternativeSourceCount={};alternativeRows.forEach(function(item){alternativeSourceCount[item.source]=(alternativeSourceCount[item.source]||0)+1;});
+          html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Imagens alternativas são priorizadas. A imagem padrão aparece por último.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
+            '<div class="artwork-picker-summary"><span class="artwork-source-chip">'+alternativeRows.length+' alternativa'+(alternativeRows.length===1?'':'s')+'</span>'+
+              Object.keys(alternativeSourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+alternativeSourceCount[source]+'</span>';}).join('')+
+            '</div>'+
+            (alternativeRows.length?'<div class="artwork-grid">'+alternativeRows.map(function(item,idx){var url=item.url;return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">Alternativa '+(idx+1)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Ainda não encontramos uma imagem alternativa vertical para este personagem.</div>')+
+            '<div class="character-default-art"><div class="field-label">Imagem padrão</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="top3-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar padrão</span></div></div></div></div>';
+        }
       }
     }
     return html+'</section>';
