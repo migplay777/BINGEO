@@ -1,6 +1,7 @@
 /* ---------------- state & storage ---------------- */
   var LIB_KEY = 'bingeo-library-v1';
   var TRENDING_KEY = 'bingeo-trending-v1';
+  var THEME_KEY = 'bingeo-theme-preference';
 
   var state = {
     view:'descobrir',
@@ -9,7 +10,7 @@
     entries:[],
     diary:[],
     lists:[],
-    profile:{ photo:null, topFive:[], username:'', bio:'', plan:'free', editing:false },
+    profile:{ photo:null, topFive:[], username:'', bio:'', plan:'free', editing:false, nameStyle:{color:null,effect:'none',theme:'dark'} },
     trending:{},
     trendingUsers:{},
     tmdbSearchResults:[],
@@ -73,6 +74,13 @@
   function escapeHtml(s){
     if(s===undefined||s===null) return '';
     return String(s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; });
+  }
+  function normalizeTheme(value){return value==='light'?'light':'dark';}
+  function applyThemePreference(value){
+    var theme=normalizeTheme(value);
+    document.documentElement.setAttribute('data-theme',theme);
+    try{localStorage.setItem(THEME_KEY,theme);}catch(e){}
+    return theme;
   }
   function hashHue(str){
     var h=0;
@@ -161,8 +169,8 @@
   var DB_SCHEMA_VERSION=4; var DB_KEY_BASE='bingeo-db-v2'; var dbInitPromise=null;
   function currentDbKey(){return currentUserId?(DB_KEY_BASE+':'+currentUserId):null;}
   function currentIdbKey(){return currentUserId?('state:'+currentUserId):null;}
-  function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],topFiveArtwork:{},topCharacters:[],topCharacterArtwork:{},username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none'},socialLinks:[]}};}
-  function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];p.topFive=Array.isArray(p.topFive)?p.topFive.slice(0,5):[];p.topFiveArtwork=p.topFiveArtwork&&typeof p.topFiveArtwork==='object'?p.topFiveArtwork:{};p.topCharacters=Array.isArray(p.topCharacters)?p.topCharacters.slice(0,3):[];p.topCharacterArtwork=p.topCharacterArtwork&&typeof p.topCharacterArtwork==='object'?p.topCharacterArtwork:{};if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
+  function defaultDb(){return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:new Date().toISOString(),library:{entries:[],diary:[],lists:[]},profile:{photo:null,banner:null,topFive:[],topFiveArtwork:{},topCharacters:[],topCharacterArtwork:{},username:'',bio:'',plan:'free',editing:false,nameStyle:{color:null,effect:'none',theme:'dark'},socialLinks:[]}};}
+  function normalizeDb(db){var b=defaultDb();db=(db&&typeof db==='object')?db:{};var p=Object.assign({},b.profile,db.profile||{});p.nameStyle=Object.assign({},b.profile.nameStyle,p.nameStyle||{});p.nameStyle.theme=normalizeTheme(p.nameStyle.theme);p.socialLinks=Array.isArray(p.socialLinks)?p.socialLinks.filter(function(x){return x&&typeof x==='object'&&typeof x.url==='string';}):[];p.topFive=Array.isArray(p.topFive)?p.topFive.slice(0,5):[];p.topFiveArtwork=p.topFiveArtwork&&typeof p.topFiveArtwork==='object'?p.topFiveArtwork:{};p.topCharacters=Array.isArray(p.topCharacters)?p.topCharacters.slice(0,3):[];p.topCharacterArtwork=p.topCharacterArtwork&&typeof p.topCharacterArtwork==='object'?p.topCharacterArtwork:{};if(p.plan!=='pro')p.plan='free';return {schemaVersion:DB_SCHEMA_VERSION,updatedAt:db.updatedAt||b.updatedAt,library:{entries:Array.isArray(db.library&&db.library.entries)?db.library.entries:[],diary:Array.isArray(db.library&&db.library.diary)?db.library.diary:[],lists:Array.isArray(db.library&&db.library.lists)?db.library.lists:[]},profile:p};}
   function readLocalDb(){var key=currentDbKey();if(!key)return null;try{var r=localStorage.getItem(key);return r?normalizeDb(JSON.parse(r)):null;}catch(e){return null;}}
   function writeLocalDb(db){var key=currentDbKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(db));return true;}catch(e){return false;}}
   function openBingeoDb(){if(dbInitPromise)return dbInitPromise;dbInitPromise=new Promise(function(resolve){if(!('indexedDB' in window)){resolve(null);return;}try{var req=indexedDB.open('BingeoDB',1);req.onupgradeneeded=function(e){if(!e.target.result.objectStoreNames.contains('app'))e.target.result.createObjectStore('app',{keyPath:'key'});};req.onsuccess=function(){resolve(req.result);};req.onerror=function(){resolve(null);};}catch(e){resolve(null);}});return dbInitPromise;}
@@ -228,7 +236,7 @@
     state.listOpen=null;
     state.query='';
   }
-  async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none'},state.profile.nameStyle||{});state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
+  async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark'},state.profile.nameStyle||{});state.profile.nameStyle.theme=normalizeTheme(state.profile.nameStyle.theme);applyThemePreference(state.profile.nameStyle.theme);state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
   if(!e.premiumRating)e.premiumRating={format:'classic',value:null,reactions:[]};
   if(!e.criteriaRatings||typeof e.criteriaRatings!=='object')e.criteriaRatings={};
   if(!Array.isArray(e.badges))e.badges=[];
@@ -453,7 +461,9 @@
       state.profile.photo=row.avatar_url||null;
       state.profile.banner=row.banner_url||null;
       state.profile.plan=row.plan==='pro'?'pro':'free';
-      state.profile.nameStyle=row.name_style&&typeof row.name_style==='object'?row.name_style:{color:null,effect:'none'};
+      state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark'},row.name_style&&typeof row.name_style==='object'?row.name_style:{});
+      state.profile.nameStyle.theme=normalizeTheme(state.profile.nameStyle.theme);
+      applyThemePreference(state.profile.nameStyle.theme);
       state.profile.socialLinks=Array.isArray(row.social_links)?row.social_links:[];
       state.profile.topFive=Array.isArray(row.top_five)?row.top_five.slice(0,5):[];
       state.profile.topFiveArtwork=row.top_five_artwork&&typeof row.top_five_artwork==='object'?row.top_five_artwork:{};

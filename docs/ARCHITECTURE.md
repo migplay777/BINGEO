@@ -5,7 +5,8 @@ O frontend foi separado por responsabilidade para facilitar leitura e manutenç�
 ## Frontend
 
 - public/index.html: estrutura HTML e referências aos assets.
-- public/css/: estilos separados por área visual.
+- public/css/: estilos separados por área visual, incluindo o tema claro em 05-theme.css.
+- public/js/theme-bootstrap.js: aplica a última preferência de tema antes da interface aparecer.
 - public/js/modules/: JavaScript separado por domínio.
 - public/assets/: imagens e arquivos estáticos.
 

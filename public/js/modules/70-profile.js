@@ -4,6 +4,7 @@
     var photo = state.profile.photo;
     var banner = state.profile.banner;
     var socialLinks = Array.isArray(state.profile.socialLinks) ? state.profile.socialLinks : [];
+    var profileTheme = normalizeTheme(state.profile.nameStyle&&state.profile.nameStyle.theme);
     var nameClass = 'profile-name' + (hasPro() && state.profile.nameStyle && state.profile.nameStyle.effect==='glow' ? ' name-glow' : '') + (hasPro() && state.profile.nameStyle && state.profile.nameStyle.effect==='animated' ? ' name-animated' : '');
     var nameStyle = (hasPro() && state.profile.nameStyle && state.profile.nameStyle.color) ? 'color:' + escapeHtml(state.profile.nameStyle.color) + ';' : '';
 
@@ -29,9 +30,15 @@
         '<div class="field-group"><label class="field-label">Biografia</label><textarea id="profileBio" placeholder="Conte um pouco sobre você e suas maratonas..." style="width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);padding:9px 11px;border-radius:7px;min-height:80px;resize:vertical;">' + escapeHtml(state.profile.bio||'') + '</textarea></div>' +
       '</div>' +
       '<div class="profile-edit-section">' +
-        '<h3>Aparência <span class="pro-badge">✦ PRO</span></h3>' +
+        '<h3>Aparência</h3>' +
+        '<div class="theme-setting"><div class="field-label">Tema da interface</div>' +
+          '<div class="theme-picker">' +
+            '<button type="button" class="theme-choice '+(profileTheme==='dark'?'active':'')+'" data-action="set-theme" data-theme="dark" aria-pressed="'+(profileTheme==='dark'?'true':'false')+'"><span class="theme-choice-preview theme-preview-dark"><i></i><i></i><i></i></span><span class="theme-choice-copy"><strong>Escuro</strong><small>Tema original do Bingeo</small></span></button>' +
+            '<button type="button" class="theme-choice '+(profileTheme==='light'?'active':'')+'" data-action="set-theme" data-theme="light" aria-pressed="'+(profileTheme==='light'?'true':'false')+'"><span class="theme-choice-preview theme-preview-light"><i></i><i></i><i></i></span><span class="theme-choice-copy"><strong>Claro</strong><small>Visual claro e suave</small></span></button>' +
+          '</div><div class="theme-setting-note">O tema é aplicado e salvo automaticamente.</div></div>' +
+        '<div class="appearance-pro-head">Personalização do perfil <span class="pro-badge">✦ PRO</span></div>' +
         (hasPro() ? '<div class="profile-tools"><button class="btn btn-ghost btn-sm" data-action="choose-banner">' + (banner?'Trocar banner':'Adicionar banner') + '</button>' + (banner?'<button class="btn btn-danger btn-sm" data-action="remove-banner">Remover banner</button>':'') + '<button class="btn btn-ghost btn-sm" data-action="choose-avatar">Adicionar GIF/foto</button></div>' +
-          '<div style="margin-top:14px;"><label class="field-label">Cor do nome</label><div class="color-row"><input type="color" id="profileNameColor" class="color-input" value="' + escapeHtml((state.profile.nameStyle&&state.profile.nameStyle.color)||'#ECEBF3') + '"><button class="btn btn-ghost btn-sm" data-action="clear-name-color">Cor padrão</button></div></div>' +
+          '<div style="margin-top:14px;"><label class="field-label">Cor do nome</label><div class="color-row"><input type="color" id="profileNameColor" class="color-input" value="' + escapeHtml((state.profile.nameStyle&&state.profile.nameStyle.color)||(profileTheme==='light'?'#181A23':'#ECEBF3')) + '"><button class="btn btn-ghost btn-sm" data-action="clear-name-color">Cor padrão</button></div></div>' +
           '<div style="margin-top:14px;"><label class="field-label">Efeito do nome</label><select id="profileNameEffect" class="qa-input" style="width:100%;"><option value="none" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='none'?'selected':'') + '>Normal</option><option value="glow" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='glow'?'selected':'') + '>Brilho</option><option value="animated" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='animated'?'selected':'') + '>Brilho animado</option></select></div>' : '<div class="premium-locked">Banner, GIF de perfil, cor personalizada e efeitos do nome são exclusivos do Bingeo Pro.</div>') +
       '</div>' +
       '<div class="profile-edit-section">' +
