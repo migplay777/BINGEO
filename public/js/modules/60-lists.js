@@ -146,7 +146,12 @@
     if(state.listOpen){
       var list=state.lists.find(function(l){return l.id===state.listOpen;});
       if(!list){state.listOpen=null;return viewListas();}
-      var memberEntries=state.entries.filter(function(e){return list.showIds.indexOf(e.catalogId)>-1;});
+      var memberCards=(list.showIds||[]).map(function(cid){
+        var entry=getEntry(cid);
+        if(entry)return entryCardHtml(entry);
+        var cat=getCatalog(cid);
+        return cat?catalogCardHtml(cat):'';
+      }).filter(Boolean);
       var candidates=filteredEntries();
       var isOwner=list.ownerUserId?list.ownerUserId===currentUserId:list.isOwner!==false;
       var canEdit=isOwner||list.isCollaborator===true;
@@ -171,8 +176,8 @@
         html+='<div class="banner-note"><span>Você está visualizando uma lista pública compartilhada.</span><span class="pro-badge">PÚBLICA</span></div>';
       }
 
-      if(memberEntries.length>0){
-        html+='<div class="section-title" style="margin-bottom:10px;">Nesta lista</div><div class="grid" style="margin-bottom:28px;">'+memberEntries.map(entryCardHtml).join('')+'</div>';
+      if(memberCards.length>0){
+        html+='<div class="section-title" style="margin-bottom:10px;">Nesta lista</div><div class="grid" style="margin-bottom:28px;">'+memberCards.join('')+'</div>';
       }else{
         html+='<div class="empty" style="margin-bottom:22px;"><strong>Esta lista ainda está vazia.</strong></div>';
       }
@@ -189,18 +194,18 @@
       return html;
     }
 
-    var ownedCount=ownedListsCount(),limitLabel=hasPro()?'Listas ilimitadas com Pro':ownedCount+' de 10 listas usadas';
+    var ownedCount=ownedListsCount(),visibleLists=state.lists.filter(function(l){return !l.isSharedPublic;}),limitLabel=hasPro()?'Listas ilimitadas com Pro':ownedCount+' de 10 listas usadas';
     var html='<div class="lists-home-head"><div><div class="section-title">Suas listas</div><div class="lists-limit-label">'+limitLabel+'</div></div></div>';
     html+='<div class="lists-grid">';
     html+='<button class="list-card list-create-card '+(!canCreateList()?'limit-reached':'')+'" data-action="open-list-create" type="button">'+
       '<div class="list-create-card-visual"><span class="list-create-plus">＋</span><span class="list-create-card-title">Nova lista</span><span class="list-create-card-sub">'+(canCreateList()?'Criar uma coleção':('Limite Free atingido'))+'</span></div>'+
       '<div class="list-card-body"><h3>Criar nova lista</h3><p>'+(hasPro()?'Crie quantas listas quiser.':'Plano Free: até 10 listas.')+'</p><div class="count">'+(hasPro()?'Ilimitado':ownedCount+'/10')+'</div></div></button>';
-    html+=state.lists.map(function(l){
+    html+=visibleLists.map(function(l){
       var collabs=Array.isArray(l.collaborators)?l.collaborators.length:0;
       return '<div class="list-card" data-action="open-list" data-list="'+l.id+'">'+listCoverHtml(l)+'<div class="list-card-body"><h3>'+escapeHtml(l.name)+'</h3><p>'+escapeHtml(l.description||'')+'</p><div class="count">'+l.showIds.length+' título'+(l.showIds.length===1?'':'s')+(collabs?' · '+collabs+' colaboradores':'')+'</div><span class="list-visibility">'+(l.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span></div></div>';
     }).join('');
     html+='</div>';
-    if(state.lists.length===0)html+='<div class="empty lists-empty-note"><strong>Você ainda não tem listas.</strong>Use o card “Nova lista” para criar sua primeira coleção.</div>';
+    if(visibleLists.length===0)html+='<div class="empty lists-empty-note"><strong>Você ainda não tem listas.</strong>Use o card “Nova lista” para criar sua primeira coleção.</div>';
     return html;
   }
 

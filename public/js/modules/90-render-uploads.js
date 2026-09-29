@@ -120,7 +120,7 @@
           state.query=searchInput.value; var pos=searchInput.selectionStart; clearTimeout(tmdbSearchTimer);
           if(state.query.trim()){
             if(state.view!=='descobrir'){
-              state.view='descobrir';state.listOpen=null;
+              state.view='descobrir';state.listOpen=null;state.listCreateOpen=false;
               document.querySelectorAll('#navLinks .nav-link').forEach(function(btn){btn.classList.toggle('active',btn.dataset.view==='descobrir');});
             }
             state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];state.tmdbPersonResults=[];state.characterSearchResults=[];state.userSearchResults=[];var req=++state.tmdbSearchRequest;
