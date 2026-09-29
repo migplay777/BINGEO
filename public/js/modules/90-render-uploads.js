@@ -19,7 +19,6 @@
     });
     var nameEl=document.getElementById('accountMenuUsername');if(nameEl)nameEl.textContent=username;
     var planEl=document.getElementById('accountMenuPlan');if(planEl)planEl.textContent=hasPro()?'✦ Bingeo Pro':'Plano gratuito';
-    var headerPro=document.getElementById('headerProBtn');if(headerPro)headerPro.hidden=hasPro();
     var menuPro=document.getElementById('accountProCard');if(menuPro)menuPro.hidden=hasPro();
   }
   function render(){

@@ -61,13 +61,23 @@
       ['Personalização','Recursos essenciais','Experiência mais completa']
     ];
     return '<div class="pro-page">'+
-      '<section class="pro-hero">'+
-        '<div class="pro-hero-badge">✦ BINGEO PRO</div>'+
-        '<h1>Seu Bingeo, do seu jeito.</h1>'+
-        '<p>Personalize seu perfil, suas listas e a forma como você avalia as séries que assiste.</p>'+
-        '<div class="pro-hero-actions">'+
-          (active?'<span class="pro-current-plan">✓ Seu Bingeo Pro está ativo</span>':'<button class="btn btn-primary pro-main-cta" data-action="pro-checkout">Assinar Bingeo Pro</button>')+
-          '<button class="btn btn-ghost" data-action="open-my-profile">Voltar ao perfil</button>'+
+      '<section class="pro-hero pro-page-banner">'+
+        '<div class="pro-page-banner-glow pro-page-glow-a"></div><div class="pro-page-banner-glow pro-page-glow-b"></div>'+
+        '<div class="pro-page-banner-content">'+
+          '<div class="pro-hero-badge">✦ BINGEO PRO</div>'+
+          '<h1>Seu Bingeo,<br><span>do seu jeito.</span></h1>'+
+          '<p>Personalize seu perfil, suas listas e a forma como você avalia as séries que assiste.</p>'+
+          '<div class="pro-hero-actions">'+
+            (active?'<span class="pro-current-plan">✓ Seu Bingeo Pro está ativo</span>':'<button class="btn btn-primary pro-main-cta" data-action="pro-checkout">Assinar Bingeo Pro</button>')+
+            '<button class="btn btn-ghost" data-action="open-my-profile">Voltar ao perfil</button>'+
+          '</div>'+
+        '</div>'+
+        '<div class="pro-page-banner-visual" aria-hidden="true">'+
+          '<div class="pro-page-brandmark"><span>Bingeo</span><b>Pro</b></div>'+
+          '<div class="pro-page-poster-row">'+
+            '<i class="pro-page-poster poster-one"></i><i class="pro-page-poster poster-two"></i><i class="pro-page-poster poster-three"></i><i class="pro-page-poster poster-four"></i>'+
+          '</div>'+
+          '<div class="pro-page-feature-pills"><span>Banner</span><span>GIF</span><span>Top 5</span><span>Listas ∞</span><span>DNA</span></div>'+
         '</div>'+
       '</section>'+
       '<section class="pro-visual-compare"><div class="section-title">Veja a diferença no perfil</div><div class="pro-preview-grid">'+

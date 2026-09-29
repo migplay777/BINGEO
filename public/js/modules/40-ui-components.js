@@ -49,6 +49,25 @@
     if(hasPro())return '';
     return '<div class="pro-context-banner '+(compact?'compact':'')+'"><div class="pro-context-icon">✦</div><div class="pro-context-copy"><strong>'+escapeHtml(title||'Bingeo Pro')+'</strong><span>'+escapeHtml(text||'Desbloqueie mais personalização e recursos no Bingeo.')+'</span></div>'+proCtaButtonHtml('Conhecer o Pro',source||'contexto','pro-context-action')+'</div>';
   }
+  function proHomeBannerHtml(){
+    if(hasPro())return '';
+    return '<section class="pro-home-banner">'+
+      '<div class="pro-home-banner-glow pro-home-glow-a"></div><div class="pro-home-banner-glow pro-home-glow-b"></div>'+
+      '<div class="pro-home-content">'+
+        '<span class="pro-home-kicker">✦ BINGEO PRO</span>'+
+        '<h2>Seu Bingeo, <span>do seu jeito.</span></h2>'+
+        '<p>Personalize seu perfil, escolha pôsteres do Top 5, crie listas ilimitadas e desbloqueie avaliações avançadas.</p>'+
+        '<div class="pro-home-actions"><button class="btn btn-primary pro-home-cta" data-action="open-pro" data-source="home-banner">Conhecer o Bingeo Pro</button><span>Mais identidade. Mais liberdade.</span></div>'+
+      '</div>'+
+      '<div class="pro-home-visual" aria-hidden="true">'+
+        '<div class="pro-home-brand"><span class="pro-home-brand-name">Bingeo</span><span class="pro-home-brand-tier">Pro</span></div>'+
+        '<div class="pro-home-card pro-home-card-a"><span>▣</span><strong>Perfil premium</strong></div>'+
+        '<div class="pro-home-card pro-home-card-b"><span>∞</span><strong>Listas ilimitadas</strong></div>'+
+        '<div class="pro-home-card pro-home-card-c"><span>✦</span><strong>Avaliações Pro</strong></div>'+
+        '<div class="pro-home-line"></div>'+
+      '</div>'+
+    '</section>';
+  }
   function openProView(source){
     state.proSource=source||'';
     state.modalCatalogId=null;
