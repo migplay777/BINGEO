@@ -23,9 +23,11 @@
   });
 
   document.addEventListener('click', function(e){
+    if(!e.target.closest('.account-profile-menu'))closeHeaderProfileMenu();
     var navBtn = e.target.closest('.nav-link');
     if(navBtn){
       state.view = navBtn.dataset.view;
+      state.profile.editing=false;
       state.listOpen = null;
       state.listCreateOpen=false;
       state.professionalOpen=null;state.professionalData=null;state.professionalError='';
@@ -39,6 +41,13 @@
     var el = e.target.closest('[data-action]');
     if(!el) return;
     var action = el.dataset.action;
+
+    if(action==='toggle-account-menu'){
+      var accountMenu=document.getElementById('headerProfileMenu');
+      setHeaderProfileMenu(!!(accountMenu&&accountMenu.hidden));
+      return;
+    }
+    closeHeaderProfileMenu();
 
     if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
     else if(action==='share-own-profile'){
@@ -94,7 +103,7 @@
       state.view=state.userProfileBackView||'descobrir';render();
     }
     else if(action==='open-my-profile'){
-      state.userProfileOpen=null;state.userProfileData=null;state.query='';state.view='perfil';render();
+      state.userProfileOpen=null;state.userProfileData=null;state.professionalOpen=null;state.professionalData=null;state.characterOpen=null;state.characterData=null;state.modalCatalogId=null;state.query='';state.profile.editing=false;state.view='perfil';render();
     }
     else if(action==='toggle-follow-user'){
       var targetUser=el.dataset.user,wasFollowing=el.dataset.following==='1';

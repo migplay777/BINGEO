@@ -317,6 +317,7 @@
     }
   }
   function renderMainViewOnly(){
+    renderHeaderAccount();
     var root=document.getElementById('viewRoot');
     if(!root)return;
     if(state.characterOpen)root.innerHTML=viewCharacter();

@@ -1,5 +1,27 @@
 /* ---------------- master render ---------------- */
+  function closeHeaderProfileMenu(){
+    var menu=document.getElementById('headerProfileMenu'),btn=document.getElementById('headerProfileBtn');
+    if(menu)menu.hidden=true;
+    if(btn)btn.setAttribute('aria-expanded','false');
+  }
+  function setHeaderProfileMenu(open){
+    var menu=document.getElementById('headerProfileMenu'),btn=document.getElementById('headerProfileBtn');
+    if(menu)menu.hidden=!open;
+    if(btn)btn.setAttribute('aria-expanded',open?'true':'false');
+  }
+  function renderHeaderAccount(){
+    var profile=state.profile||{},photo=profile.photo||'',username=profile.username||'Seu perfil';
+    var initials=username.trim()?username.trim().charAt(0).toUpperCase():'?';
+    ['headerProfileAvatar','accountMenuAvatar'].forEach(function(id){
+      var avatar=document.getElementById(id);if(!avatar)return;
+      avatar.style.backgroundImage=photo?'url("'+String(photo).replace(/"/g,'%22')+'")':'';
+      avatar.textContent=photo?'':initials;
+    });
+    var nameEl=document.getElementById('accountMenuUsername');if(nameEl)nameEl.textContent=username;
+    var planEl=document.getElementById('accountMenuPlan');if(planEl)planEl.textContent=hasPro()?'✦ Bingeo Pro':'Plano gratuito';
+  }
   function render(){
+    renderHeaderAccount();
     document.querySelectorAll('#navLinks .nav-link').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.view===state.view);
     });
