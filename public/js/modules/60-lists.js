@@ -146,66 +146,34 @@
       (chars.length?'<div class="favorite-people-grid">'+chars.map(favoriteCharacterCardHtml).join('')+'</div>':empty('Nenhum personagem favoritado ainda.'))+'</section>';
   }
 
-  // TESTE TEMPORÁRIO: false = exibe também as imagens padrão conhecidas
-  // do TVmaze/TheTVDB no seletor do personagem em destaque. Volte para true
-  // quando quiser restaurar o modo que prioriza alternativas.
-  var CHARACTER_ALTERNATIVE_FILTER_ENABLED=false;
-
   function topCharacterArtworkSource(url){
     if(safeTheTvdbImage(url))return 'TheTVDB';
     if(safeTvmazeImage(url))return 'TVmaze';
+    if(safeAniListImage(url))return 'AniList';
+    if(safeJikanImage(url))return 'Jikan';
     return 'Imagem';
   }
   function topCharacterArtworkChoices(ch){
     if(!ch)return [];
-    var primary=characterImageUrl(ch);
-    var primaryKey=normalizedArtworkUrlKey(primary);
-    var tvmazeStandard=safeTvmazeImage(ch.character_image_url);
-    var tvdbStandard=safeTheTvdbImage(ch.tvdb_character_image_url);
-    var tvmazeKey=normalizedArtworkUrlKey(tvmazeStandard);
-    var tvdbKey=normalizedArtworkUrlKey(tvdbStandard);
     var seen={},rows=[];
-
     function add(url,originIndex){
-      url=safeTheTvdbImage(url)||safeTvmazeImage(url);
+      url=safeCharacterProviderImage(url);
       if(!url)return;
       var key=normalizedArtworkUrlKey(url);
       if(!key||seen[key])return;
       seen[key]=1;
-
-      var source=topCharacterArtworkSource(url);
-      var isPrimary=!!primaryKey&&key===primaryKey;
-      var isProviderStandard=(!!tvmazeKey&&key===tvmazeKey)||(!!tvdbKey&&key===tvdbKey);
-      var isDefault=isPrimary||isProviderStandard;
-      var score=1000-(Number(originIndex||0)*3);
-
-      if(source==='TheTVDB')score+=40;
-      else if(source==='TVmaze')score+=20;
-
-      if(CHARACTER_ALTERNATIVE_FILTER_ENABLED&&isDefault)score-=2000;
-      else if(!CHARACTER_ALTERNATIVE_FILTER_ENABLED&&isProviderStandard)score+=500;
-
       rows.push({
         url:url,
-        source:source,
-        isDefault:isDefault,
-        isPrimary:isPrimary,
-        isProviderStandard:isProviderStandard,
-        score:score
+        source:topCharacterArtworkSource(url),
+        score:1000-(Number(originIndex||0)*2)
       });
     }
-
     (Array.isArray(ch.character_artwork_options)?ch.character_artwork_options:[]).forEach(function(url,idx){add(url,idx);});
-    add(ch.tvdb_character_image_url,100);
-    add(ch.character_image_url,110);
-    add(primary,120);
-
-    rows.sort(function(a,b){
-      if(CHARACTER_ALTERNATIVE_FILTER_ENABLED&&a.isDefault!==b.isDefault)return a.isDefault?1:-1;
-      if(!CHARACTER_ALTERNATIVE_FILTER_ENABLED&&a.isProviderStandard!==b.isProviderStandard)return a.isProviderStandard?-1:1;
-      return b.score-a.score;
-    });
-    return rows.slice(0,18);
+    add(ch.character_image_url,100);
+    add(ch.tvdb_character_image_url,110);
+    add(characterImageUrl(ch),120);
+    rows.sort(function(a,b){return b.score-a.score;});
+    return rows.slice(0,36);
   }
   function topCharacterArtworkOptions(ch){
     return topCharacterArtworkChoices(ch).map(function(item){return item.url;});
@@ -214,7 +182,7 @@
     var pro=!!(profile&&profile.plan==='pro');
     var selected=pro?(selectedOverride||''):'';
     if(!selected&&pro)selected=(profile.topCharacterArtwork||{})[ch.character_key]||'';
-    selected=safeTvmazeImage(selected)||safeTheTvdbImage(selected);
+    selected=safeCharacterProviderImage(selected);
     return selected||characterImageUrl(ch)||characterBannerImageUrl(ch)||'';
   }
   function seriesArtworkUrl(value,size){
@@ -396,20 +364,17 @@
       var pick=character;
       var choiceRows=topCharacterArtworkChoices(pick),selected=(state.profile.topCharacterArtwork||{})[pick.character_key]||'';
       var defaultArt=characterImageUrl(pick);
-      if(!CHARACTER_ALTERNATIVE_FILTER_ENABLED){
-        var sourceCount={};choiceRows.forEach(function(item){sourceCount[item.source]=(sourceCount[item.source]||0)+1;});
-        html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Modo de teste: exibindo todas as imagens padrão/disponíveis do TVmaze e TheTVDB.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
-          '<div class="artwork-picker-summary"><span class="artwork-source-chip">Filtro alternativo desativado</span><span class="artwork-source-chip">'+choiceRows.length+' imagem'+(choiceRows.length===1?'':'s')+'</span>'+
-            Object.keys(sourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+sourceCount[source]+'</span>';}).join('')+
-          '</div>'+
-          (choiceRows.length?'<div class="artwork-grid">'+choiceRows.map(function(item,idx){var url=item.url,label=item.isProviderStandard?('Padrão · '+item.source):('Imagem '+(idx+1));return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">'+escapeHtml(label)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Nenhuma imagem de personagem foi encontrada nas APIs atuais.</div>')+
-          '<div class="character-default-art"><div class="field-label">Automático do Bingeo</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-source">'+escapeHtml(topCharacterArtworkSource(defaultArt))+'</span><span class="artwork-choice-label">Usar automático</span></div></div></div></div>';
-      }else{
-        var alternativeRows=choiceRows.filter(function(item){return !item.isDefault;});
-        html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagem de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">Imagens alternativas são priorizadas. A imagem padrão aparece por último.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
-          (alternativeRows.length?'<div class="artwork-grid">'+alternativeRows.map(function(item,idx){var url=item.url;return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">Alternativa '+(idx+1)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">Ainda não encontramos uma imagem alternativa para este personagem.</div>')+
-          '<div class="character-default-art"><div class="field-label">Imagem padrão</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-label">Usar padrão</span></div></div></div></div>';
-      }
+      var sourceCount={};
+      choiceRows.forEach(function(item){sourceCount[item.source]=(sourceCount[item.source]||0)+1;});
+      var isLoading=!!state.characterArtworkLoading[pick.character_key];
+
+      html+='<div class="artwork-picker character-artwork-picker"><div class="artwork-picker-head"><div><div class="artwork-picker-title">Imagens de '+escapeHtml(displayCharacterName(pick.character_name))+'</div><div class="artwork-picker-note">TVmaze, TheTVDB, AniList e Jikan alimentam o mesmo conjunto de imagens. Todas as fontes contribuem diretamente.</div></div><button class="btn btn-ghost btn-sm" data-action="close-character-art-picker">Fechar</button></div>'+
+        '<div class="artwork-picker-summary">'+
+          (isLoading?'<span class="artwork-source-chip">Buscando em todos os bancos…</span>':'<span class="artwork-source-chip">'+choiceRows.length+' imagem'+(choiceRows.length===1?'':'s')+'</span>')+
+          Object.keys(sourceCount).map(function(source){return '<span class="artwork-source-chip">'+escapeHtml(source)+' · '+sourceCount[source]+'</span>';}).join('')+
+        '</div>'+
+        (choiceRows.length?'<div class="artwork-grid">'+choiceRows.map(function(item,idx){var url=item.url;return '<div class="artwork-choice character-artwork-choice '+(selected===url?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="'+escapeHtml(url)+'" style="background-image:url(\''+url.replace(/'/g,'%27')+'\')"><span class="artwork-choice-source">'+escapeHtml(item.source)+'</span><span class="artwork-choice-label">Imagem '+(idx+1)+'</span></div>';}).join('')+'</div>':'<div class="character-artwork-empty">'+(isLoading?'Buscando imagens do personagem…':'Nenhuma imagem foi encontrada nas fontes conectadas.')+'</div>')+
+        '<div class="character-default-art"><div class="field-label">Seleção automática</div><div class="artwork-grid character-default-grid"><div class="artwork-choice character-artwork-choice default-choice '+(!selected?'selected':'')+'" data-action="highlight-select-art" data-character="'+escapeHtml(pick.character_key)+'" data-url="" style="'+(defaultArt?'background-image:url(\''+defaultArt.replace(/'/g,'%27')+'\')':'')+'"><span class="artwork-choice-label">Usar automático</span></div></div></div></div>';
     }
     return html+'</section>';
   }

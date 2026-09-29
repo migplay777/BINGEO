@@ -380,10 +380,7 @@ else if(action==='choose-list-cover'){
       render();
       if(state.characterArtPickerKey){
         var artCharacter=state.favoriteCharacters.find(function(ch){return ch.character_key===artKey;})||characterLocalCache[artKey];
-        if(artCharacter){
-          var artCat=ensureCharacterSeriesCatalog(artCharacter);
-          if(artCat)loadTmdbSeries(artCat,true).catch(function(e){console.warn('Não foi possível carregar mais imagens do personagem:',e);});
-        }
+        if(artCharacter)loadCharacterArtworkPool(artCharacter,true).catch(function(e){console.warn('Não foi possível carregar todas as imagens do personagem:',e);});
       }
     }
     else if(action==='close-character-art-picker'){state.characterArtPickerKey=null;render();}
