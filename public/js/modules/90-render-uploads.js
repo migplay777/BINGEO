@@ -42,15 +42,17 @@
         var fd = new FormData(nl);
         var name = (fd.get('name')||'').trim();
         if(!name) return;
-        if(!hasPro() && state.lists.length>=5){ alert('O plano gratuito permite até 5 listas. Faça upgrade para o Bingeo Pro para criar mais.'); return; }
+        if(!canCreateList()){ alert('O plano gratuito permite até 10 listas próprias. O Bingeo Pro tem listas ilimitadas.'); return; }
         var nowIso = new Date().toISOString();
         var newList={
           id:uid(),name:name,description:(fd.get('description')||'').trim(),showIds:[],
-          owner:state.profile.username||null,ownerUserId:currentUserId,isOwner:true,visibility:'private',
+          owner:state.profile.username||null,ownerUserId:currentUserId,isOwner:true,isCollaborator:false,visibility:String(fd.get('visibility')||'private')==='public'?'public':'private',
           coverUrl:null,shareSlug:makeShareSlug(name),allowComments:true,collaborators:[],comments:[],
           createdAt:nowIso,updatedAt:nowIso
         };
         state.lists.unshift(newList);
+        state.listCreateOpen=false;
+        state.listOpen=newList.id;
         saveData();syncListToSupabase(newList);render();
       });
     }

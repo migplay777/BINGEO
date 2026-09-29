@@ -21,6 +21,7 @@
     tmdbSearchError:'',
     tmdbSearchRequest:0,
     listOpen:null,
+    listCreateOpen:false,
     modalCatalogId:null,
     seriesCommunity:{},
     communityLoading:{},
@@ -243,6 +244,7 @@
     characterLocalCache={};
     state.modalCatalogId=null;
     state.listOpen=null;
+    state.listCreateOpen=false;
     state.query='';
   }
   async function loadData(){try{var db=await readDb();state.entries=db.library.entries||[];state.diary=db.library.diary||[];state.lists=db.library.lists||[];state.profile=Object.assign(defaultDb().profile,db.profile||{});state.profile.nameStyle=Object.assign({color:null,effect:'none',theme:'dark',highlights:{character:'',actor:null,creator:null}},state.profile.nameStyle||{});state.profile.nameStyle.theme=normalizeTheme(state.profile.nameStyle.theme);state.profile.nameStyle.highlights=normalizeProfileHighlights(state.profile.nameStyle.highlights,state.profile.topCharacters);state.profile.topCharacters=state.profile.nameStyle.highlights.character?[state.profile.nameStyle.highlights.character]:[];applyThemePreference(state.profile.nameStyle.theme);state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];if(state.profile.plan!=='pro')state.profile.plan='free';state.entries.forEach(function(e){
@@ -415,7 +417,7 @@
         });
         var mapped={
           id:row.client_id,name:row.name,description:row.description||'',showIds:showIds,
-          ownerUserId:row.user_id,isOwner:row.user_id===currentUserId,dbId:row.id,
+          ownerUserId:row.user_id,isOwner:row.user_id===currentUserId,isCollaborator:row.user_id!==currentUserId,dbId:row.id,
           visibility:row.visibility||'private',coverUrl:row.cover_url||null,shareSlug:row.share_slug,
           allowComments:row.allow_comments!==false,createdAt:row.created_at,updatedAt:row.updated_at,
           owner:row.user_id===currentUserId?(state.profile.username||null):'colaborador',collaborators:[],comments:[]

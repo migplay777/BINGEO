@@ -4,6 +4,7 @@
     if(navBtn){
       state.view = navBtn.dataset.view;
       state.listOpen = null;
+      state.listCreateOpen=false;
       state.professionalOpen=null;state.professionalData=null;state.professionalError='';
       state.characterOpen=null;state.characterData=null;state.characterError='';state.characterLoading=false;
       state.userProfileOpen=null;state.userProfileData=null;state.userProfileError='';state.userProfileLoading=false;
@@ -292,8 +293,16 @@ else if(action==='edit-profile'){ state.profile.editing=true; render(); }
       state.diary = state.diary.filter(function(d){ return d.id!==el.dataset.entry; });
       saveData(); render();
     }
-    else if(action==='open-list'){ state.listOpen=el.dataset.list; var openedList=state.lists.find(function(l){return l.id===state.listOpen;}); render(); if(openedList)loadListExtras(openedList).then(function(){if(state.listOpen===openedList.id)renderMainViewOnly();}); }
-    else if(action==='back-to-lists'){ state.listOpen=null; render(); }
+    else if(action==='open-list-create'){
+      if(!canCreateList()){alert('Você atingiu o limite de 10 listas do plano Free. O Bingeo Pro tem listas ilimitadas.');return;}
+      state.listOpen=null;state.listCreateOpen=true;render();
+    }
+    else if(action==='open-list'){ state.listCreateOpen=false;state.listOpen=el.dataset.list; var openedList=state.lists.find(function(l){return l.id===state.listOpen;}); render(); if(openedList&&!openedList.isSharedPublic)loadListExtras(openedList).then(function(){if(state.listOpen===openedList.id)renderMainViewOnly();}); }
+    else if(action==='back-to-lists'){ state.listOpen=null;state.listCreateOpen=false;render(); }
+    else if(action==='share-list'){
+      var shareList=state.lists.find(function(l){return l.id===el.dataset.list;});
+      if(shareList)shareBingeoList(shareList);
+    }
     else if(action==='delete-list'){
       if(confirm('Excluir esta lista? Os títulos não serão removidos da sua estante.')){
         var deleting=state.lists.find(function(l){return l.id===el.dataset.list;});

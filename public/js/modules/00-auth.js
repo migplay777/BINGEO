@@ -109,9 +109,9 @@
       appBooted=true;
       render();
       setTimeout(indexCharactersFromLibrary,700);
-      await openSharedProfileTarget();
+      if(!(await openSharedListTarget()))if(!(await openSharedListTarget()))await openSharedProfileTarget();
     }else{
-      await openSharedProfileTarget();
+      if(!(await openSharedListTarget()))if(!(await openSharedListTarget()))await openSharedProfileTarget();
     }
   }
   supabaseClient.auth.onAuthStateChange(function(_event,session){setTimeout(function(){applySession(session);},0);});

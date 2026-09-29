@@ -1,49 +1,206 @@
 /* ---------------- view: listas ---------------- */
+  function ownedListsCount(){
+    return state.lists.filter(function(list){
+      return list&&(list.ownerUserId?list.ownerUserId===currentUserId:list.isOwner!==false);
+    }).length;
+  }
+  function canCreateList(){
+    return hasPro()||ownedListsCount()<10;
+  }
+  function listShareUrl(list){
+    if(!list||!list.shareSlug)return '';
+    var base=(window.location.origin||'https://bingeo.onrender.com').replace(/\/$/,'');
+    return base+'/?lista='+encodeURIComponent(list.shareSlug);
+  }
+  function sharedListTargetSlug(){
+    try{return new URL(window.location.href).searchParams.get('lista')||'';}catch(e){return '';}
+  }
+  function clearSharedListTarget(){
+    try{
+      var url=new URL(window.location.href);
+      if(!url.searchParams.has('lista'))return;
+      url.searchParams.delete('lista');
+      history.replaceState(null,'',url.pathname+(url.searchParams.toString()?('?'+url.searchParams.toString()):'')+url.hash);
+    }catch(e){}
+  }
+  async function loadPublicSharedList(shareSlug){
+    shareSlug=String(shareSlug||'').trim();
+    if(!shareSlug)return null;
+
+    var local=state.lists.find(function(list){return list&&list.shareSlug===shareSlug;});
+    if(local)return local;
+
+    var result=await supabaseClient.rpc('get_public_list',{p_share_slug:shareSlug});
+    if(result.error)throw result.error;
+    var data=result.data;
+    if(!data)return null;
+
+    var items=Array.isArray(data.items)?data.items:[];
+    var showIds=items.map(function(item){
+      var cid=item.catalog_id||((item.tmdb_id!=null)?('tmdb-'+item.tmdb_id):null);
+      if(!cid)return null;
+      if(!getCatalog(cid)){
+        CATALOG.push({
+          id:cid,tmdbId:item.tmdb_id||null,title:item.title||'Série',type:'serie',genre:'Série',
+          year:null,platform:'',seasons:[],poster_path:item.poster_path||null,
+          backdrop_path:item.backdrop_path||null,tmdbSource:true
+        });
+      }
+      return cid;
+    }).filter(Boolean);
+
+    var mapped={
+      id:data.client_id||('shared-'+shareSlug),
+      name:data.name||'Lista',
+      description:data.description||'',
+      showIds:showIds,
+      owner:data.owner||'Usuário Bingeo',
+      ownerUserId:null,
+      isOwner:false,
+      isCollaborator:false,
+      isSharedPublic:true,
+      visibility:'public',
+      coverUrl:data.cover_url||null,
+      shareSlug:data.share_slug||shareSlug,
+      allowComments:data.allow_comments!==false,
+      collaborators:(Array.isArray(data.collaborators)?data.collaborators:[]).map(function(username){return {username:username};}),
+      comments:Array.isArray(data.comments)?data.comments:[],
+      createdAt:'',
+      updatedAt:''
+    };
+    state.lists.push(mapped);
+    return mapped;
+  }
+  async function openSharedListTarget(){
+    var slug=sharedListTargetSlug();
+    if(!slug||!currentUserId)return false;
+    clearSharedListTarget();
+    try{
+      var list=await loadPublicSharedList(slug);
+      if(!list){alert('Esta lista não existe ou não está pública.');return false;}
+      state.query='';
+      state.modalCatalogId=null;
+      state.professionalOpen=null;state.professionalData=null;
+      state.characterOpen=null;state.characterData=null;
+      state.userProfileOpen=null;state.userProfileData=null;
+      state.listCreateOpen=false;
+      state.listOpen=list.id;
+      state.view='listas';
+      render();
+      return true;
+    }catch(e){
+      console.error('Erro ao abrir lista compartilhada:',e);
+      alert('Não foi possível abrir esta lista compartilhada.');
+      return false;
+    }
+  }
+  async function shareBingeoList(list){
+    if(!list)return;
+    var isOwner=list.ownerUserId?list.ownerUserId===currentUserId:list.isOwner!==false;
+
+    if(isOwner&&list.visibility!=='public'){
+      if(!confirm('Para compartilhar a lista por link ela precisa ser pública. Tornar esta lista pública agora?'))return;
+      list.visibility='public';
+      list.updatedAt=new Date().toISOString();
+      await saveData();
+      await syncListToSupabase(list);
+      renderMainViewOnly();
+    }else if(isOwner&&!list.shareSlug){
+      await syncListToSupabase(list);
+    }
+
+    var url=listShareUrl(list);
+    if(!url){alert('Ainda não foi possível gerar o link desta lista.');return;}
+
+    try{
+      if(navigator.share){
+        await navigator.share({title:list.name||'Lista no Bingeo',text:'Confira esta lista no Bingeo.',url:url});
+        return;
+      }
+    }catch(e){
+      if(e&&e.name==='AbortError')return;
+    }
+    try{
+      await navigator.clipboard.writeText(url);
+      alert('Link da lista copiado!');
+    }catch(e){
+      window.prompt('Copie o link da lista:',url);
+    }
+  }
+
   function viewListas(){
+    if(state.listCreateOpen){
+      var ownedCount=ownedListsCount(),freeLimitReached=!hasPro()&&ownedCount>=10;
+      return '<div class="list-create-page">'+
+        '<div class="list-create-head"><button class="btn btn-ghost btn-sm" data-action="back-to-lists">← Voltar para listas</button><div><div class="section-title">Criar nova lista</div><div class="list-create-sub">'+(hasPro()?'Bingeo Pro · listas ilimitadas':ownedCount+' de 10 listas usadas no plano Free')+'</div></div></div>'+
+        (freeLimitReached?'<div class="banner-note"><span>Você atingiu o limite de 10 listas do plano Free.</span><span class="pro-badge">PRO ILIMITADO</span></div>':
+        '<form class="list-create-form" id="newListForm">'+
+          '<div class="list-create-field"><label class="field-label">Nome da lista</label><input type="text" name="name" class="qa-input" placeholder="Ex: Melhores séries de ficção científica" maxlength="80" required></div>'+
+          '<div class="list-create-field"><label class="field-label">Descrição</label><textarea name="description" class="qa-input list-create-textarea" placeholder="Conte um pouco sobre esta lista..." maxlength="500"></textarea></div>'+
+          '<div class="list-create-field"><label class="field-label">Visibilidade</label><div class="list-visibility-options"><label><input type="radio" name="visibility" value="private" checked> <span>🔒 Privada</span><small>Só você e colaboradores podem acessar.</small></label><label><input type="radio" name="visibility" value="public"> <span>🌐 Pública</span><small>Pode ser compartilhada por link.</small></label></div></div>'+
+          '<div class="inline-actions"><button type="submit" class="btn btn-primary">Criar lista</button><button type="button" class="btn btn-ghost" data-action="back-to-lists">Cancelar</button></div>'+
+        '</form>')+
+      '</div>';
+    }
+
     if(state.listOpen){
       var list=state.lists.find(function(l){return l.id===state.listOpen;});
       if(!list){state.listOpen=null;return viewListas();}
       var memberEntries=state.entries.filter(function(e){return list.showIds.indexOf(e.catalogId)>-1;});
       var candidates=filteredEntries();
       var isOwner=list.ownerUserId?list.ownerUserId===currentUserId:list.isOwner!==false;
+      var canEdit=isOwner||list.isCollaborator===true;
       var coverStyle=list.coverUrl?'background-image:url(\''+String(list.coverUrl).replace(/'/g,'%27')+'\');':'';
       var collaborators=Array.isArray(list.collaborators)?list.collaborators:[];
-      var html='<div class="list-detail-cover" style="'+coverStyle+'"><div class="list-detail-cover-copy"><h2>'+escapeHtml(list.name)+'</h2><p>'+escapeHtml(list.description||'')+'</p><div class="list-meta-row"><span class="list-meta-pill">'+(list.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span><span class="list-meta-pill">'+list.showIds.length+' títulos</span>'+(collaborators.length?'<span class="list-meta-pill">👥 '+collaborators.length+' colaboradores</span>':'')+'</div></div></div>';
+      var html='<div class="list-detail-cover" style="'+coverStyle+'"><div class="list-detail-cover-copy"><h2>'+escapeHtml(list.name)+'</h2><p>'+escapeHtml(list.description||'')+'</p><div class="list-meta-row"><span class="list-meta-pill">'+(list.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span><span class="list-meta-pill">'+list.showIds.length+' títulos</span>'+(list.owner?'<span class="list-meta-pill">por @'+escapeHtml(String(list.owner).replace(/^@/,''))+'</span>':'')+(collaborators.length?'<span class="list-meta-pill">👥 '+collaborators.length+' colaboradores</span>':'')+'</div></div></div>';
       html+='<div class="list-detail-head"><button class="btn btn-ghost btn-sm" data-action="back-to-lists">← Todas as listas</button><div class="inline-actions">';
       if(isOwner){
         html+='<button class="btn btn-ghost btn-sm" data-action="choose-list-cover" data-list="'+list.id+'">Trocar capa</button>';
         html+='<button class="btn btn-ghost btn-sm" data-action="toggle-list-public" data-list="'+list.id+'">'+(list.visibility==='public'?'Tornar privada':'Tornar pública')+'</button>';
         html+='<button class="btn btn-ghost btn-sm" data-action="toggle-list-comments" data-list="'+list.id+'">'+(list.allowComments!==false?'Desativar comentários':'Ativar comentários')+'</button>';
       }
-      if(list.visibility==='public')html+='';
+      if(list.visibility==='public'||isOwner)html+='<button class="btn btn-primary btn-sm" data-action="share-list" data-list="'+list.id+'">Compartilhar</button>';
       if(isOwner)html+='<button class="btn btn-danger btn-sm" data-action="delete-list" data-list="'+list.id+'">Excluir lista</button>';
       html+='</div></div>';
 
       if(isOwner){
-        html+='<div class="list-tools-panel"><div class="list-tool-box"><h4>Detalhes da lista</h4><form id="listMetadataForm"><input class="qa-input" name="name" value="'+escapeHtml(list.name||'')+'" placeholder="Nome da lista" style="width:100%;margin-bottom:7px;"><input class="qa-input" name="description" value="'+escapeHtml(list.description||'')+'" placeholder="Descrição" style="width:100%;margin-bottom:7px;"><button class="btn btn-ghost btn-sm" type="submit">Salvar detalhes</button></form></div><div class="list-tool-box"><h4>Colaboradores</h4><form id="listCollaboratorForm" class="new-list-form" style="margin:0;"><input type="text" name="username" class="qa-input" placeholder="@usuário" required><button class="btn btn-ghost btn-sm" type="submit">Adicionar</button></form><div class="collab-row">'+(collaborators.length?collaborators.map(function(co){return '<span class="collab-chip">@'+escapeHtml(co.username||'usuário')+' <button style="border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;" data-action="remove-collaborator" data-list="'+list.id+'" data-username="'+escapeHtml(co.username||'')+'">×</button></span>';}).join(''):'<span style="font-size:11px;color:var(--text-dim);">Só você edita esta lista.</span>')+'</div></div><div class="list-tool-box"><h4>Compartilhamento</h4><div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">Listas públicas podem aparecer para outros usuários dentro do Bingeo.</div></div></div>';
-      }else{
+        html+='<div class="list-tools-panel"><div class="list-tool-box"><h4>Detalhes da lista</h4><form id="listMetadataForm"><input class="qa-input" name="name" value="'+escapeHtml(list.name||'')+'" placeholder="Nome da lista" style="width:100%;margin-bottom:7px;"><input class="qa-input" name="description" value="'+escapeHtml(list.description||'')+'" placeholder="Descrição" style="width:100%;margin-bottom:7px;"><button class="btn btn-ghost btn-sm" type="submit">Salvar detalhes</button></form></div><div class="list-tool-box"><h4>Colaboradores</h4><form id="listCollaboratorForm" class="new-list-form" style="margin:0;"><input type="text" name="username" class="qa-input" placeholder="@usuário" required><button class="btn btn-ghost btn-sm" type="submit">Adicionar</button></form><div class="collab-row">'+(collaborators.length?collaborators.map(function(co){return '<span class="collab-chip">@'+escapeHtml(co.username||'usuário')+' <button style="border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;" data-action="remove-collaborator" data-list="'+list.id+'" data-username="'+escapeHtml(co.username||'')+'">×</button></span>';}).join(''):'<span style="font-size:11px;color:var(--text-dim);">Só você edita esta lista.</span>')+'</div></div><div class="list-tool-box"><h4>Compartilhamento</h4><div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">'+(list.visibility==='public'?'Esta lista pode ser aberta por qualquer pessoa com o link.':'Torne a lista pública para compartilhar por link.')+'</div>'+(list.visibility==='public'?'<button class="btn btn-ghost btn-sm" style="margin-top:9px;" data-action="share-list" data-list="'+list.id+'">Copiar/compartilhar link</button>':'')+'</div></div>';
+      }else if(list.isCollaborator===true){
         html+='<div class="banner-note"><span>Você está colaborando nesta lista.</span><span class="pro-badge">EDITOR</span></div>';
+      }else if(list.isSharedPublic){
+        html+='<div class="banner-note"><span>Você está visualizando uma lista pública compartilhada.</span><span class="pro-badge">PÚBLICA</span></div>';
       }
 
       if(memberEntries.length>0){
         html+='<div class="section-title" style="margin-bottom:10px;">Nesta lista</div><div class="grid" style="margin-bottom:28px;">'+memberEntries.map(entryCardHtml).join('')+'</div>';
+      }else{
+        html+='<div class="empty" style="margin-bottom:22px;"><strong>Esta lista ainda está vazia.</strong></div>';
       }
-      html+='<div class="section-title" style="margin-bottom:10px;">Adicionar títulos da sua estante</div>';
-      if(candidates.length===0)html+='<div class="empty">Sua estante ainda está vazia. Adicione títulos em "Descobrir" primeiro.</div>';
-      else html+='<div>'+candidates.map(function(e){
-        var cat=getCatalog(e.catalogId),inList=list.showIds.indexOf(e.catalogId)>-1;
-        return '<div class="pick-row'+(inList?' in-list':'')+'" data-action="toggle-show-in-list" data-list="'+list.id+'" data-catalog="'+e.catalogId+'"><div class="pick-swatch" style="'+swatchStyle(cat.title)+'"></div><span>'+escapeHtml(cat.title)+'</span><span class="pick-check">'+(inList?'✓':'')+'</span></div>';
-      }).join('')+'</div>';
+
+      if(canEdit){
+        html+='<div class="section-title" style="margin-bottom:10px;">Adicionar títulos da sua estante</div>';
+        if(candidates.length===0)html+='<div class="empty">Sua estante ainda está vazia. Adicione títulos em "Descobrir" primeiro.</div>';
+        else html+='<div>'+candidates.map(function(e){
+          var cat=getCatalog(e.catalogId),inList=list.showIds.indexOf(e.catalogId)>-1;
+          return '<div class="pick-row'+(inList?' in-list':'')+'" data-action="toggle-show-in-list" data-list="'+list.id+'" data-catalog="'+e.catalogId+'"><div class="pick-swatch" style="'+swatchStyle(cat.title)+'"></div><span>'+escapeHtml(cat.title)+'</span><span class="pick-check">'+(inList?'✓':'')+'</span></div>';
+        }).join('')+'</div>';
+      }
       html+=listCommentsHtml(list);
       return html;
     }
 
-    var html='<form class="new-list-form" id="newListForm"><input type="text" name="name" class="qa-input" placeholder="Nome da nova lista (ex: Melhores realities)" required><input type="text" name="description" class="qa-input" placeholder="Descrição (opcional)" style="flex:1;"><button type="submit" class="btn btn-primary">Criar lista</button></form>';
-    if(state.lists.length===0)html+='<div class="empty"><strong>Você ainda não tem listas.</strong>Crie coleções, convide amigos e compartilhe suas seleções.</div>';
-    else html+='<div class="lists-grid">'+state.lists.map(function(l){
+    var ownedCount=ownedListsCount(),limitLabel=hasPro()?'Listas ilimitadas com Pro':ownedCount+' de 10 listas usadas';
+    var html='<div class="lists-home-head"><div><div class="section-title">Suas listas</div><div class="lists-limit-label">'+limitLabel+'</div></div></div>';
+    html+='<div class="lists-grid">';
+    html+='<button class="list-card list-create-card '+(!canCreateList()?'limit-reached':'')+'" data-action="open-list-create" type="button">'+
+      '<div class="list-create-card-visual"><span class="list-create-plus">＋</span><span class="list-create-card-title">Nova lista</span><span class="list-create-card-sub">'+(canCreateList()?'Criar uma coleção':('Limite Free atingido'))+'</span></div>'+
+      '<div class="list-card-body"><h3>Criar nova lista</h3><p>'+(hasPro()?'Crie quantas listas quiser.':'Plano Free: até 10 listas.')+'</p><div class="count">'+(hasPro()?'Ilimitado':ownedCount+'/10')+'</div></div></button>';
+    html+=state.lists.map(function(l){
       var collabs=Array.isArray(l.collaborators)?l.collaborators.length:0;
       return '<div class="list-card" data-action="open-list" data-list="'+l.id+'">'+listCoverHtml(l)+'<div class="list-card-body"><h3>'+escapeHtml(l.name)+'</h3><p>'+escapeHtml(l.description||'')+'</p><div class="count">'+l.showIds.length+' título'+(l.showIds.length===1?'':'s')+(collabs?' · '+collabs+' colaboradores':'')+'</div><span class="list-visibility">'+(l.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span></div></div>';
-    }).join('')+'</div>';
+    }).join('');
+    html+='</div>';
+    if(state.lists.length===0)html+='<div class="empty lists-empty-note"><strong>Você ainda não tem listas.</strong>Use o card “Nova lista” para criar sua primeira coleção.</div>';
     return html;
   }
 

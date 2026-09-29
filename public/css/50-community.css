@@ -216,3 +216,33 @@
 
 
   
+
+  /* ---- criação e compartilhamento de listas ---- */
+  .lists-home-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  .lists-limit-label{font-size:11px;color:var(--text-muted);margin-top:4px;}
+  .list-create-card{padding:0;text-align:left;color:inherit;font:inherit;cursor:pointer;}
+  .list-create-card-visual{min-height:154px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:linear-gradient(135deg,rgba(139,92,246,.14),rgba(76,124,240,.07));border-bottom:1px solid var(--line);}
+  .list-create-plus{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid rgba(139,92,246,.38);background:rgba(139,92,246,.12);color:var(--violet);font-size:27px;line-height:1;}
+  .list-create-card-title{font:700 14px 'Space Grotesk',sans-serif;margin-top:4px;}
+  .list-create-card-sub{font-size:10px;color:var(--text-muted);}
+  .list-create-card:hover{border-color:var(--violet);transform:translateY(-2px);}
+  .list-create-card.limit-reached{opacity:.58;cursor:not-allowed;}
+  .list-create-card.limit-reached:hover{transform:none;border-color:var(--line);}
+  .lists-empty-note{margin-top:16px;}
+  .list-create-page{max-width:720px;margin:0 auto;padding:8px 0 32px;}
+  .list-create-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:20px;}
+  .list-create-head>div:last-child{flex:1;}
+  .list-create-sub{font-size:11px;color:var(--text-muted);margin-top:4px;}
+  .list-create-form{border:1px solid var(--line);border-radius:14px;background:var(--panel);padding:18px;}
+  .list-create-field{margin-bottom:17px;}
+  .list-create-field .qa-input{width:100%;}
+  .list-create-textarea{min-height:110px;resize:vertical;font-family:inherit;}
+  .list-visibility-options{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .list-visibility-options label{display:grid;grid-template-columns:auto 1fr;column-gap:7px;row-gap:2px;padding:12px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);cursor:pointer;}
+  .list-visibility-options label input{grid-row:1/3;margin-top:3px;}
+  .list-visibility-options label span{font-size:12px;font-weight:700;}
+  .list-visibility-options label small{font-size:9.5px;color:var(--text-muted);line-height:1.35;}
+  @media(max-width:620px){
+    .list-visibility-options{grid-template-columns:1fr;}
+    .list-create-head{flex-direction:column;}
+  }
