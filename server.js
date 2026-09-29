@@ -297,12 +297,95 @@ app.get('/api/anilist/search', async (req, res) => {
   }
 });
 
+app.get('/api/anilist/characters/search', async (req, res) => {
+  const search = String(req.query.q || '').trim();
+  if (!search) return res.status(400).json({ error: 'Nome do personagem é obrigatório.' });
+
+  const query = `
+    query ($search: String) {
+      Page(page: 1, perPage: 10) {
+        characters(search: $search, sort: SEARCH_MATCH) {
+          id
+          name { full native alternative alternativeSpoiler }
+          image { large medium }
+          favourites
+        }
+      }
+    }
+  `;
+
+  try {
+    const response = await fetch('https://graphql.anilist.co', {
+      method: 'POST',
+      headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'User-Agent': 'Bingeo/1.0' },
+      body: JSON.stringify({ query, variables: { search } }),
+      signal: AbortSignal.timeout(12000)
+    });
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+    const retryAfter = response.headers.get('retry-after');
+    if (retryAfter) res.set('Retry-After', retryAfter);
+    if (response.ok) res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao acessar personagens da AniList:', error);
+    res.status(502).json({ error: 'Não foi possível acessar os personagens da AniList.' });
+  }
+});
+
+app.get('/api/jikan/characters/search', async (req, res) => {
+  const search = String(req.query.q || '').trim();
+  if (!search) return res.status(400).json({ error: 'Nome do personagem é obrigatório.' });
+
+  const params = new URLSearchParams({ q: search, limit: '10', order_by: 'favorites', sort: 'desc' });
+  try {
+    const response = await fetch('https://api.jikan.moe/v4/characters?' + params.toString(), {
+      headers: { Accept: 'application/json', 'User-Agent': 'Bingeo/1.0' },
+      signal: AbortSignal.timeout(12000)
+    });
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+    const retryAfter = response.headers.get('retry-after');
+    if (retryAfter) res.set('Retry-After', retryAfter);
+    if (response.ok) res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao pesquisar personagem na Jikan:', error);
+    res.status(502).json({ error: 'Não foi possível acessar a Jikan.' });
+  }
+});
+
+app.get('/api/jikan/characters/:malId/pictures', async (req, res) => {
+  const malId = String(req.params.malId || '').trim();
+  if (!/^\d+$/.test(malId)) return res.status(400).json({ error: 'ID de personagem inválido.' });
+
+  try {
+    const response = await fetch('https://api.jikan.moe/v4/characters/' + encodeURIComponent(malId) + '/pictures', {
+      headers: { Accept: 'application/json', 'User-Agent': 'Bingeo/1.0' },
+      signal: AbortSignal.timeout(12000)
+    });
+    const body = await response.text();
+    res.status(response.status);
+    res.set('Content-Type', response.headers.get('content-type') || 'application/json');
+    const retryAfter = response.headers.get('retry-after');
+    if (retryAfter) res.set('Retry-After', retryAfter);
+    if (response.ok) res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    res.send(body);
+  } catch (error) {
+    console.error('Erro ao buscar imagens do personagem na Jikan:', error);
+    res.status(502).json({ error: 'Não foi possível acessar as imagens da Jikan.' });
+  }
+});
+
 app.get('/api/health', (_req, res) => res.json({
   ok: true,
   tmdbConfigured: !!TMDB_READ_TOKEN,
   tvmazeConfigured: true,
   thetvdbConfigured: !!THETVDB_API_KEY,
-  anilistConfigured: true
+  anilistConfigured: true,
+  jikanConfigured: true
 }));
 
 

@@ -69,6 +69,55 @@
       throw err;
     }finally{clearTimeout(timer);}
   }
+  async function anilistCharacterImageSearch(name){
+    name=String(name||'').trim();
+    if(!name)return [];
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
+    try{
+      var res=await fetch('/api/anilist/characters/search?q='+encodeURIComponent(name),{headers:{'Accept':'application/json'},signal:controller.signal});
+      if(!res.ok)throw new Error('AniList personagens HTTP '+res.status);
+      var data=await res.json(),page=data&&data.data&&data.data.Page;
+      return page&&Array.isArray(page.characters)?page.characters:[];
+    }catch(err){
+      if(err&&err.name==='AbortError')throw new Error('A AniList demorou para responder.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
+  async function jikanCharacterSearch(name){
+    name=String(name||'').trim();
+    if(!name)return [];
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
+    try{
+      var res=await fetch('/api/jikan/characters/search?q='+encodeURIComponent(name),{headers:{'Accept':'application/json'},signal:controller.signal});
+      if(!res.ok)throw new Error('Jikan HTTP '+res.status);
+      var data=await res.json();
+      return Array.isArray(data&&data.data)?data.data:[];
+    }catch(err){
+      if(err&&err.name==='AbortError')throw new Error('A Jikan demorou para responder.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
+  async function jikanCharacterPictures(malId){
+    if(!malId)return [];
+    var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
+    try{
+      var res=await fetch('/api/jikan/characters/'+encodeURIComponent(malId)+'/pictures',{headers:{'Accept':'application/json'},signal:controller.signal});
+      if(!res.ok)throw new Error('Jikan imagens HTTP '+res.status);
+      var data=await res.json();
+      return Array.isArray(data&&data.data)?data.data:[];
+    }catch(err){
+      if(err&&err.name==='AbortError')throw new Error('A Jikan demorou para responder.');
+      throw err;
+    }finally{clearTimeout(timer);}
+  }
+  function safeJikanImage(url){
+    url=String(url||'').trim();
+    return /^https:\/\/cdn\.myanimelist\.net\//i.test(url)?url:'';
+  }
+  function safeCharacterProviderImage(url){
+    return safeTheTvdbImage(url)||safeTvmazeImage(url)||safeAniListImage(url)||safeJikanImage(url);
+  }
+
   function normalizeCreditName(value){
     return String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
   }
