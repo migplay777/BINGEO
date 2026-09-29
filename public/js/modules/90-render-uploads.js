@@ -98,21 +98,6 @@
         }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível publicar o comentário.');});
       });
     }
-    var statusSel = document.getElementById('statusSelect');
-    if(statusSel){
-      statusSel.addEventListener('change', function(){
-        var entry = getEntry(state.modalCatalogId);
-        if(!entry) return;
-        entry.status = statusSel.value;
-        entry.dateUpdated = new Date().toISOString();
-        if(statusSel.value==='assistindo' || statusSel.value==='completo') bumpTrending(entry.catalogId,'status');
-        saveData();
-        syncEntryToSupabase(entry);
-        publishActivity('status',entry,{payload:{status:entry.status,status_label:STATUS_LABELS[entry.status]||entry.status}});
-        renderMainViewOnly();
-        renderModalPreserveScroll();
-      });
-    }
     var spoilerLevelSel=document.getElementById('spoilerLevel');
     if(spoilerLevelSel){
       spoilerLevelSel.addEventListener('change',function(){

@@ -1,4 +1,27 @@
-/* ---------------- event delegation ---------------- */
+/* ---------------- persistent form delegation ---------------- */
+  document.addEventListener('change', function(e){
+    var statusSel=e.target&&e.target.closest?e.target.closest('#statusSelect'):null;
+    if(!statusSel)return;
+
+    var catalogId=statusSel.dataset.catalog||state.modalCatalogId;
+    var entry=getEntry(catalogId);
+    if(!entry)return;
+
+    var nextStatus=String(statusSel.value||'');
+    if(!STATUS_LABELS[nextStatus]||entry.status===nextStatus)return;
+
+    entry.status=nextStatus;
+    entry.dateUpdated=new Date().toISOString();
+
+    if(nextStatus==='assistindo'||nextStatus==='completo')bumpTrending(entry.catalogId,'status');
+    saveData();
+    syncEntryToSupabase(entry);
+    publishActivity('status',entry,{payload:{status:entry.status,status_label:STATUS_LABELS[entry.status]||entry.status}});
+
+    renderMainViewOnly();
+    renderModalPreserveScroll();
+  });
+
   document.addEventListener('click', function(e){
     var navBtn = e.target.closest('.nav-link');
     if(navBtn){

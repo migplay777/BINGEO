@@ -248,7 +248,7 @@
 
         '<div class="field-group">' +
           '<label class="field-label">Status</label>' +
-          '<select id="statusSelect">' +
+          '<select id="statusSelect" data-catalog="' + escapeHtml(cat.id) + '">' +
             Object.keys(STATUS_LABELS).map(function(k){
               return '<option value="' + k + '"' + (entry.status===k?' selected':'') + '>' + STATUS_LABELS[k] + '</option>';
             }).join('') +
