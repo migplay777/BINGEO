@@ -63,7 +63,11 @@
   }
 
   function proInsightCatalogs(){
-    var seen={},out=[];state.entries.forEach(function(e){var c=getCatalog(e.catalogId);if(c&&!seen[c.id]){seen[c.id]=1;out.push(c);}});return out;
+    var seen={},out=[];
+    state.entries.filter(function(e){return e.status!=='quero-assistir';}).forEach(function(e){
+      var c=getCatalog(e.catalogId);if(c&&!seen[c.id]){seen[c.id]=1;out.push(c);}
+    });
+    return out;
   }
   async function loadProInsightDetails(cat){
     if(!cat||!tmdbConfigured())return null;
@@ -99,11 +103,11 @@
   function proMonthLabel(k){if(!k)return '—';var p=k.split('-'),d=new Date(Number(p[0]),Number(p[1])-1,1);return d.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});}
   function proFormatMinutes(n){n=Math.max(0,Math.round(Number(n)||0));if(n<60)return n+' min';var h=Math.floor(n/60),m=n%60;return h+'h'+(m?' '+m+'min':'');}
   function proStatsSnapshot(){
-    var es=state.entries.slice(),rated=es.filter(function(e){return Number(e.rating)>0;}),done=es.filter(function(e){return e.status==='completo';}),genres={},months={},minutes=0;
-    es.forEach(function(e){var c=getCatalog(e.catalogId);if(!c)return;var d=c.tmdbData||{},g=(d.genres&&d.genres[0]&&d.genres[0].name)||c.genre||'Série';genres[g]=(genres[g]||0)+1;if(e.status==='completo'){var eps=Number(d.number_of_episodes||0);if(!eps&&Array.isArray(c.seasons))eps=c.seasons.reduce(function(a,b){return a+Number(b||0);},0);if(eps)minutes+=eps*(Number(d.episode_run_time&&d.episode_run_time[0]||0)||45);}});
+    var es=state.entries.slice(),consumed=es.filter(function(e){return e.status!=='quero-assistir';}),rated=es.filter(function(e){return Number(e.rating)>0;}),done=es.filter(function(e){return e.status==='completo';}),genres={},months={},minutes=0;
+    consumed.forEach(function(e){var c=getCatalog(e.catalogId);if(!c)return;var d=c.tmdbData||{},g=(d.genres&&d.genres[0]&&d.genres[0].name)||c.genre||'Série';genres[g]=(genres[g]||0)+1;if(e.status==='completo'){var eps=Number(d.number_of_episodes||0);if(!eps&&Array.isArray(c.seasons))eps=c.seasons.reduce(function(a,b){return a+Number(b||0);},0);if(eps)minutes+=eps*(Number(d.episode_run_time&&d.episode_run_time[0]||0)||45);}});
     state.diary.forEach(function(d){var k=String(d.date||'').slice(0,7);if(k)months[k]=(months[k]||0)+1;});
     var gr=Object.keys(genres).map(function(k){return {name:k,count:genres[k]};}).sort(function(a,b){return b.count-a.count;}),mr=Object.keys(months).map(function(k){return {key:k,count:months[k]};}).sort(function(a,b){return b.count-a.count;}),people=proPeopleStats(proInsightCatalogs());
-    return {total:es.length,completed:done.length,completion:es.length?Math.round(done.length/es.length*100):0,avg:rated.length?rated.reduce(function(s,e){return s+Number(e.rating||0);},0)/rated.length:0,diary:state.diary.length,episodes:state.diary.filter(function(d){return d.type==='episode';}).length,minutes:minutes,genre:gr[0]||null,month:mr[0]||null,actor:people.actor,creator:people.creator};
+    return {total:es.length,completed:done.length,completion:consumed.length?Math.round(done.length/consumed.length*100):0,avg:rated.length?rated.reduce(function(s,e){return s+Number(e.rating||0);},0)/rated.length:0,diary:state.diary.length,episodes:state.diary.filter(function(d){return d.type==='episode';}).length,minutes:minutes,genre:gr[0]||null,month:mr[0]||null,actor:people.actor,creator:people.creator};
   }
   function proBar(label,n,max){var p=max?Math.max(3,Number(n||0)/max*100):0;return '<div class="pro-stats-bar"><span>'+escapeHtml(label)+'</span><div><i style="width:'+p+'%"></i></div><b>'+Number(n||0)+'</b></div>';}
   function viewProStatistics(){
@@ -142,7 +146,7 @@
   function ensureListProSettings(list){if(!list)return normalizeListProSettings({});list.proSettings=normalizeListProSettings(list.proSettings);return list.proSettings;}
   function proListOrderedIds(list){var ids=(list&&list.showIds||[]).slice(),s=normalizeListProSettings(list&&list.proSettings);if(!s.manualOrder.length)return ids;var present={};ids.forEach(function(id){present[id]=1;});var o=s.manualOrder.filter(function(id){return present[id];});ids.forEach(function(id){if(o.indexOf(id)===-1)o.push(id);});return o;}
   function proListHeroStyle(list){var s=normalizeListProSettings(list&&list.proSettings),u=s.bannerUrl||list&&list.coverUrl||'';return u?'background-image:url(\''+String(u).replace(/'/g,'%27')+'\');':'';}
-  function proRichText(t){var s=escapeHtml(String(t||''));s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*\*/g,'<em>$1</em>');return s.replace(/\n/g,'<br>');}
+  function proRichText(t){var s=escapeHtml(String(t||''));s=s.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>').replace(/\*([^*]+)\*/g,'<em>$1</em>');return s.replace(/\n/g,'<br>');}
   function proListDescriptionHtml(list){var s=normalizeListProSettings(list&&list.proSettings);return s.formattedDescription?'<div class="pro-list-rich-description">'+proRichText(s.formattedDescription)+'</div>':'<p>'+escapeHtml(list&&list.description||'')+'</p>';}
   function proListMemberCardHtml(list,html,i){return normalizeListProSettings(list&&list.proSettings).ranked?'<div class="pro-list-ranked-item"><span class="pro-list-rank">#'+(i+1)+'</span>'+html+'</div>':html;}
   function proListToolsHtml(list){
