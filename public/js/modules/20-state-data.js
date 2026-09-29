@@ -382,6 +382,7 @@
         cover_url:list.coverUrl||null,
         share_slug:list.shareSlug,
         allow_comments:list.allowComments!==false,
+        pro_settings:normalizeListProSettings(list.proSettings||{}),
         updated_at:list.updatedAt||new Date().toISOString()
       };
       var result=await supabaseClient.from('lists').upsert(payload,{onConflict:'user_id,client_id'}).select('id,user_id,client_id,share_slug').single();
@@ -399,7 +400,7 @@
     if(!currentUserId)return;
     var userId=currentUserId;
     try{
-      var result=await supabaseClient.from('lists').select('id,user_id,client_id,name,description,visibility,cover_url,share_slug,allow_comments,created_at,updated_at').order('updated_at',{ascending:false});
+      var result=await supabaseClient.from('lists').select('id,user_id,client_id,name,description,visibility,cover_url,share_slug,allow_comments,pro_settings,created_at,updated_at').order('updated_at',{ascending:false});
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
       var rows=result.data||[],ids=rows.map(function(x){return x.id;}),items=[];
@@ -419,7 +420,7 @@
           id:row.client_id,name:row.name,description:row.description||'',showIds:showIds,
           ownerUserId:row.user_id,isOwner:row.user_id===currentUserId,isCollaborator:row.user_id!==currentUserId,dbId:row.id,
           visibility:row.visibility||'private',coverUrl:row.cover_url||null,shareSlug:row.share_slug,
-          allowComments:row.allow_comments!==false,createdAt:row.created_at,updatedAt:row.updated_at,
+          allowComments:row.allow_comments!==false,proSettings:normalizeListProSettings(row.pro_settings),createdAt:row.created_at,updatedAt:row.updated_at,
           owner:row.user_id===currentUserId?(state.profile.username||null):'colaborador',collaborators:[],comments:[]
         };
         var local=state.lists.find(function(l){return l.id===mapped.id;});
@@ -1132,6 +1133,7 @@
       try{result.data.people_favorites=await loadPeopleFavorites(userId);}catch(ignore){result.data.people_favorites={professionals:[],characters:[]};}
       if(state.userProfileOpen!==userId)return;
       state.userProfileData=result.data;
+      loadProPublicProfileExtras(state.userProfileData);
       [].concat(result.data.top_five||[],result.data.evaluations||[],result.data.recent_activity||[]).forEach(ensureRemoteUserCatalog);
       state.userProfileLoading=false;
       renderMainViewOnly();
@@ -1384,17 +1386,17 @@
     var banner=u.banner_url&&/^https?:\/\//i.test(u.banner_url)?u.banner_url:'';
     var socials=Array.isArray(u.social_links)?u.social_links:[];
     var top=Array.isArray(u.top_five)?u.top_five:[],evals=Array.isArray(u.evaluations)?u.evaluations:[],acts=Array.isArray(u.recent_activity)?u.recent_activity:[];
-    var html='<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
+    var html='<div class="user-view-page '+proProfileSkinClass(u)+'"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
       (banner?'<div class="user-view-banner" style="background-image:url(\''+banner.replace(/'/g,'%27')+'\')"></div>':'')+
-      '<div class="user-view-head'+(banner?' with-banner':'')+'"><div class="user-view-avatar" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
-      '<div style="min-width:0;flex:1;"><div class="'+userNameClass(u)+'" style="'+userNameStyle(u)+'">@'+escapeHtml(u.username||'usuário')+'</div>'+
+      '<div class="user-view-head'+(banner?' with-banner':'')+'"><div class="user-view-avatar '+proAvatarFrameClass(u)+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
+      '<div style="min-width:0;flex:1;"><div class="'+userNameClass(u)+'" style="'+userNameStyle(u)+'">@'+escapeHtml(u.username||'usuário')+'</div>'+proProfileBadgeHtml(u)+
       '<div class="profile-plan"><span class="plan-pill '+(u.plan==='pro'?'pro':'')+'">'+(u.plan==='pro'?'✦ Bingeo Pro':'Plano gratuito')+'</span></div>'+
       '<div class="follow-stats"><span><strong>'+Number(u.follower_count||0)+'</strong> seguidores</span><span><strong>'+Number(u.following_count||0)+'</strong> seguindo</span><span><strong>'+Number(u.library_count||0)+'</strong> na estante</span></div>'+
       (u.bio?'<div class="user-view-bio">'+escapeHtml(u.bio)+'</div>':'')+
       '<div class="user-view-actions">'+(u.is_self?'<button class="btn btn-primary btn-sm" data-action="open-my-profile">Abrir meu perfil</button>':'<button class="btn '+(u.is_following?'btn-ghost':'btn-primary')+' btn-sm" data-action="toggle-follow-user" data-user="'+u.user_id+'" data-following="'+(u.is_following?'1':'0')+'">'+(u.is_following?'Seguindo ✓':'Seguir')+'</button>')+'</div>'+
       (socials.length?'<div class="user-view-socials">'+socials.filter(function(sl){return sl&&sl.url&&validSocialUrl(sl.url);}).map(function(sl){return '<a class="social-link" href="'+escapeHtml(sl.url)+'" target="_blank" rel="noopener noreferrer"><span>'+socialIcon(sl.platform)+'</span>'+escapeHtml(socialLabel(sl.platform))+'</a>';}).join('')+'</div>':'')+
       '</div></div>';
-    html+=userProfileStatsHtml(u)+userProfileChartsHtml(u);
+    html+=proPublicHighlightedListHtml(u)+userProfileStatsHtml(u)+userProfileChartsHtml(u);
     html+='<section class="user-profile-section"><div class="user-profile-section-title">Top 5</div>';
     if(top.length){
       html+='<div class="user-top5-row">'+top.map(function(item,i){

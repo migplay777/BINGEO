@@ -63,6 +63,7 @@
       coverUrl:data.cover_url||null,
       shareSlug:data.share_slug||shareSlug,
       allowComments:data.allow_comments!==false,
+      proSettings:normalizeListProSettings(data.pro_settings),
       collaborators:(Array.isArray(data.collaborators)?data.collaborators:[]).map(function(username){return {username:username};}),
       comments:Array.isArray(data.comments)?data.comments:[],
       createdAt:'',
@@ -146,18 +147,14 @@
     if(state.listOpen){
       var list=state.lists.find(function(l){return l.id===state.listOpen;});
       if(!list){state.listOpen=null;return viewListas();}
-      var memberCards=(list.showIds||[]).map(function(cid){
-        var entry=getEntry(cid);
-        if(entry)return entryCardHtml(entry);
-        var cat=getCatalog(cid);
-        return cat?catalogCardHtml(cat):'';
-      }).filter(Boolean);
+      var memberIds=proListOrderedIds(list);
+      var memberCards=memberIds.map(function(cid,index){var entry=getEntry(cid),card='';if(entry)card=entryCardHtml(entry);else{var cat=getCatalog(cid);card=cat?catalogCardHtml(cat):'';}return card?proListMemberCardHtml(list,card,index):'';}).filter(Boolean);
       var candidates=filteredEntries();
       var isOwner=list.ownerUserId?list.ownerUserId===currentUserId:list.isOwner!==false;
       var canEdit=isOwner||list.isCollaborator===true;
-      var coverStyle=list.coverUrl?'background-image:url(\''+String(list.coverUrl).replace(/'/g,'%27')+'\');':'';
+      var coverStyle=proListHeroStyle(list);
       var collaborators=Array.isArray(list.collaborators)?list.collaborators:[];
-      var html='<div class="list-detail-cover" style="'+coverStyle+'"><div class="list-detail-cover-copy"><h2>'+escapeHtml(list.name)+'</h2><p>'+escapeHtml(list.description||'')+'</p><div class="list-meta-row"><span class="list-meta-pill">'+(list.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span><span class="list-meta-pill">'+list.showIds.length+' títulos</span>'+(list.owner?'<span class="list-meta-pill">por @'+escapeHtml(String(list.owner).replace(/^@/,''))+'</span>':'')+(collaborators.length?'<span class="list-meta-pill">👥 '+collaborators.length+' colaboradores</span>':'')+'</div></div></div>';
+      var html='<div class="list-detail-cover" style="'+coverStyle+'"><div class="list-detail-cover-copy"><h2>'+escapeHtml(list.name)+'</h2>'+proListDescriptionHtml(list)+'<div class="list-meta-row"><span class="list-meta-pill">'+(list.visibility==='public'?'🌐 Pública':'🔒 Privada')+'</span><span class="list-meta-pill">'+list.showIds.length+' títulos</span>'+(list.owner?'<span class="list-meta-pill">por @'+escapeHtml(String(list.owner).replace(/^@/,''))+'</span>':'')+(collaborators.length?'<span class="list-meta-pill">👥 '+collaborators.length+' colaboradores</span>':'')+'</div></div></div>';
       html+='<div class="list-detail-head"><button class="btn btn-ghost btn-sm" data-action="back-to-lists">← Todas as listas</button><div class="inline-actions">';
       if(isOwner){
         html+='<button class="btn btn-ghost btn-sm" data-action="choose-list-cover" data-list="'+list.id+'">Trocar capa</button>';
@@ -170,6 +167,7 @@
 
       if(isOwner){
         html+='<div class="list-tools-panel"><div class="list-tool-box"><h4>Detalhes da lista</h4><form id="listMetadataForm"><input class="qa-input" name="name" value="'+escapeHtml(list.name||'')+'" placeholder="Nome da lista" style="width:100%;margin-bottom:7px;"><input class="qa-input" name="description" value="'+escapeHtml(list.description||'')+'" placeholder="Descrição" style="width:100%;margin-bottom:7px;"><button class="btn btn-ghost btn-sm" type="submit">Salvar detalhes</button></form></div><div class="list-tool-box"><h4>Colaboradores</h4><form id="listCollaboratorForm" class="new-list-form" style="margin:0;"><input type="text" name="username" class="qa-input" placeholder="@usuário" required><button class="btn btn-ghost btn-sm" type="submit">Adicionar</button></form><div class="collab-row">'+(collaborators.length?collaborators.map(function(co){return '<span class="collab-chip">@'+escapeHtml(co.username||'usuário')+' <button style="border:0;background:none;color:inherit;cursor:pointer;padding:0 0 0 4px;" data-action="remove-collaborator" data-list="'+list.id+'" data-username="'+escapeHtml(co.username||'')+'">×</button></span>';}).join(''):'<span style="font-size:11px;color:var(--text-dim);">Só você edita esta lista.</span>')+'</div></div><div class="list-tool-box"><h4>Compartilhamento</h4><div style="font-size:11.5px;color:var(--text-muted);line-height:1.45;">'+(list.visibility==='public'?'Esta lista pode ser aberta por qualquer pessoa com o link.':'Torne a lista pública para compartilhar por link.')+'</div>'+(list.visibility==='public'?'<button class="btn btn-ghost btn-sm" style="margin-top:9px;" data-action="share-list" data-list="'+list.id+'">Copiar/compartilhar link</button>':'')+'</div></div>';
+        html+=proListToolsHtml(list);
       }else if(list.isCollaborator===true){
         html+='<div class="banner-note"><span>Você está colaborando nesta lista.</span><span class="pro-badge">EDITOR</span></div>';
       }else if(list.isSharedPublic){

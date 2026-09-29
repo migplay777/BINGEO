@@ -38,6 +38,8 @@
     else if(state.view==='perfil') root.innerHTML = viewPerfil();
     else if(state.view==='editar-perfil') root.innerHTML = viewEditarPerfil();
     else if(state.view==='pro') root.innerHTML = viewPro();
+    else if(state.view==='pro-estatisticas') root.innerHTML = viewProStatistics();
+    else if(state.view==='pro-wrapped') root.innerHTML = viewProWrapped();
     renderModal();
     bindFormsForCurrentView();
     if(state.professionalOpen||state.userProfileOpen||state.characterOpen)return;
@@ -268,5 +270,14 @@
       });
     }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível enviar a capa.');});
   });
+  function resizeListBannerBlob(file){
+    return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(ev){var img=new Image();img.onload=function(){var w=1600,h=520,canvas=document.createElement('canvas');canvas.width=w;canvas.height=h;var ctx=canvas.getContext('2d'),scale=Math.max(w/img.width,h/img.height),dw=img.width*scale,dh=img.height*scale;ctx.drawImage(img,(w-dw)/2,(h-dh)/2,dw,dh);canvas.toBlob(function(blob){blob?resolve(blob):reject(new Error('Não foi possível processar o banner.'));},'image/jpeg',0.88);};img.onerror=reject;img.src=ev.target.result;};reader.onerror=reject;reader.readAsDataURL(file);});
+  }
+  document.getElementById('listBannerInput').addEventListener('change',function(e){
+    var file=e.target.files&&e.target.files[0],list=state.lists.find(function(l){return l.id===state.proListBannerTarget;});e.target.value='';
+    if(!file||!list||!currentUserId)return;if(!hasPro()){openProView('lista-banner');return;}if(!file.type||file.type.indexOf('image/')!==0){alert('Selecione uma imagem válida.');return;}if(file.size>15*1024*1024){alert('Escolha uma imagem de até 15 MB.');return;}
+    resizeListBannerBlob(file).then(function(blob){var path=currentUserId+'/banner-'+slugify(list.id)+'-'+Date.now()+'.jpg';return supabaseClient.storage.from('list-covers').upload(path,blob,{contentType:'image/jpeg',upsert:true}).then(function(result){if(result.error)throw result.error;var pub=supabaseClient.storage.from('list-covers').getPublicUrl(path);ensureListProSettings(list).bannerUrl=pub.data.publicUrl;list.updatedAt=new Date().toISOString();saveData();return syncListToSupabase(list);});}).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível enviar o banner.');});
+  });
+
 
   
