@@ -40,6 +40,7 @@
     seriesArtworkLoading:{},
     seriesArtPickerId:null,
     characterArtPickerKey:null,
+    characterArtworkLoading:{},
     characterOpen:null,
     characterData:null,
     characterLoading:false,
@@ -233,6 +234,7 @@
     state.seriesArtworkLoading={};
     state.seriesArtPickerId=null;
     state.characterArtPickerKey=null;
+    state.characterArtworkLoading={};
     profileHighlightsEditorOpen=false;
     top5EditorOpen=false;
     state.characterSearchResults=[];
@@ -555,7 +557,7 @@
       tvdb_character_image_url:previous.tvdb_character_image_url||null,
       character_banner_url:previous.character_banner_url||null,
       character_image_source:previous.character_image_source||null,
-      character_artwork_options:Array.isArray(previous.character_artwork_options)?previous.character_artwork_options.slice(0,18):[]
+      character_artwork_options:Array.isArray(previous.character_artwork_options)?previous.character_artwork_options.slice(0,36):[]
     };
     characterLocalCache[row.character_key]=row;
     return row;
@@ -741,7 +743,7 @@
     row.tvdb_series_id=Number(tvdbSeries.id)||Number(tvdbCharacter.seriesId)||null;
     row.tvdb_character_image_url=rolePortrait||officialCharacterImage||null;
     row.character_banner_url=roleBanner||null;
-    row.character_artwork_options=orderedOptions.slice(0,18);
+    row.character_artwork_options=orderedOptions.slice(0,36);
     if(!row.character_image_url&&row.tvdb_character_image_url)row.character_image_source='thetvdb';
     return row;
   }
@@ -780,7 +782,7 @@
           row.character_image_url=safeTvmazeImage(maze.character.image&&(maze.character.image.original||maze.character.image.medium));
           if(row.character_image_url){
             row.character_image_source='tvmaze';
-            row.character_artwork_options=Array.from(new Set([].concat(row.character_artwork_options||[],row.character_image_url))).slice(0,18);
+            row.character_artwork_options=Array.from(new Set([].concat(row.character_artwork_options||[],row.character_image_url))).slice(0,36);
           }
         }else if(tvmazeShow&&tvmazeShow.id){
           row.tvmaze_show_id=Number(tvmazeShow.id);
@@ -819,6 +821,133 @@
       }
     }catch(e){console.error('Erro ao indexar personagens:',e);}
   }
+  function bestAniListCharacterMatch(rows,name){
+    var target=normalizeCharacterName(name),best=null,bestScore=-Infinity;
+    (Array.isArray(rows)?rows:[]).forEach(function(row){
+      var names=[row&&row.name&&row.name.full,row&&row.name&&row.name.native]
+        .concat(row&&row.name&&Array.isArray(row.name.alternative)?row.name.alternative:[])
+        .concat(row&&row.name&&Array.isArray(row.name.alternativeSpoiler)?row.name.alternativeSpoiler:[])
+        .filter(Boolean);
+      var score=0;
+      names.forEach(function(candidate){score=Math.max(score,characterNameScore(target,candidate));});
+      score+=Math.min(20,Math.log10(Number(row&&row.favourites||0)+1)*5);
+      if(score>bestScore){best=row;bestScore=score;}
+    });
+    return bestScore>=85?best:null;
+  }
+  function bestJikanCharacterMatch(rows,name){
+    var target=normalizeCharacterName(name),best=null,bestScore=-Infinity;
+    (Array.isArray(rows)?rows:[]).forEach(function(row){
+      var names=[row&&row.name,row&&row.name_kanji]
+        .concat(Array.isArray(row&&row.nicknames)?row.nicknames:[])
+        .filter(Boolean);
+      var score=0;
+      names.forEach(function(candidate){score=Math.max(score,characterNameScore(target,candidate));});
+      score+=Math.min(20,Math.log10(Number(row&&row.favorites||0)+1)*5);
+      if(score>bestScore){best=row;bestScore=score;}
+    });
+    return bestScore>=85?best:null;
+  }
+  function jikanPictureUrls(picture){
+    var urls=[],jpg=picture&&picture.jpg||{},webp=picture&&picture.webp||{};
+    [jpg.large_image_url,jpg.image_url,webp.large_image_url,webp.image_url].forEach(function(url){
+      url=safeJikanImage(url);
+      if(url&&urls.indexOf(url)===-1)urls.push(url);
+    });
+    return urls;
+  }
+  async function loadCharacterArtworkPool(character,force){
+    if(!character||!character.character_key)return;
+    var key=character.character_key;
+    if(state.characterArtworkLoading[key])return;
+
+    var cacheKey='character-art-pool-v1:'+key;
+    var cached=!force?tmdbCacheGet(cacheKey,604800000):null;
+    if(Array.isArray(cached)&&cached.length){
+      character.character_artwork_options=cached.slice(0,36);
+      characterLocalCache[key]=Object.assign(characterLocalCache[key]||{},character);
+      return;
+    }
+
+    state.characterArtworkLoading[key]=true;
+    if(state.view==='perfil')renderMainViewOnly();
+    try{
+      var cat=ensureCharacterSeriesCatalog(character),details=cat&&(cat.tmdbData||null);
+      if(cat&&cat.tmdbId){
+        try{details=await loadTmdbSeries(cat,true)||details;}catch(e){console.warn('TVmaze/TheTVDB indisponíveis para imagens do personagem:',e);}
+      }
+
+      var current=characterLocalCache[key]||character;
+      var pool=[],seen={};
+      function add(url){
+        url=safeCharacterProviderImage(url);
+        if(!url)return;
+        var dedupeKey=normalizedArtworkUrlKey(url)||url;
+        if(seen[dedupeKey])return;
+        seen[dedupeKey]=1;
+        pool.push(url);
+      }
+
+      (Array.isArray(current.character_artwork_options)?current.character_artwork_options:[]).forEach(add);
+      add(current.character_image_url);
+      add(current.tvdb_character_image_url);
+
+      var anime=!!(cat&&details&&isAnimeSeries(cat,details));
+      if(anime){
+        var providerResults=await Promise.allSettled([
+          anilistCharacterImageSearch(current.character_name),
+          jikanCharacterSearch(current.character_name)
+        ]);
+
+        if(providerResults[0].status==='fulfilled'){
+          var ani=bestAniListCharacterMatch(providerResults[0].value,current.character_name);
+          if(ani&&ani.image){add(ani.image.large);add(ani.image.medium);}
+        }else{
+          console.warn('AniList indisponível para imagens do personagem:',providerResults[0].reason);
+        }
+
+        if(providerResults[1].status==='fulfilled'){
+          var jikan=bestJikanCharacterMatch(providerResults[1].value,current.character_name);
+          if(jikan){
+            var defaultImages=jikan.images||{};
+            Object.keys(defaultImages).forEach(function(format){
+              var imageSet=defaultImages[format]||{};
+              add(imageSet.large_image_url);
+              add(imageSet.image_url);
+              add(imageSet.small_image_url);
+            });
+            try{
+              var pictures=await jikanCharacterPictures(jikan.mal_id);
+              pictures.forEach(function(pic){jikanPictureUrls(pic).forEach(add);});
+            }catch(e){
+              console.warn('Jikan Pictures indisponível para este personagem:',e);
+            }
+          }
+        }else{
+          console.warn('Jikan indisponível para imagens do personagem:',providerResults[1].reason);
+        }
+      }
+
+      current.character_artwork_options=pool.slice(0,36);
+      characterLocalCache[key]=current;
+      var fav=state.favoriteCharacters.find(function(ch){return ch.character_key===key;});
+      if(fav)Object.assign(fav,current);
+      tmdbCacheSet(cacheKey,current.character_artwork_options);
+
+      if(current.character_artwork_options.length){
+        try{
+          var saved=await supabaseClient.rpc('save_character_artwork_options',{p_rows:[{character_key:key,options:current.character_artwork_options}]});
+          if(saved.error)console.warn('Não foi possível salvar o pool de imagens do personagem:',saved.error);
+        }catch(e){
+          console.warn('Não foi possível persistir o pool de imagens:',e);
+        }
+      }
+    }finally{
+      state.characterArtworkLoading[key]=false;
+      if(state.view==='perfil')renderMainViewOnly();
+    }
+  }
+
   async function indexCharactersFromLibrary(){
     if(!currentUserId||!tmdbConfigured())return;
     var cats=state.entries.map(function(e){return getCatalog(e.catalogId);}).filter(Boolean).slice(0,12);
