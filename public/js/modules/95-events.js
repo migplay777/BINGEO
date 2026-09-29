@@ -49,6 +49,9 @@
     }
     closeHeaderProfileMenu();
 
+    if(action==='open-pro'){openProView(el.dataset.source||'');return;}
+    if(action==='pro-checkout'){alert('A página do Bingeo Pro está pronta. O checkout será conectado quando definirmos o preço e o meio de pagamento.');return;}
+
     if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
     else if(action==='share-own-profile'){
       if(!currentUserId)return;
@@ -194,22 +197,22 @@
       var key=el.dataset.key; expandedSeasons[key]=!expandedSeasons[key]; renderModalPreserveScroll(); var sc=getCatalog(state.modalCatalogId),sn=parseInt(key.split('-').pop(),10); if(expandedSeasons[key]&&sc&&tmdbConfigured()){loadTmdbSeries(sc).then(function(){return loadTmdbSeason(sc,sn);}).then(function(){if(state.modalCatalogId===sc.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===sc.id)renderModalPreserveScroll();});}
     }
     else if(action==='premium-format'){
-      if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
+      if(!hasPro()){openProView('avaliacoes');return;}
       var epf=getEntry(el.dataset.catalog); if(!epf) return;
       epf.premiumRating=epf.premiumRating||{format:'classic',value:null,reactions:[]}; epf.premiumRating.format=el.dataset.format; epf.dateUpdated=new Date().toISOString();
       if(epf.premiumRating.format!=='reactions') epf.premiumRating.reactions=[];
       saveData(); syncEntryToSupabase(epf); renderModalPreserveScroll();
     }
     else if(action==='premium-value'){
-      if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
+      if(!hasPro()){openProView('avaliacoes');return;}
       var epv=getEntry(el.dataset.catalog); if(!epv) return; epv.premiumRating=epv.premiumRating||{format:'berry',value:null,reactions:[]}; epv.premiumRating.format='berry'; var berry=parseFloat(el.dataset.value); epv.premiumRating.value=(epv.premiumRating.value===berry?null:berry); epv.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epv); if(epv.premiumRating.value!=null)publishActivity('special_rating',epv,{payload:specialActivityPayload(epv)}); bumpTrending(epv.catalogId,'pro_rating'); renderModalPreserveScroll();
     }
     else if(action==='premium-reaction'){
-      if(!hasPro()){ alert('Esse formato é exclusivo do Bingeo Pro.'); return; }
+      if(!hasPro()){openProView('avaliacoes');return;}
       var epr=getEntry(el.dataset.catalog); if(!epr) return; epr.premiumRating=epr.premiumRating||{format:'reactions',value:null,reactions:[]}; epr.premiumRating.format='reactions'; epr.premiumRating.reactions=Array.isArray(epr.premiumRating.reactions)?epr.premiumRating.reactions:[]; var reaction=el.dataset.reaction,ri=epr.premiumRating.reactions.indexOf(reaction); if(ri>-1)epr.premiumRating.reactions.splice(ri,1);else epr.premiumRating.reactions.push(reaction); epr.dateUpdated=new Date().toISOString(); saveData(); syncEntryToSupabase(epr); if(epr.premiumRating.reactions.length)publishActivity('special_rating',epr,{payload:specialActivityPayload(epr)}); bumpTrending(epr.catalogId,'pro_rating'); renderModalPreserveScroll();
     }
     else if(action==='criteria-value'){
-      if(!hasPro()){alert('O DNA da avaliação é exclusivo do Bingeo Pro.');return;}
+      if(!hasPro()){openProView('avaliacoes');return;}
       var ce=getEntry(el.dataset.catalog);if(!ce)return;ensureEvaluationExtras(ce);
       var ck=el.dataset.criterion,cv=Number(el.dataset.value);
       ce.criteriaRatings[ck]=Number(ce.criteriaRatings[ck])===cv?null:cv;
@@ -217,7 +220,7 @@
       saveData();syncEntryToSupabase(ce).then(function(){loadSeriesCommunity(ce.catalogId);});if(ce.criteriaRatings[ck]!=null){publishActivity('special_rating',ce,{payload:specialActivityPayload(ce)});bumpTrending(ce.catalogId,'pro_criteria');}renderModalPreserveScroll();
     }
     else if(action==='toggle-badge'){
-      if(!hasPro()){alert('As medalhas são exclusivas do Bingeo Pro.');return;}
+      if(!hasPro()){openProView('avaliacoes');return;}
       var be=getEntry(el.dataset.catalog);if(!be)return;ensureEvaluationExtras(be);
       var badge=el.dataset.badge,bi=be.badges.indexOf(badge);
       if(bi>-1)be.badges.splice(bi,1);else be.badges.push(badge);
@@ -377,7 +380,7 @@ else if(action==='choose-list-cover'){
       }).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível remover o colaborador.');});
     }
     else if(action==='top5-art-picker'){
-      if(!hasPro()){alert('A escolha personalizada de pôster do Top 5 é exclusiva do Bingeo Pro.');return;}
+      if(!hasPro()){openProView('top5-poster');return;}
       var seriesArtId=el.dataset.catalog,seriesArtCat=getCatalog(seriesArtId);if(!seriesArtCat)return;
       state.seriesArtPickerId=state.seriesArtPickerId===seriesArtId?null:seriesArtId;
       state.characterArtPickerKey=null;

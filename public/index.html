@@ -10,10 +10,10 @@
 <script src="/js/theme-bootstrap.js?v=20260928-theme-fix-1"></script>
 <link rel="stylesheet" href="/css/00-base.css?v=20260928-theme-fix-1">
 <link rel="stylesheet" href="/css/05-theme.css?v=20260928-theme-fix-1">
-<link rel="stylesheet" href="/css/10-layout.css?v=20260929-account-profile-menu-v1">
+<link rel="stylesheet" href="/css/10-layout.css?v=20260929-pro-surfaces-v1">
 <link rel="stylesheet" href="/css/20-content.css?v=20260928-theme-fix-1">
-<link rel="stylesheet" href="/css/30-profile.css?v=20260929-profile-editor-v1">
-<link rel="stylesheet" href="/css/40-evaluations.css?v=20260928-theme-fix-1">
+<link rel="stylesheet" href="/css/30-profile.css?v=20260929-pro-surfaces-v1">
+<link rel="stylesheet" href="/css/40-evaluations.css?v=20260929-pro-surfaces-v1">
 <link rel="stylesheet" href="/css/50-community.css?v=20260928-lists-share-v1">
 <link rel="stylesheet" href="/css/60-social.css?v=20260928-remove-profile-highlights-v1">
 </head>
@@ -53,6 +53,7 @@
     <input type="text" id="searchInput" placeholder="Buscar séries, personagens, profissionais ou usuários…">
   </div>
   <div class="account-area">
+    <button class="header-pro-btn" id="headerProBtn" data-action="open-pro" data-source="header" type="button">✦ Bingeo Pro</button>
     <div class="account-profile-menu">
       <button class="header-profile-btn" id="headerProfileBtn" data-action="toggle-account-menu" aria-haspopup="menu" aria-expanded="false" title="Perfil">
         <span class="header-profile-avatar" id="headerProfileAvatar" aria-hidden="true">?</span>
@@ -62,12 +63,16 @@
           <span class="account-menu-avatar" id="accountMenuAvatar" aria-hidden="true">?</span>
           <span class="account-menu-copy"><strong id="accountMenuUsername">Seu perfil</strong><small id="accountMenuPlan">Bingeo</small></span>
         </div>
+        <button class="account-menu-pro-card" id="accountProCard" type="button" data-action="open-pro" data-source="menu">
+          <span class="account-menu-pro-icon">✦</span><span><strong>Bingeo Pro</strong><small>Perfis mais personalizados, listas ilimitadas e avaliações avançadas.</small></span><span class="account-menu-pro-arrow">›</span>
+        </button>
         <div class="account-menu-separator"></div>
         <button class="account-menu-item" type="button" role="menuitem" data-action="open-my-profile"><span class="account-menu-item-icon">◎</span><span><strong>Ver perfil</strong><small>Abra sua página de perfil</small></span></button>
         <button class="account-menu-item" type="button" role="menuitem" data-action="edit-profile"><span class="account-menu-item-icon">✎</span><span><strong>Editar perfil</strong><small>Foto, banner, bio e aparência</small></span></button>
+        <div class="account-menu-separator"></div>
+        <button class="account-menu-item account-menu-logout" id="logoutBtn" type="button" role="menuitem"><span class="account-menu-item-icon">↪</span><span><strong>Sair</strong><small>Encerrar sessão neste dispositivo</small></span></button>
       </div>
     </div>
-    <button class="account-btn" id="logoutBtn">Sair</button>
   </div>
 </header>
 
@@ -78,6 +83,6 @@
 <input type="file" id="listCoverInput" accept="image/*" hidden>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/app.bundle.js?v=20260929-account-profile-menu-v1"></script>
+<script src="/js/app.bundle.js?v=20260929-pro-surfaces-v1"></script>
 </body>
 </html>

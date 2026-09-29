@@ -60,3 +60,16 @@
   .account-btn{background:transparent;border:1px solid var(--line);color:var(--text-muted);border-radius:18px;padding:7px 12px;cursor:pointer;font-size:12px}.account-btn:hover{color:var(--text);border-color:var(--violet)}
 
   
+
+  /* ---- Pro evaluation preview ---- */
+  .pro-evaluation-preview{position:relative;overflow:hidden;border-color:rgba(139,92,246,.32);}
+  .pro-evaluation-lock-copy{font-size:11px;color:var(--text-muted);margin:4px 0 10px;}
+  .premium-format-row.preview{pointer-events:none;opacity:.78;}
+  .premium-format-row.preview span{flex:1;text-align:center;padding:7px 8px;border-radius:7px;border:1px solid var(--line);background:var(--panel);font-size:10px;color:var(--text-muted);}
+  .pro-dna-preview{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel);}
+  .pro-dna-preview>div:first-child{display:flex;flex-direction:column;gap:3px;}
+  .pro-dna-preview strong{font-size:10.5px;}
+  .pro-dna-preview span{font-size:9px;color:var(--text-dim);}
+  .pro-dna-berries{font-size:17px;letter-spacing:3px;filter:saturate(.75);}
+  .pro-medal-preview{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
+  .pro-medal-preview span{font-size:9px;padding:5px 7px;border:1px solid rgba(139,92,246,.22);border-radius:999px;color:var(--text-muted);background:rgba(139,92,246,.05);}

@@ -83,6 +83,17 @@
   }
   function premiumEvaluationHtml(entry,catalogId){
     ensureEvaluationExtras(entry);
+    if(!hasPro()){
+      return '<div class="premium-box pro pro-evaluation-preview">'+
+        '<div class="premium-header"><span class="premium-title">Avaliação Bingeo Pro</span><span class="pro-badge">✦ PRO</span></div>'+
+        '<div class="pro-evaluation-lock-copy">Vá além da nota tradicional com formatos exclusivos.</div>'+
+        '<div class="premium-format-row preview"><span>Clássica</span><span>Amora 🍇</span><span>Reações</span></div>'+
+        '<div class="pro-dna-preview"><div><strong>DNA da avaliação</strong><span>Roteiro · Personagens · Direção · Visual</span></div><div class="pro-dna-berries">🫐 🍇 🍓 🫐</div></div>'+
+        '<div class="pro-medal-preview"><span>🏆 Obra-prima</span><span>💔 Me destruiu</span><span>🎭 Personagens</span></div>'+
+        '<button class="btn btn-primary btn-sm" data-action="open-pro" data-source="avaliacoes">Conhecer avaliações Pro</button>'+
+      '</div>';
+    }
+
     var pr=entry.premiumRating||{format:'classic',value:null,reactions:[]};
     var fmt=pr.format||'classic';
     var html='<div class="premium-box pro"><div class="premium-header"><span class="premium-title">Avaliação Bingeo</span><span class="pro-badge">✦ PRO</span></div><div class="premium-format-row">';
@@ -329,6 +340,7 @@
     else if(state.view==='listas')root.innerHTML=viewListas();
     else if(state.view==='perfil')root.innerHTML=viewPerfil();
     else if(state.view==='editar-perfil')root.innerHTML=viewEditarPerfil();
+    else if(state.view==='pro')root.innerHTML=viewPro();
     bindFormsForCurrentView();
   }
 

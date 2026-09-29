@@ -19,6 +19,8 @@
     });
     var nameEl=document.getElementById('accountMenuUsername');if(nameEl)nameEl.textContent=username;
     var planEl=document.getElementById('accountMenuPlan');if(planEl)planEl.textContent=hasPro()?'✦ Bingeo Pro':'Plano gratuito';
+    var headerPro=document.getElementById('headerProBtn');if(headerPro)headerPro.hidden=hasPro();
+    var menuPro=document.getElementById('accountProCard');if(menuPro)menuPro.hidden=hasPro();
   }
   function render(){
     renderHeaderAccount();
@@ -36,6 +38,7 @@
     else if(state.view==='listas') root.innerHTML = viewListas();
     else if(state.view==='perfil') root.innerHTML = viewPerfil();
     else if(state.view==='editar-perfil') root.innerHTML = viewEditarPerfil();
+    else if(state.view==='pro') root.innerHTML = viewPro();
     renderModal();
     bindFormsForCurrentView();
     if(state.professionalOpen||state.userProfileOpen||state.characterOpen)return;

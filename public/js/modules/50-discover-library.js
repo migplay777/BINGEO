@@ -7,6 +7,7 @@
     else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id),people=Number(state.trendingUsers[id]||0);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações'+(people?' · '+people+' usuário'+(people===1?'':'s'):'')+'</div></div>';}).join('')+'</div>';
     html+='</div>';
     html+=followingFeedHtml();
+    html+=proContextBannerHtml('Deixe o Bingeo mais com a sua cara','Banner, GIF, pôsteres personalizados, avaliações avançadas e mais.','descobrir',true);
     var q=state.query.trim();
     if(q)html+=tmdbSearchResultsHtml();
     return html;
@@ -33,7 +34,8 @@
     if(filteredEntries().length===0){
       return '<div class="empty"><strong>Nada encontrado.</strong>Tente outro termo de busca.</div>';
     }
-    return sectionHtml('Assistindo', 'assistindo') +
+    return proContextBannerHtml('Sua estante pode ir além','Com o Pro você personaliza seu perfil, libera avaliações avançadas e cria listas sem limite.','estante',true) +
+      sectionHtml('Assistindo', 'assistindo') +
       sectionHtml('Quero assistir', 'quero-assistir') +
       sectionHtml('Completo', 'completo') +
       sectionHtml('Em pausa', 'pausado') +

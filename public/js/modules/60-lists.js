@@ -133,7 +133,7 @@
       var ownedCount=ownedListsCount(),freeLimitReached=!hasPro()&&ownedCount>=10;
       return '<div class="list-create-page">'+
         '<div class="list-create-head"><button class="btn btn-ghost btn-sm" data-action="back-to-lists">← Voltar para listas</button><div><div class="section-title">Criar nova lista</div><div class="list-create-sub">'+(hasPro()?'Bingeo Pro · listas ilimitadas':ownedCount+' de 10 listas usadas no plano Free')+'</div></div></div>'+
-        (freeLimitReached?'<div class="banner-note"><span>Você atingiu o limite de 10 listas do plano Free.</span><span class="pro-badge">PRO ILIMITADO</span></div>':
+        (freeLimitReached?'<div class="pro-context-banner"><div class="pro-context-icon">✦</div><div class="pro-context-copy"><strong>Você chegou ao limite do plano Free</strong><span>Com o Bingeo Pro, suas listas são ilimitadas.</span></div><button class="btn btn-primary btn-sm" data-action="open-pro" data-source="listas-limite">Ter listas ilimitadas</button></div>':
         '<form class="list-create-form" id="newListForm">'+
           '<div class="list-create-field"><label class="field-label">Nome da lista</label><input type="text" name="name" class="qa-input" placeholder="Ex: Melhores séries de ficção científica" maxlength="80" required></div>'+
           '<div class="list-create-field"><label class="field-label">Descrição</label><textarea name="description" class="qa-input list-create-textarea" placeholder="Conte um pouco sobre esta lista..." maxlength="500"></textarea></div>'+
@@ -196,6 +196,14 @@
 
     var ownedCount=ownedListsCount(),visibleLists=state.lists.filter(function(l){return !l.isSharedPublic;}),limitLabel=hasPro()?'Listas ilimitadas com Pro':ownedCount+' de 10 listas usadas';
     var html='<div class="lists-home-head"><div><div class="section-title">Suas listas</div><div class="lists-limit-label">'+limitLabel+'</div></div></div>';
+    if(!hasPro()){
+      html+=proContextBannerHtml(
+        ownedCount>=8?'Você está usando '+ownedCount+' de 10 listas':'Listas ilimitadas com Bingeo Pro',
+        ownedCount>=8?'Não fique sem espaço: no Pro você pode criar quantas listas quiser.':'O plano Free permite 10 listas próprias. No Pro, não há limite.',
+        ownedCount>=8?'listas-quase-limite':'listas',
+        ownedCount<8
+      );
+    }
     html+='<div class="lists-grid">';
     html+='<button class="list-card list-create-card '+(!canCreateList()?'limit-reached':'')+'" data-action="open-list-create" type="button">'+
       '<div class="list-create-card-visual"><span class="list-create-plus">＋</span><span class="list-create-card-title">Nova lista</span><span class="list-create-card-sub">'+(canCreateList()?'Criar uma coleção':('Limite Free atingido'))+'</span></div>'+

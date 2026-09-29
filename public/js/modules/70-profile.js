@@ -37,17 +37,59 @@
         '</div>' +
         '<div class="appearance-pro-head">Personalização do perfil <span class="pro-badge">✦ PRO</span></div>' +
         (hasPro() ?           '<div style="margin-top:14px;"><label class="field-label">Cor do nome</label><div class="color-row"><input type="color" id="profileNameColor" class="color-input" value="' + escapeHtml((state.profile.nameStyle&&state.profile.nameStyle.color)||(profileTheme==='light'?'#181A23':'#ECEBF3')) + '"><button class="btn btn-ghost btn-sm" data-action="clear-name-color">Cor padrão</button></div></div>' +
-          '<div style="margin-top:14px;"><label class="field-label">Efeito do nome</label><select id="profileNameEffect" class="qa-input" style="width:100%;"><option value="none" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='none'?'selected':'') + '>Normal</option><option value="glow" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='glow'?'selected':'') + '>Brilho</option><option value="animated" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='animated'?'selected':'') + '>Brilho animado</option></select></div>' : '<div class="premium-locked">Banner, GIF de perfil, cor personalizada e efeitos do nome são exclusivos do Bingeo Pro.</div>') +
+          '<div style="margin-top:14px;"><label class="field-label">Efeito do nome</label><select id="profileNameEffect" class="qa-input" style="width:100%;"><option value="none" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='none'?'selected':'') + '>Normal</option><option value="glow" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='glow'?'selected':'') + '>Brilho</option><option value="animated" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='animated'?'selected':'') + '>Brilho animado</option></select></div>' : '<div class="premium-locked pro-locked-panel"><strong>Personalização Pro</strong><span>Banner, GIF de perfil, cor personalizada e efeitos no nome.</span><button class="btn btn-primary btn-sm" data-action="open-pro" data-source="editar-aparencia">Conhecer o Pro</button></div>') +
       '</div>' +
       '<div class="profile-edit-section">' +
         '<h3>Redes sociais <span class="pro-badge">✦ PRO</span></h3>' +
         (hasPro() ? '<div class="inline-actions"><select id="socialPlatform" class="qa-input"><option value="instagram">Instagram</option><option value="tiktok">TikTok</option><option value="youtube">YouTube</option><option value="twitch">Twitch</option><option value="x">X</option><option value="discord">Discord</option><option value="github">GitHub</option><option value="website">Site</option></select><input id="socialUrl" class="qa-input" placeholder="https://..." style="flex:1;min-width:220px;"><button class="btn btn-ghost btn-sm" data-action="add-social">Adicionar</button></div>' +
-          (socialLinks.length ? socialLinks.map(function(sl,idx){return '<div class="social-list-row"><span>' + socialIcon(sl.platform) + ' ' + escapeHtml(socialLabel(sl.platform)) + ' — ' + escapeHtml(sl.url) + '</span><button class="btn btn-danger btn-sm" data-action="remove-social" data-index="' + idx + '">Remover</button></div>';}).join('') : '<div class="premium-locked">Nenhuma rede social adicionada ainda.</div>') : '<div class="premium-locked">Links para redes sociais são exclusivos do Bingeo Pro.</div>') +
+          (socialLinks.length ? socialLinks.map(function(sl,idx){return '<div class="social-list-row"><span>' + socialIcon(sl.platform) + ' ' + escapeHtml(socialLabel(sl.platform)) + ' — ' + escapeHtml(sl.url) + '</span><button class="btn btn-danger btn-sm" data-action="remove-social" data-index="' + idx + '">Remover</button></div>';}).join('') : '<div class="premium-locked">Nenhuma rede social adicionada ainda.</div>') : '<div class="premium-locked pro-locked-panel"><strong>Redes sociais no perfil</strong><span>Adicione Instagram, TikTok, YouTube, Twitch e outros links com o Pro.</span><button class="btn btn-primary btn-sm" data-action="open-pro" data-source="editar-redes">Conhecer o Pro</button></div>') +
       '</div>' +
       '<div class="profile-edit-section"><h3>Catálogo de séries <span class="tmdb-logo-badge">TMDB</span></h3><div class="tmdb-status ok">TMDB conectado pelo servidor do Bingeo. Pôsteres, sinopses, elenco, créditos e episódios oficiais estão disponíveis automaticamente.</div></div>' +
       '';
 
     return html;
+  }
+
+  function viewPro(){
+    var active=hasPro();
+    var features=[
+      ['Perfil visual','Foto de perfil','Banner, GIF, cor e efeitos no nome'],
+      ['Top 5','Pôster padrão das séries','Escolha seus próprios pôsteres'],
+      ['Listas','Até 10 listas próprias','Listas ilimitadas'],
+      ['Avaliações','Nota e review tradicionais','Amora, reações, DNA e medalhas'],
+      ['Redes sociais','—','Links no perfil'],
+      ['Personalização','Recursos essenciais','Experiência mais completa']
+    ];
+    return '<div class="pro-page">'+
+      '<section class="pro-hero">'+
+        '<div class="pro-hero-badge">✦ BINGEO PRO</div>'+
+        '<h1>Seu Bingeo, do seu jeito.</h1>'+
+        '<p>Personalize seu perfil, suas listas e a forma como você avalia as séries que assiste.</p>'+
+        '<div class="pro-hero-actions">'+
+          (active?'<span class="pro-current-plan">✓ Seu Bingeo Pro está ativo</span>':'<button class="btn btn-primary pro-main-cta" data-action="pro-checkout">Assinar Bingeo Pro</button>')+
+          '<button class="btn btn-ghost" data-action="open-my-profile">Voltar ao perfil</button>'+
+        '</div>'+
+      '</section>'+
+      '<section class="pro-visual-compare"><div class="section-title">Veja a diferença no perfil</div><div class="pro-preview-grid">'+
+        '<div class="pro-profile-preview free-preview"><div class="pro-preview-label">FREE</div><div class="pro-preview-banner"></div><div class="pro-preview-avatar">B</div><div class="pro-preview-lines"><i></i><i></i></div><div class="pro-preview-posters">'+Array(5).fill('<span></span>').join('')+'</div></div>'+
+        '<div class="pro-profile-preview pro-preview"><div class="pro-preview-label">✦ PRO</div><div class="pro-preview-banner"></div><div class="pro-preview-avatar">GIF</div><div class="pro-preview-lines"><i></i><i></i></div><div class="pro-preview-posters">'+Array(5).fill('<span></span>').join('')+'</div></div>'+
+      '</div></section>'+
+      '<section class="pro-benefits"><div class="section-title">Tudo que muda com o Pro</div><div class="pro-benefit-grid">'+
+        '<div class="pro-benefit-card"><span>▣</span><strong>Perfil premium</strong><p>Banner, GIF no avatar, nome colorido e efeitos.</p></div>'+
+        '<div class="pro-benefit-card"><span>▥</span><strong>Pôsteres personalizados</strong><p>Escolha a arte que aparece no seu Top 5.</p></div>'+
+        '<div class="pro-benefit-card"><span>∞</span><strong>Listas ilimitadas</strong><p>Crie coleções sem o limite de 10 listas do Free.</p></div>'+
+        '<div class="pro-benefit-card"><span>✦</span><strong>Avaliações avançadas</strong><p>Amadurecimento da amora, reações, DNA e medalhas.</p></div>'+
+        '<div class="pro-benefit-card"><span>↗</span><strong>Redes sociais</strong><p>Adicione seus links diretamente ao perfil.</p></div>'+
+        '<div class="pro-benefit-card"><span>◈</span><strong>Mais identidade</strong><p>Deixe sua página realmente diferente das demais.</p></div>'+
+      '</div></section>'+
+      '<section class="pro-comparison"><div class="section-title">Free × Pro</div><div class="pro-comparison-table"><div class="pro-comparison-row head"><span>Recurso</span><span>Free</span><span>Pro</span></div>'+
+        features.map(function(f){return '<div class="pro-comparison-row"><span>'+escapeHtml(f[0])+'</span><span>'+escapeHtml(f[1])+'</span><span class="pro-comparison-pro">'+escapeHtml(f[2])+'</span></div>';}).join('')+
+      '</div></section>'+
+      '<section class="pro-purchase-card">'+
+        '<div><span class="pro-purchase-eyebrow">ASSINATURA</span><h2>Bingeo Pro</h2><p>O checkout e o preço serão conectados na próxima etapa da implementação.</p></div>'+
+        (active?'<span class="pro-current-plan">✓ Plano ativo</span>':'<button class="btn btn-primary" data-action="pro-checkout">Continuar para assinatura</button>')+
+      '</section>'+
+    '</div>';
   }
 
   function viewEditarPerfil(){
@@ -72,6 +114,7 @@
           '<div class="profile-edit-avatar-copy"><strong>Foto de perfil</strong><p>Escolha uma imagem para representar você. GIF animado é um recurso Pro.</p><div class="inline-actions"><button class="btn btn-ghost btn-sm" data-action="choose-avatar">'+(photo?'Trocar foto':'Adicionar foto')+'</button>'+(photo?'<button class="btn btn-danger btn-sm" data-action="remove-avatar">Remover foto</button>':'')+'</div></div>'+
         '</div>'+
       '</section>'+
+      (hasPro()?'':proContextBannerHtml('Personalize tudo com o Bingeo Pro','Banner, GIF, cor do nome, efeitos e redes sociais ficam disponíveis no Pro.','editar-perfil'))+
       profileEditSectionsHtml()+
       '<div class="profile-editor-footer"><button class="btn btn-ghost" data-action="back-to-profile">Cancelar</button><button class="btn btn-primary" data-action="save-profile">Salvar alterações</button></div>'+
     '</div>';
@@ -95,7 +138,7 @@
           '<div class="profile-sub">' + state.entries.length + ' título' + (state.entries.length===1?'':'s') + ' na estante</div>' +
           '<div class="profile-plan"><span class="plan-pill ' + (hasPro()?'pro':'') + '">' + (hasPro()?'✦ Bingeo Pro':'Plano gratuito') + '</span></div>' +
           (state.profile.bio ? '<div style="color:var(--text-muted);font-size:13px;max-width:620px;margin-top:8px;line-height:1.45;">' + escapeHtml(state.profile.bio) + '</div>' : '') +
-          '<div class="profile-actions"><button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button><button class="btn btn-ghost btn-sm" data-action="share-own-profile">Compartilhar perfil</button>' + (!hasPro() ? '<button class="btn btn-primary btn-sm" data-action="demo-pro">Testar Pro</button>' : '<button class="btn btn-ghost btn-sm" data-action="demo-free">Voltar ao Free</button>') + '</div>' +
+          '<div class="profile-actions"><button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button><button class="btn btn-ghost btn-sm" data-action="share-own-profile">Compartilhar perfil</button>' + (hasPro()?'<span class="pro-active-chip">✦ Pro ativo</span>':'<button class="btn btn-primary btn-sm" data-action="open-pro" data-source="perfil">✦ Bingeo Pro</button>') + '</div>' +
           (socialLinks.length ? '<div class="social-links">' + socialLinks.map(function(sl){return '<a class="social-link" href="' + escapeHtml(sl.url) + '" target="_blank" rel="noopener noreferrer"><span>' + socialIcon(sl.platform) + '</span>' + escapeHtml(socialLabel(sl.platform)) + '</a>';}).join('') + '</div>' : '') +
         '</div>' +
       '</div>';
@@ -210,6 +253,7 @@
     if(favorites.length){
       html += '<div class="section" style="margin-top:30px;"><div class="section-title" style="margin-bottom:14px;">Séries favoritas</div><div class="grid">'+favorites.map(entryCardHtml).join('')+'</div></div>';
     }
+    if(!hasPro())html+='<section class="profile-pro-teaser"><div class="profile-pro-teaser-copy"><span class="pro-hero-badge">✦ BINGEO PRO</span><h3>Leve seu perfil ainda mais longe</h3><p>Banner personalizado, GIF no avatar, pôsteres do Top 5, nome com efeitos, redes sociais, listas ilimitadas e avaliações avançadas.</p><div class="profile-pro-mini-features"><span>Banner</span><span>GIF</span><span>Top 5</span><span>Listas ∞</span><span>DNA</span></div></div><button class="btn btn-primary" data-action="open-pro" data-source="perfil-rodape">Descobrir Bingeo Pro</button></section>';
     html += '<div class="tmdb-credit"><a class="tmdb-logo-badge" href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">TMDB</a><span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span></div>';
     return html;
   }

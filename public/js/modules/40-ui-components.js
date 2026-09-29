@@ -41,6 +41,26 @@
       .sort(function(a,b){ return new Date(b.dateUpdated)-new Date(a.dateUpdated); });
   }
 
+  function proCtaButtonHtml(label,source,extraClass){
+    if(hasPro())return '<span class="pro-active-chip">✦ Pro ativo</span>';
+    return '<button class="btn btn-primary btn-sm '+escapeHtml(extraClass||'')+'" data-action="open-pro" data-source="'+escapeHtml(source||'contexto')+'">'+escapeHtml(label||'Conhecer o Pro')+'</button>';
+  }
+  function proContextBannerHtml(title,text,source,compact){
+    if(hasPro())return '';
+    return '<div class="pro-context-banner '+(compact?'compact':'')+'"><div class="pro-context-icon">✦</div><div class="pro-context-copy"><strong>'+escapeHtml(title||'Bingeo Pro')+'</strong><span>'+escapeHtml(text||'Desbloqueie mais personalização e recursos no Bingeo.')+'</span></div>'+proCtaButtonHtml('Conhecer o Pro',source||'contexto','pro-context-action')+'</div>';
+  }
+  function openProView(source){
+    state.proSource=source||'';
+    state.modalCatalogId=null;
+    state.professionalOpen=null;state.professionalData=null;
+    state.characterOpen=null;state.characterData=null;
+    state.userProfileOpen=null;state.userProfileData=null;
+    state.listOpen=null;state.listCreateOpen=false;
+    state.query='';
+    state.view='pro';
+    render();
+  }
+
   /* ---------------- stars widget ---------------- */
   function renderStars(value, size, scope, catalogId, season, episode){
     value = value || 0;
