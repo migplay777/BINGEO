@@ -174,7 +174,6 @@
       html += '<div class="empty"><strong>Ainda sem dados suficientes.</strong>Adicione e avalie títulos para ver suas estatísticas aqui.</div>';
     }
     html += ownEvaluationsSectionHtml();
-    html += profileHighlightsHtml({professionals:state.favoriteProfessionals,characters:state.favoriteCharacters},{editable:profileHighlightsEditorOpen,profile:state.profile,isOwn:true});
     html += peopleFavoritesSectionsHtml({professionals:state.favoriteProfessionals,characters:state.favoriteCharacters});
     if(favorites.length){
       html += '<div class="section" style="margin-top:30px;"><div class="section-title" style="margin-bottom:14px;">Séries favoritas</div><div class="grid">'+favorites.map(entryCardHtml).join('')+'</div></div>';

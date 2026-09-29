@@ -62,7 +62,6 @@
   var tmdbCacheMemory=null;
   var expandedSeasons = {};
   var top5EditorOpen = false;
-  var profileHighlightsEditorOpen = false;
 
   function uid(){ return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,8); }
   function slugify(value){return String(value||'lista').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,42)||'lista';}
@@ -235,7 +234,6 @@
     state.seriesArtPickerId=null;
     state.characterArtPickerKey=null;
     state.characterArtworkLoading={};
-    profileHighlightsEditorOpen=false;
     top5EditorOpen=false;
     state.characterSearchResults=[];
     state.characterOpen=null;
@@ -1405,7 +1403,7 @@
     }else html+='<div class="empty">Esse usuário ainda não montou o Top 5.</div>';
     html+='</section><section class="user-profile-section"><div class="user-profile-section-title">Avaliações</div>';
     html+=evals.length?'<div class="user-eval-grid">'+evals.map(userEvaluationCardHtml).join('')+'</div>':'<div class="empty">Nenhuma avaliação registrada ainda.</div>';
-    html+='</section>'+profileHighlightsHtml(u.people_favorites||{},{editable:false,profile:u,isOwn:false})+peopleFavoritesSectionsHtml(u.people_favorites||{})+userFavoritesHtml(u)+'<section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
+    html+='</section>'+peopleFavoritesSectionsHtml(u.people_favorites||{})+userFavoritesHtml(u)+'<section class="user-profile-section"><div class="user-profile-section-title">Atividade recente</div>';
     html+=acts.length?'<div class="social-feed-list">'+acts.map(function(a){a.user_id=u.user_id;a.username=u.username;a.avatar_url=u.avatar_url;a.plan=u.plan;a.name_style=u.name_style;return socialActivityHtml(a,false);}).join('')+'</div>':'<div class="empty">Nenhuma atividade recente.</div>';
     return html+'</section></div>';
   }
