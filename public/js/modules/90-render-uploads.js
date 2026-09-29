@@ -13,6 +13,7 @@
     else if(state.view==='diario') root.innerHTML = viewDiario();
     else if(state.view==='listas') root.innerHTML = viewListas();
     else if(state.view==='perfil') root.innerHTML = viewPerfil();
+    else if(state.view==='editar-perfil') root.innerHTML = viewEditarPerfil();
     renderModal();
     bindFormsForCurrentView();
     if(state.professionalOpen||state.userProfileOpen||state.characterOpen)return;

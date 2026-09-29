@@ -1,29 +1,10 @@
 /* ---------------- view: perfil ---------------- */
-  function viewPerfil(){
-    var initials = state.profile.username ? state.profile.username.trim().charAt(0).toUpperCase() : '?';
-    var photo = state.profile.photo;
-    var banner = state.profile.banner;
-    var socialLinks = Array.isArray(state.profile.socialLinks) ? state.profile.socialLinks : [];
-    var profileTheme = normalizeTheme(state.profile.nameStyle&&state.profile.nameStyle.theme);
-    var nameClass = 'profile-name' + (hasPro() && state.profile.nameStyle && state.profile.nameStyle.effect==='glow' ? ' name-glow' : '') + (hasPro() && state.profile.nameStyle && state.profile.nameStyle.effect==='animated' ? ' name-animated' : '');
-    var nameStyle = (hasPro() && state.profile.nameStyle && state.profile.nameStyle.color) ? 'color:' + escapeHtml(state.profile.nameStyle.color) + ';' : '';
+  function profileEditSectionsHtml(){
+    var banner=state.profile.banner;
+    var socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];
+    var profileTheme=normalizeTheme(state.profile.nameStyle&&state.profile.nameStyle.theme);
+    var html='';
 
-    var html = (banner ? '<div class="profile-banner" style="background-image:url(' + banner + ')"></div>' : '') +
-      '<div class="profile-head' + (banner?' with-banner':'') + '">' +
-        '<div class="avatar-wrap">' +
-          '<div class="avatar" id="avatarBtn" style="' + (photo ? ('background-image:url(' + photo + ')') : '') + '">' + (photo ? '' : initials) + '</div>' +
-          '<div class="avatar-edit" id="avatarEditBtn" title="Alterar foto">✎</div>' +
-        '</div>' +
-        '<div style="flex:1;min-width:240px;"><div class="' + nameClass + '" style="' + nameStyle + '">' + escapeHtml(state.profile.username || 'Seu perfil') + '</div>' +
-          '<div class="profile-sub">' + state.entries.length + ' título' + (state.entries.length===1?'':'s') + ' na estante</div>' +
-          '<div class="profile-plan"><span class="plan-pill ' + (hasPro()?'pro':'') + '">' + (hasPro()?'✦ Bingeo Pro':'Plano gratuito') + '</span></div>' +
-          (state.profile.bio ? '<div style="color:var(--text-muted);font-size:13px;max-width:620px;margin-top:8px;line-height:1.45;">' + escapeHtml(state.profile.bio) + '</div>' : '') +
-          '<div class="profile-actions">' + (photo ? '<button class="btn btn-ghost btn-sm" data-action="remove-avatar">Remover foto</button>' : '') + '<button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button><button class="btn btn-ghost btn-sm" data-action="share-own-profile">Compartilhar perfil</button>' + (!hasPro() ? '<button class="btn btn-primary btn-sm" data-action="demo-pro">Testar Pro</button>' : '<button class="btn btn-ghost btn-sm" data-action="demo-free">Voltar ao Free</button>') + '</div>' +
-          (socialLinks.length ? '<div class="social-links">' + socialLinks.map(function(sl){return '<a class="social-link" href="' + escapeHtml(sl.url) + '" target="_blank" rel="noopener noreferrer"><span>' + socialIcon(sl.platform) + '</span>' + escapeHtml(socialLabel(sl.platform)) + '</a>';}).join('') + '</div>' : '') +
-        '</div>' +
-      '</div>';
-
-    if(state.profile.editing){
       html += '<div class="profile-edit-section">' +
         '<h3>Informações</h3>' +
         '<div class="field-group"><label class="field-label">Nome de usuário</label><input class="qa-input" id="profileUsername" value="' + escapeHtml(state.profile.username||'') + '" placeholder="@seunome" style="width:100%;"></div>' +
@@ -55,8 +36,7 @@
           '</div>' +
         '</div>' +
         '<div class="appearance-pro-head">Personalização do perfil <span class="pro-badge">✦ PRO</span></div>' +
-        (hasPro() ? '<div class="profile-tools"><button class="btn btn-ghost btn-sm" data-action="choose-banner">' + (banner?'Trocar banner':'Adicionar banner') + '</button>' + (banner?'<button class="btn btn-danger btn-sm" data-action="remove-banner">Remover banner</button>':'') + '<button class="btn btn-ghost btn-sm" data-action="choose-avatar">Adicionar GIF/foto</button></div>' +
-          '<div style="margin-top:14px;"><label class="field-label">Cor do nome</label><div class="color-row"><input type="color" id="profileNameColor" class="color-input" value="' + escapeHtml((state.profile.nameStyle&&state.profile.nameStyle.color)||(profileTheme==='light'?'#181A23':'#ECEBF3')) + '"><button class="btn btn-ghost btn-sm" data-action="clear-name-color">Cor padrão</button></div></div>' +
+        (hasPro() ?           '<div style="margin-top:14px;"><label class="field-label">Cor do nome</label><div class="color-row"><input type="color" id="profileNameColor" class="color-input" value="' + escapeHtml((state.profile.nameStyle&&state.profile.nameStyle.color)||(profileTheme==='light'?'#181A23':'#ECEBF3')) + '"><button class="btn btn-ghost btn-sm" data-action="clear-name-color">Cor padrão</button></div></div>' +
           '<div style="margin-top:14px;"><label class="field-label">Efeito do nome</label><select id="profileNameEffect" class="qa-input" style="width:100%;"><option value="none" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='none'?'selected':'') + '>Normal</option><option value="glow" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='glow'?'selected':'') + '>Brilho</option><option value="animated" ' + ((state.profile.nameStyle&&state.profile.nameStyle.effect)==='animated'?'selected':'') + '>Brilho animado</option></select></div>' : '<div class="premium-locked">Banner, GIF de perfil, cor personalizada e efeitos do nome são exclusivos do Bingeo Pro.</div>') +
       '</div>' +
       '<div class="profile-edit-section">' +
@@ -65,8 +45,60 @@
           (socialLinks.length ? socialLinks.map(function(sl,idx){return '<div class="social-list-row"><span>' + socialIcon(sl.platform) + ' ' + escapeHtml(socialLabel(sl.platform)) + ' — ' + escapeHtml(sl.url) + '</span><button class="btn btn-danger btn-sm" data-action="remove-social" data-index="' + idx + '">Remover</button></div>';}).join('') : '<div class="premium-locked">Nenhuma rede social adicionada ainda.</div>') : '<div class="premium-locked">Links para redes sociais são exclusivos do Bingeo Pro.</div>') +
       '</div>' +
       '<div class="profile-edit-section"><h3>Catálogo de séries <span class="tmdb-logo-badge">TMDB</span></h3><div class="tmdb-status ok">TMDB conectado pelo servidor do Bingeo. Pôsteres, sinopses, elenco, créditos e episódios oficiais estão disponíveis automaticamente.</div></div>' +
-      '<button class="btn btn-primary btn-sm" data-action="save-profile">Salvar perfil</button>';
-    }
+      '';
+
+    return html;
+  }
+
+  function viewEditarPerfil(){
+    var initials=state.profile.username?state.profile.username.trim().charAt(0).toUpperCase():'?';
+    var photo=state.profile.photo;
+    var banner=state.profile.banner;
+    var bannerStyle=banner?'background-image:url(\''+String(banner).replace(/'/g,'%27')+'\');':'';
+    var avatarStyle=photo?'background-image:url(\''+String(photo).replace(/'/g,'%27')+'\');':'';
+
+    return '<div class="profile-editor-page">'+
+      '<div class="profile-editor-page-head"><div><button class="btn btn-ghost btn-sm" data-action="back-to-profile">← Ver perfil</button><h1>Editar perfil</h1><p>Atualize sua identidade e a aparência do seu perfil no Bingeo.</p></div><button class="btn btn-primary" data-action="save-profile">Salvar alterações</button></div>'+
+      '<section class="profile-media-editor">'+
+        '<div class="profile-edit-banner-preview '+(banner?'has-image':'')+'" style="'+bannerStyle+'">'+
+          '<div class="profile-edit-banner-shade"></div>'+
+          '<div class="profile-edit-banner-actions">'+
+            '<div><strong>Banner do perfil</strong><small>'+(hasPro()?'Personalize a capa do seu perfil.':'Disponível no Bingeo Pro.')+'</small></div>'+
+            '<div class="inline-actions"><button class="btn btn-ghost btn-sm" data-action="choose-banner">'+(banner?'Trocar banner':'Adicionar banner')+(hasPro()?'':' · Pro')+'</button>'+(banner?'<button class="btn btn-danger btn-sm" data-action="remove-banner">Remover</button>':'')+'</div>'+
+          '</div>'+
+        '</div>'+
+        '<div class="profile-edit-avatar-row">'+
+          '<div class="profile-edit-avatar" style="'+avatarStyle+'">'+(photo?'':escapeHtml(initials))+'</div>'+
+          '<div class="profile-edit-avatar-copy"><strong>Foto de perfil</strong><p>Escolha uma imagem para representar você. GIF animado é um recurso Pro.</p><div class="inline-actions"><button class="btn btn-ghost btn-sm" data-action="choose-avatar">'+(photo?'Trocar foto':'Adicionar foto')+'</button>'+(photo?'<button class="btn btn-danger btn-sm" data-action="remove-avatar">Remover foto</button>':'')+'</div></div>'+
+        '</div>'+
+      '</section>'+
+      profileEditSectionsHtml()+
+      '<div class="profile-editor-footer"><button class="btn btn-ghost" data-action="back-to-profile">Cancelar</button><button class="btn btn-primary" data-action="save-profile">Salvar alterações</button></div>'+
+    '</div>';
+  }
+
+  function viewPerfil(){
+    var initials = state.profile.username ? state.profile.username.trim().charAt(0).toUpperCase() : '?';
+    var photo = state.profile.photo;
+    var banner = state.profile.banner;
+    var socialLinks = Array.isArray(state.profile.socialLinks) ? state.profile.socialLinks : [];
+    var profileTheme = normalizeTheme(state.profile.nameStyle&&state.profile.nameStyle.theme);
+    var nameClass = 'profile-name' + (hasPro() && state.profile.nameStyle && state.profile.nameStyle.effect==='glow' ? ' name-glow' : '') + (hasPro() && state.profile.nameStyle && state.profile.nameStyle.effect==='animated' ? ' name-animated' : '');
+    var nameStyle = (hasPro() && state.profile.nameStyle && state.profile.nameStyle.color) ? 'color:' + escapeHtml(state.profile.nameStyle.color) + ';' : '';
+
+    var html = (banner ? '<div class="profile-banner" style="background-image:url(' + banner + ')"></div>' : '') +
+      '<div class="profile-head' + (banner?' with-banner':'') + '">' +
+        '<div class="avatar-wrap">' +
+          '<div class="avatar profile-view-avatar" style="' + (photo ? ('background-image:url(' + photo + ')') : '') + '">' + (photo ? '' : initials) + '</div>' +
+        '</div>' +
+        '<div style="flex:1;min-width:240px;"><div class="' + nameClass + '" style="' + nameStyle + '">' + escapeHtml(state.profile.username || 'Seu perfil') + '</div>' +
+          '<div class="profile-sub">' + state.entries.length + ' título' + (state.entries.length===1?'':'s') + ' na estante</div>' +
+          '<div class="profile-plan"><span class="plan-pill ' + (hasPro()?'pro':'') + '">' + (hasPro()?'✦ Bingeo Pro':'Plano gratuito') + '</span></div>' +
+          (state.profile.bio ? '<div style="color:var(--text-muted);font-size:13px;max-width:620px;margin-top:8px;line-height:1.45;">' + escapeHtml(state.profile.bio) + '</div>' : '') +
+          '<div class="profile-actions"><button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button><button class="btn btn-ghost btn-sm" data-action="share-own-profile">Compartilhar perfil</button>' + (!hasPro() ? '<button class="btn btn-primary btn-sm" data-action="demo-pro">Testar Pro</button>' : '<button class="btn btn-ghost btn-sm" data-action="demo-free">Voltar ao Free</button>') + '</div>' +
+          (socialLinks.length ? '<div class="social-links">' + socialLinks.map(function(sl){return '<a class="social-link" href="' + escapeHtml(sl.url) + '" target="_blank" rel="noopener noreferrer"><span>' + socialIcon(sl.platform) + '</span>' + escapeHtml(socialLabel(sl.platform)) + '</a>';}).join('') + '</div>' : '') +
+        '</div>' +
+      '</div>';
 
     html += '<div class="top5-section">' +
       '<div class="section-head"><div class="section-title">Seu Top 5</div>' +
