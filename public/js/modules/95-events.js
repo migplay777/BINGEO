@@ -34,7 +34,8 @@
       state.characterOpen=null;state.characterData=null;state.characterError='';state.characterLoading=false;
       state.userProfileOpen=null;state.userProfileData=null;state.userProfileError='';state.userProfileLoading=false;
       state.query = '';
-      if(state.view==='descobrir'){ Promise.allSettled([loadTrending(),loadFollowingFeed()]).then(render); return; }
+      if(state.view==='home'){loadFollowingFeed().then(render);return;}
+      if(state.view==='descobrir'){loadTrending().then(render);return;}
       render();
       return;
     }
