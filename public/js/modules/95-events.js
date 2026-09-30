@@ -325,8 +325,9 @@ else if(action==='edit-profile'){
         en4.spoilerSeason=en4.spoilerLevel==='episode'&&ss&&ss.value?Number(ss.value):null;
         en4.spoilerEpisode=en4.spoilerLevel==='episode'&&se&&se.value?Number(se.value):null;
         en4.dateUpdated=new Date().toISOString();
-        if(ta.value.trim()) bumpTrending(en4.catalogId,'review');
-        saveData(); syncEntryToSupabase(en4).then(function(){loadSeriesCommunity(en4.catalogId);}); if(ta.value.trim())publishActivity('review',en4,{rating:en4.rating,payload:{spoiler_level:en4.spoilerLevel,spoiler_season:en4.spoilerSeason,spoiler_episode:en4.spoilerEpisode}}); renderMainViewOnly(); renderModalPreserveScroll();
+        var hasReviewContent=!!ta.value.trim() || (hasPro()&&proReviewHasContent(en4.proReview));
+        if(hasReviewContent) bumpTrending(en4.catalogId,'review');
+        saveData(); syncEntryToSupabase(en4).then(function(){loadSeriesCommunity(en4.catalogId);}); if(hasReviewContent)publishActivity('review',en4,{rating:en4.rating,payload:{spoiler_level:en4.spoilerLevel,spoiler_season:en4.spoilerSeason,spoiler_episode:en4.spoilerEpisode,pro_review:normalizeProReview(en4.proReview||{})}}); renderMainViewOnly(); renderModalPreserveScroll();
       }
     }
     else if(action==='delete-diary'){
