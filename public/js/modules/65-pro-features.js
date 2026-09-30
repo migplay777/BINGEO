@@ -83,6 +83,11 @@
     };
   }
   function proReviewActive(value){return normalizeProReview(value).enabled===true;}
+  function proReviewHasContent(value){
+    var pr=normalizeProReview(value);
+    if(!pr.enabled)return false;
+    return [pr.title,pr.quote,pr.section1Title,pr.section1Body,pr.section2Title,pr.section2Body].some(function(v){return String(v||'').trim().length>0;});
+  }
   function proReviewEditorHtml(entry,cat){
     if(!hasPro())return '';
     var pr=normalizeProReview(entry&&entry.proReview);
