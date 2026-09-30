@@ -149,9 +149,8 @@
         '<div class="avatar-wrap">' +
           '<div class="avatar profile-view-avatar '+proAvatarFrameClass(state.profile)+'" style="' + (photo ? ('background-image:url(' + photo + ')') : '') + '">' + (photo ? '' : initials) + '</div>' +
         '</div>' +
-        '<div style="flex:1;min-width:240px;"><div class="' + nameClass + '" style="' + nameStyle + '">' + escapeHtml(state.profile.username || 'Seu perfil') + '</div>' + proProfileBadgeHtml(state.profile) +
+        '<div style="flex:1;min-width:240px;"><div class="profile-name-row"><div class="' + nameClass + '" style="' + nameStyle + '">' + escapeHtml(state.profile.username || 'Seu perfil') + '</div>' + proProfileBadgeHtml(state.profile) + '</div>' +
           '<div class="profile-sub">' + state.entries.length + ' título' + (state.entries.length===1?'':'s') + ' na estante</div>' +
-          '<div class="profile-plan"><span class="plan-pill ' + (hasPro()?'pro':'') + '">' + (hasPro()?'✦ Bingeo Pro':'Plano gratuito') + '</span></div>' +
           (state.profile.bio ? '<div style="color:var(--text-muted);font-size:13px;max-width:620px;margin-top:8px;line-height:1.45;">' + escapeHtml(state.profile.bio) + '</div>' : '') +
           '<div class="profile-actions"><button class="btn btn-ghost btn-sm" data-action="edit-profile">Editar perfil</button><button class="btn btn-ghost btn-sm" data-action="share-own-profile">Compartilhar perfil</button>' + (hasPro()?'<span class="pro-active-chip">✦ Pro ativo</span>':'<button class="btn btn-primary btn-sm" data-action="open-pro" data-source="perfil">✦ Bingeo Pro</button>') + '</div>' +
           (socialLinks.length ? '<div class="social-links">' + socialLinks.map(function(sl){return '<a class="social-link" href="' + escapeHtml(sl.url) + '" target="_blank" rel="noopener noreferrer"><span>' + socialIcon(sl.platform) + '</span>' + escapeHtml(socialLabel(sl.platform)) + '</a>';}).join('') + '</div>' : '') +
