@@ -1388,29 +1388,34 @@
     return progress.season>s||(progress.season===s&&progress.episode>=e);
   }
   function reviewFeedCardHtml(a){
-    var payload=a.payload||{},cat=ensureRemoteUserCatalog(a);
+    var payload=a.payload||{},cat=ensureRemoteUserCatalog(a),isEdital=a.event_type==='edital'||payload.review_type==='edital';
     var initials=(a.username||'?').charAt(0).toUpperCase();
     var avatar=a.avatar_url&&/^https?:\/\//i.test(a.avatar_url)?a.avatar_url:'';
     var ns=a.name_style||{},nameClass='diary-feed-username'+(a.plan==='pro'&&ns.effect==='glow'?' name-glow':'')+(a.plan==='pro'&&ns.effect==='animated'?' name-animated':'');
     var nameStyle=a.plan==='pro'&&ns.color?'color:'+escapeHtml(ns.color)+';':'';
     var review={
+      review_id:Number(payload.review_id)||Number(a.id)||null,
       username:a.username,plan:a.plan,rating:a.rating,review:String(payload.review||''),
-      pro_review:payload.pro_review||{},criteria_ratings:payload.criteria_ratings||{},
+      review_type:isEdital?'edital':'review',edital:payload.edital||{},
+      visibility:payload.visibility||'public',comments_enabled:payload.comments_enabled!==false,
+      comment_count:Number(payload.comment_count||0),
+      criteria_ratings:payload.criteria_ratings||{},
       badges:Array.isArray(payload.badges)?payload.badges:[],
       spoiler_level:payload.spoiler_level||'none',spoiler_season:payload.spoiler_season||null,spoiler_episode:payload.spoiler_episode||null
     };
+    var reason=isEdital&&payload.feed_reason==='interest'?'<span class="feed-reason-chip">Para você</span>':'';
     var header='<div class="feed-review-userline">'+
       '<div class="diary-feed-avatar" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
-      '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+(a.plan==='pro'&&proReviewHasContent(review.pro_review)?'Review Pro':'Resenha')+'</span></div>'+
+      '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+(isEdital?'Edital':'Resenha')+'</span>'+reason+'</div>'+
       '<span class="diary-feed-time">'+activityTime(a.created_at)+'</span>'+
     '</div>';
     if(!canViewFeedReview(a)){
-      return '<article class="feed-review-shell">'+header+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin-top:5px;">Esta resenha está escondida porque passa do seu progresso registrado.</div></div></article>';
+      return '<article class="feed-review-shell">'+header+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin-top:5px;">Esta publicação está escondida porque passa do seu progresso registrado.</div></div></article>';
     }
     var tags=criteriaSummaryHtml(review.criteria_ratings)+badgesSummaryHtml(review.badges);
-    if(a.plan==='pro'&&proReviewHasContent(review.pro_review)){
-      var top='<div class="pro-review-topline"><span>✦ REVIEW PRO</span><b>'+(a.rating!=null?'★ '+Number(a.rating).toFixed(1):'Sem nota')+'</b></div>';
-      return '<section class="feed-review-shell">'+header+proReviewCommunityHtml(review,a.catalog_id,top,tags,spoilerLabel(review))+'</section>';
+    if(isEdital){
+      var top='<div class="pro-review-topline"><span>✦ EDITAL</span><b>'+(a.rating!=null?'★ '+Number(a.rating).toFixed(1):'Sem nota')+'</b></div>';
+      return '<section class="feed-review-shell">'+header+editalCardHtml(review,a.catalog_id,top,tags,spoilerLabel(review),true)+'</section>';
     }
     var poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'',backdrop=cat?tmdbImageUrl(cat.backdrop_path,'w500'):'',artwork=poster||backdrop;
     return '<article class="diary-feed-card feed-review-standard">'+
@@ -1423,13 +1428,13 @@
     '</article>';
   }
   function followingFeedItemHtml(a){
-    return a&&a.event_type==='review'?reviewFeedCardHtml(a):diaryFeedCardHtml(a);
+    return a&&(a.event_type==='review'||a.event_type==='edital')?reviewFeedCardHtml(a):diaryFeedCardHtml(a);
   }
   function followingFeedHtml(){
-    if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div></div><div class="tmdb-loading">Carregando atividade…</div></section>';
-    if(state.socialFeedError)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div></div><div class="empty">'+escapeHtml(state.socialFeedError)+'</div></section>';
-    if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div></div><div class="diary-feed-empty"><strong>Ainda não há atividade recente.</strong><br>Registros no diário e resenhas de quem você segue aparecem aqui.</div></section>';
-    return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(followingFeedItemHtml).join('')+'</div></section>';
+    if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Seu feed</div></div><div class="tmdb-loading">Carregando atividade…</div></section>';
+    if(state.socialFeedError)return '<section class="social-feed"><div class="section-head"><div class="section-title">Seu feed</div></div><div class="empty">'+escapeHtml(state.socialFeedError)+'</div></section>';
+    if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Seu feed</div></div><div class="diary-feed-empty"><strong>Ainda não há atividade recente.</strong><br>Diários e resenhas de quem você segue aparecem aqui. Editals públicos de séries da sua estante também podem ser recomendados.</div></section>';
+    return '<section class="social-feed"><div class="section-head"><div><div class="section-title">Seu feed</div><div style="font-size:10.5px;color:var(--text-dim);margin-top:3px;">Quem você segue + Editals públicos de séries que fazem parte da sua estante</div></div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(followingFeedItemHtml).join('')+'</div></section>';
   }
   function userProfileStatsHtml(u){
     var avg=u.avg_rating==null?'—':Number(u.avg_rating).toFixed(1);
