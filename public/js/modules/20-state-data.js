@@ -4,7 +4,7 @@
   var THEME_KEY = 'bingeo-theme-preference';
 
   var state = {
-    view:'descobrir',
+    view:'home',
     query:'',
     catalogType:'todos',
     entries:[],
@@ -1217,14 +1217,14 @@
       if(tmdbConfigured()&&feedCats.length){
         var unique={};feedCats=feedCats.filter(function(cat){if(unique[cat.id])return false;unique[cat.id]=1;return true;}).slice(0,12);
         Promise.allSettled(feedCats.map(function(cat){return loadTmdbSeries(cat);})).then(function(){
-          if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
+          if(appBooted&&state.view==='home'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
         });
       }
     }catch(e){
       state.socialFeedError=e.message||'Não foi possível carregar o feed.';
     }finally{
       state.socialFeedLoading=false;
-      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
+      if(appBooted&&state.view==='home'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
     }
   }
   function userNameClass(user){
