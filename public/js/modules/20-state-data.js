@@ -208,6 +208,7 @@
   }
   function resetAccountRuntime(){
     var fresh=defaultDb();
+    state.view='home';
     state.entries=[];
     state.diary=[];
     state.lists=[];
