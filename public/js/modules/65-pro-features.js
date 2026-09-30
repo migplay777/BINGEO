@@ -61,7 +61,7 @@
   }
 
 
-  /* ---- Artes Pro de temporadas/episódios + Review Pro ---- */
+  /* ---- Artes Pro de temporadas/episódios + Edital ---- */
   if(state.proMediaArtworkPicker===undefined)state.proMediaArtworkPicker=null;
   if(!state.proMediaArtworkOptions)state.proMediaArtworkOptions={};
   if(!state.proMediaArtworkLoading)state.proMediaArtworkLoading={};
@@ -92,8 +92,8 @@
     if(!hasPro())return '';
     var pr=normalizeProReview(entry&&entry.proReview);
     return '<div class="pro-review-editor">'+
-      '<div class="pro-review-editor-head"><div><strong>Review Pro</strong><small>Transforme sua resenha em uma publicação visual sem alterar a review tradicional.</small></div><span class="pro-active-chip">✦ PRO</span></div>'+
-      '<label class="pro-review-enable"><input id="proReviewEnabled" type="checkbox" '+(pr.enabled?'checked':'')+'> Usar apresentação Review Pro</label>'+
+      '<div class="pro-review-editor-head"><div><strong>Edital</strong><small>Transforme sua resenha em uma publicação visual sem alterar a review tradicional.</small></div><span class="pro-active-chip">✦ PRO</span></div>'+
+      '<label class="pro-review-enable"><input id="proReviewEnabled" type="checkbox" '+(pr.enabled?'checked':'')+'> Usar apresentação Edital</label>'+
       '<div class="pro-review-editor-grid">'+
         '<label><span>Título da review</span><input id="proReviewTitle" maxlength="90" value="'+escapeHtml(pr.title)+'" placeholder="Ex.: Uma temporada impossível de esquecer"></label>'+
         '<label><span>Layout</span><select id="proReviewLayout"><option value="cinematic" '+(pr.layout==='cinematic'?'selected':'')+'>Cinematográfico</option><option value="editorial" '+(pr.layout==='editorial'?'selected':'')+'>Editorial</option><option value="minimal" '+(pr.layout==='minimal'?'selected':'')+'>Minimalista</option></select></label>'+
@@ -146,7 +146,7 @@
     var art=proReviewArtUrl(ev,cat,pr),style=art?'background-image:url(\''+art.replace(/'/g,'%27')+'\');':'';
     return '<article class="pro-review-card pro-review-profile layout-'+pr.layout+(art?' has-art':'')+'" data-action="open-show" data-catalog="'+escapeHtml(ev.catalog_id||'')+'" style="'+style+'">'+
       '<div class="pro-review-shade"></div><div class="pro-review-inner">'+
-        '<div class="pro-review-topline"><span>✦ REVIEW PRO</span><b>'+(ev.rating!=null?'★ '+Number(ev.rating).toFixed(1):'Sem nota')+'</b></div>'+
+        '<div class="pro-review-topline"><span>✦ EDITAL</span><b>'+(ev.rating!=null?'★ '+Number(ev.rating).toFixed(1):'Sem nota')+'</b></div>'+
         '<h3>'+escapeHtml(pr.title||ev.title||cat&&cat.title||'Review')+'</h3>'+
         proReviewContentHtml(pr,ev.review||'')+
         userEvaluationExtraHtml(ev)+
@@ -159,7 +159,7 @@
     return '<article class="community-review pro-review-card layout-'+pr.layout+(art?' has-art':'')+'" style="'+style+'">'+
       '<div class="pro-review-shade"></div><div class="pro-review-inner">'+top+
         '<div class="pro-review-spoiler-label">'+escapeHtml(spoiler||'Sem spoilers')+'</div>'+
-        '<h3>'+escapeHtml(pr.title||cat&&cat.title||'Review Pro')+'</h3>'+
+        '<h3>'+escapeHtml(pr.title||cat&&cat.title||'Edital')+'</h3>'+
         proReviewContentHtml(pr,review.review||'')+tags+
       '</div></article>';
   }
