@@ -238,7 +238,7 @@
   function editalCardHtml(review,catalogId,top,tags,spoiler,withComments){
     var e=normalizeEdital(review&&review.edital||review&&review.pro_review||{}),cat=getCatalog(catalogId),art=editalArtUrl(e,cat),style=art?'background-image:url(\''+art.replace(/'/g,'%27')+'\');':'';
     var footer=withComments&&review&&review.review_id?editalCommentsFooterHtml(review.review_id,review.comment_count,review.visibility):'';
-    return '<article class="community-review pro-review-card edital-card layout-editorial'+(art?' has-art':'')+'" style="'+style+'">'+
+    return '<article class="community-review pro-review-card edital-card layout-editorial art-'+e.artworkType+(art?' has-art':'')+'" style="'+style+'">'+
       '<div class="pro-review-shade"></div><div class="pro-review-inner">'+top+
         '<div class="pro-review-spoiler-label">'+escapeHtml(spoiler||'Sem spoilers')+'</div>'+
         '<h3>'+escapeHtml(e.title||cat&&cat.title||'Edital')+'</h3>'+
