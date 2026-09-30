@@ -1559,7 +1559,7 @@
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
       await loadTrending();
-      if(appBooted&&state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
+      if(appBooted&&state.view==='home'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen)renderMainViewOnly();
     }catch(e){
       console.error('Erro ao registrar interação global:',e);
     }
