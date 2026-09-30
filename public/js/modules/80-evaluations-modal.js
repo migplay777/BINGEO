@@ -151,6 +151,8 @@
     if(!unlocked){
       return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta resenha está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'">Revelar mesmo assim</button></div></div>';
     }
+    var proHtml=review.plan==='pro'&&proReviewActive(review.pro_review)?proReviewCommunityHtml(review,catalogId,top,tags,spoilerLabel(review)):'';
+    if(proHtml)return proHtml;
     return '<div class="community-review">'+top+'<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">'+escapeHtml(spoilerLabel(review))+'</div><div class="community-review-text">'+escapeHtml(review.review||'')+'</div>'+tags+'</div>';
   }
   function seriesCommunityHtml(cat){
@@ -229,6 +231,7 @@
                 '<div class="ep-title">' + escapeHtml(epMeta.title) + '</div></div>' +
                 renderStars(epRating, 'sm', 'episode', cat.id, seasonNum, e) +
               '</div>' +
+              proEpisodeArtworkControlHtml(entry,cat,seasonNum,e,epMeta) +
               '<div class="ep-synopsis">' + escapeHtml(epMeta.synopsis) + '</div>' +
               '<div class="ep-card-actions">' +
                 '<input type="text" class="ep-note-input" id="' + noteId + '" placeholder="Nota (opcional)">' +
@@ -244,7 +247,7 @@
               '<button class="season-toggle' + (expanded?' open':'') + '" data-action="toggle-season" data-key="' + key + '">' +
                 '<span class="arrow">▸</span> Temporada ' + seasonNum + ' <span style="color:var(--text-dim);font-weight:400;">(' + epCount + ' eps)</span>' +
               '</button>' +
-              renderStars(seasonRating, 'sm', 'season', cat.id, seasonNum) +
+              '<div class="pro-season-row-actions">'+renderStars(seasonRating, 'sm', 'season', cat.id, seasonNum)+proSeasonArtworkControlHtml(entry,cat,seasonNum)+'</div>' +
             '</div>' +
             '<div class="episodes-wrap" style="display:' + (expanded?'block':'none') + '">' + episodesHtml + '</div>' +
           '</div>'
@@ -295,6 +298,7 @@
             '<input id="spoilerEpisode" type="number" min="1" placeholder="Ep." value="'+(entry.spoilerEpisode||'')+'" '+(entry.spoilerLevel==='episode'?'':'disabled')+'>' +
           '</div>' +
           '<textarea id="reviewText" placeholder="O que você achou?">' + escapeHtml(entry.review||'') + '</textarea>' +
+          proReviewEditorHtml(entry,cat) +
           '<div style="margin-top:8px;" class="inline-actions">' +
             '<button class="btn btn-primary btn-sm" data-action="save-review" data-catalog="' + cat.id + '">Salvar resenha</button>' +
             '<button class="btn btn-ghost btn-sm" data-action="log-today" data-catalog="' + cat.id + '">Registrar hoje no diário</button>' +

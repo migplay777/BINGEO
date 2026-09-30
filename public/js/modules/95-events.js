@@ -140,7 +140,7 @@
     }
     else if(action==='close-modal' || action==='close-modal-bg'){
       if(action==='close-modal-bg' && e.target!==el) return;
-      state.modalCatalogId = null; renderModal();
+      state.modalCatalogId = null; state.proMediaArtworkPicker=null; renderModal();
     }
     else if(action==='filter-type'){ state.catalogType = el.dataset.type; render(); }
     else if(action==='quick-add'){
@@ -319,6 +319,7 @@ else if(action==='edit-profile'){
       var ta = document.getElementById('reviewText');
       if(en4 && ta){
         en4.review = ta.value;
+        if(hasPro())en4.proReview=readProReviewForm(en4);
         var sl=document.getElementById('spoilerLevel'),ss=document.getElementById('spoilerSeason'),se=document.getElementById('spoilerEpisode');
         en4.spoilerLevel=sl?sl.value:'none';
         en4.spoilerSeason=en4.spoilerLevel==='episode'&&ss&&ss.value?Number(ss.value):null;

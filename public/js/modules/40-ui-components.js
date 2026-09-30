@@ -9,7 +9,7 @@
     var entry = getEntry(catalogId);
     if(!entry){
       entry = { catalogId:catalogId, status:initialStatus||'quero-assistir', rating:null, review:'', favorite:false,
-        seasonRatings:{}, episodeRatings:{}, dateAdded:new Date().toISOString(), dateUpdated:new Date().toISOString(),
+        seasonRatings:{}, episodeRatings:{}, seasonArtwork:{}, episodeArtwork:{}, proReview:normalizeProReview({}), dateAdded:new Date().toISOString(), dateUpdated:new Date().toISOString(),
         premiumRating:{format:'classic',value:null,reactions:[]}, criteriaRatings:{}, badges:[], spoilerLevel:'none', spoilerSeason:null, spoilerEpisode:null };
       state.entries.push(entry);
     }

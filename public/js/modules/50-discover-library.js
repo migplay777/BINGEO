@@ -81,7 +81,7 @@
           var isEpisode = e.type==='episode';
           html += (
             '<div class="cal-entry">' +
-              '<div class="cal-dot" style="' + swatchStyle(cat.title) + '">' + escapeHtml(letter) + '</div>' +
+              (proDiaryArtworkHtml(e,cat)||('<div class="cal-dot" style="' + swatchStyle(cat.title) + '">' + escapeHtml(letter) + '</div>')) +
               '<div class="cal-entry-body">' +
                 '<div class="cal-entry-top">' +
                   '<span class="cal-title" data-action="open-show" data-catalog="' + cat.id + '">' + escapeHtml(cat.title) + '</span>' +

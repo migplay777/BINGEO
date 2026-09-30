@@ -408,6 +408,8 @@
           review:e.review||'',
           season_ratings:e.seasonRatings||{},
           episode_ratings:e.episodeRatings||{},
+          pro_review:normalizeProReview(e.proReview||{}),
+          plan:state.profile.plan||'free',
           premium_rating:e.premiumRating||{},
           criteria_ratings:e.criteriaRatings||{},
           badges:e.badges||[],

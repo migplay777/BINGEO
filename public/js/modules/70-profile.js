@@ -57,6 +57,8 @@
       ['Top 5','Pôster padrão das séries','Escolha seus próprios pôsteres'],
       ['Listas','Até 10 listas próprias','Listas ilimitadas'],
       ['Avaliações','Nota e review tradicionais','Amora, reações, DNA e medalhas'],
+      ['Review Pro','Resenha tradicional','Título, layout, fundo, citação e seções'],
+      ['Artes de episódios','Arte padrão','Capas e stills alternativos por temporada e episódio'],
       ['Redes sociais','—','Links no perfil'],
       ['Personalização','Recursos essenciais','Experiência mais completa']
     ];
@@ -89,6 +91,8 @@
         '<div class="pro-benefit-card"><span>▥</span><strong>Pôsteres personalizados</strong><p>Escolha a arte que aparece no seu Top 5.</p></div>'+
         '<div class="pro-benefit-card"><span>∞</span><strong>Listas ilimitadas</strong><p>Crie coleções sem o limite de 10 listas do Free.</p></div>'+
         '<div class="pro-benefit-card"><span>✦</span><strong>Avaliações avançadas</strong><p>Amadurecimento da amora, reações, DNA e medalhas.</p></div>'+
+        '<div class="pro-benefit-card"><span>▤</span><strong>Review Pro</strong><p>Publique resenhas com título, layout, imagem, citação e seções.</p></div>'+
+        '<div class="pro-benefit-card"><span>▧</span><strong>Artes de temporadas e episódios</strong><p>Escolha pôsteres e stills alternativos oficiais da TMDB.</p></div>'+
         '<div class="pro-benefit-card"><span>↗</span><strong>Redes sociais</strong><p>Adicione seus links diretamente ao perfil.</p></div>'+
         '<div class="pro-benefit-card"><span>◈</span><strong>Mais identidade</strong><p>Deixe sua página realmente diferente das demais.</p></div>'+
       '</div></section>'+

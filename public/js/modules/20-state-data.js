@@ -254,6 +254,9 @@
   if(!e.spoilerLevel)e.spoilerLevel='none';
   if(e.spoilerSeason===undefined)e.spoilerSeason=null;
   if(e.spoilerEpisode===undefined)e.spoilerEpisode=null;
+  if(!e.seasonArtwork||typeof e.seasonArtwork!=='object')e.seasonArtwork={};
+  if(!e.episodeArtwork||typeof e.episodeArtwork!=='object')e.episodeArtwork={};
+  e.proReview=normalizeProReview(e.proReview||{});
 });state.diary.forEach(function(d){if(!d.type)d.type='series';if(d.season===undefined)d.season=null;if(d.episode===undefined)d.episode=null;if(d.note===undefined)d.note='';});state.lists.forEach(function(l){
   if(!l.id)l.id=uid();
   if(!l.createdAt)l.createdAt=new Date().toISOString();
@@ -285,6 +288,9 @@
       favorite:!!entry.favorite,
       season_ratings:entry.seasonRatings||{},
       episode_ratings:entry.episodeRatings||{},
+      season_artwork:entry.seasonArtwork||{},
+      episode_artwork:entry.episodeArtwork||{},
+      pro_review:normalizeProReview(entry.proReview||{}),
       premium_rating:entry.premiumRating||{format:'classic',value:null,reactions:[]},
       criteria_ratings:entry.criteriaRatings||{},
       badges:Array.isArray(entry.badges)?entry.badges:[],
@@ -310,7 +316,7 @@
     if(!currentUserId)return;
     var userId=currentUserId;
     try{
-      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,genre,poster_path,backdrop_path,status,rating,review,favorite,season_ratings,episode_ratings,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',userId);
+      var result=await supabaseClient.from('library_entries').select('catalog_id,tmdb_id,title,genre,poster_path,backdrop_path,status,rating,review,favorite,season_ratings,episode_ratings,season_artwork,episode_artwork,pro_review,premium_rating,criteria_ratings,badges,spoiler_level,spoiler_season,spoiler_episode,created_at,updated_at').eq('user_id',userId);
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
       (result.data||[]).forEach(function(row){
@@ -333,6 +339,9 @@
             favorite:!!row.favorite,
             seasonRatings:row.season_ratings||{},
             episodeRatings:row.episode_ratings||{},
+            seasonArtwork:row.season_artwork||{},
+            episodeArtwork:row.episode_artwork||{},
+            proReview:normalizeProReview(row.pro_review||{}),
             premiumRating:row.premium_rating||{format:'classic',value:null,reactions:[]},
             criteriaRatings:row.criteria_ratings||{},
             badges:Array.isArray(row.badges)?row.badges:[],
@@ -1271,6 +1280,9 @@
   }
   function userEvaluationCardHtml(ev){
     var cat=ensureRemoteUserCatalog(ev),poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'';
+    if(ev.review&&canViewUserEvaluationReview(ev)&&ev.plan==='pro'&&proReviewActive(ev.pro_review)){
+      return proReviewProfileCardHtml(ev,cat);
+    }
     return '<div class="user-eval-card" data-action="open-show" data-catalog="'+escapeHtml(ev.catalog_id||'')+'">'+
       '<div class="user-eval-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div>'+
       '<div><div class="user-eval-title">'+escapeHtml(ev.title||cat&&cat.title||'Série')+'</div>'+
@@ -1386,6 +1398,7 @@
     var banner=u.banner_url&&/^https?:\/\//i.test(u.banner_url)?u.banner_url:'';
     var socials=Array.isArray(u.social_links)?u.social_links:[];
     var top=Array.isArray(u.top_five)?u.top_five:[],evals=Array.isArray(u.evaluations)?u.evaluations:[],acts=Array.isArray(u.recent_activity)?u.recent_activity:[];
+    evals.forEach(function(ev){if(ev&&!ev.plan)ev.plan=u.plan||'free';});
     var html='<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
       (banner?'<div class="user-view-banner" style="background-image:url(\''+banner.replace(/'/g,'%27')+'\')"></div>':'')+
       '<div class="user-view-head'+(banner?' with-banner':'')+'"><div class="user-view-avatar '+proAvatarFrameClass(u)+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+

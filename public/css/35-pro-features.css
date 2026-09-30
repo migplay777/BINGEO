@@ -44,3 +44,63 @@
 .pro-list-empty{padding:10px;font-size:9px;color:var(--text-muted)}
 @media(max-width:800px){.pro-list-format-grid{grid-template-columns:1fr}}
 @media(max-width:560px){.pro-editor-two-col{grid-template-columns:1fr}.pro-highlighted-list{grid-template-columns:90px 1fr 12px}}
+
+
+/* ---- Pro artwork for seasons/episodes ---- */
+.pro-season-row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.pro-season-art-control{position:relative;display:flex;align-items:center;gap:6px}
+.pro-season-art-thumb{width:28px;height:40px;border-radius:5px;background:center/cover no-repeat;border:1px solid var(--line)}
+.pro-episode-art-control{position:relative;margin:8px 0 9px;display:grid;grid-template-columns:132px minmax(0,1fr);gap:10px;align-items:center}
+.pro-episode-art-preview{width:132px;aspect-ratio:16/9;border-radius:8px;background:center/cover no-repeat;border:1px solid var(--line)}
+.pro-episode-art-actions{display:flex;align-items:flex-start;flex-direction:column;gap:6px}
+.pro-episode-art-actions>span{font-size:8.5px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.06em}
+.pro-media-art-picker{position:absolute;z-index:30;right:0;top:calc(100% + 7px);width:min(520px,78vw);padding:11px;border:1px solid rgba(139,92,246,.32);border-radius:11px;background:var(--panel);box-shadow:0 20px 55px rgba(0,0,0,.34)}
+.pro-episode-art-control>.pro-media-art-picker{left:0;right:auto;top:100%}
+.pro-media-art-picker-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;margin-bottom:9px}
+.pro-media-art-picker-head>div{display:flex;flex-direction:column;gap:2px}
+.pro-media-art-picker-head strong{font-size:11px}.pro-media-art-picker-head small{font-size:8.5px;color:var(--text-muted)}
+.pro-media-art-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;max-height:300px;overflow:auto;margin-bottom:8px}
+.pro-media-art-option{position:relative;aspect-ratio:16/9;border:2px solid transparent;border-radius:7px;background:center/cover no-repeat;cursor:pointer;overflow:hidden}
+.pro-season-art-control .pro-media-art-option{aspect-ratio:2/3}
+.pro-media-art-option.selected{border-color:var(--violet);box-shadow:0 0 0 2px rgba(139,92,246,.15)}
+.pro-media-art-option span{position:absolute;left:4px;bottom:4px;padding:2px 5px;border-radius:999px;background:rgba(5,6,12,.76);color:#fff;font-size:7px}
+.pro-media-art-loading{padding:14px 5px;font-size:9px;color:var(--text-muted)}
+.cal-pro-art{position:relative;width:54px;height:54px;flex:0 0 54px;border-radius:8px;background:center/cover no-repeat;border:1px solid rgba(139,92,246,.25);overflow:hidden}
+.cal-pro-art span{position:absolute;right:3px;top:3px;width:17px;height:17px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(9,10,18,.78);color:#cdbbff;font-size:8px}
+
+/* ---- Review Pro ---- */
+.pro-review-editor{margin-top:11px;padding:12px;border:1px solid rgba(139,92,246,.24);border-radius:10px;background:linear-gradient(125deg,rgba(139,92,246,.055),var(--panel))}
+.pro-review-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.pro-review-editor-head>div{display:flex;flex-direction:column;gap:2px}.pro-review-editor-head strong{font-size:11.5px}.pro-review-editor-head small{font-size:8.8px;color:var(--text-muted)}
+.pro-review-enable{display:flex!important;align-items:center;gap:6px;font-size:9.5px;color:var(--text);margin-bottom:10px}
+.pro-review-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.pro-review-editor-grid label{display:flex;flex-direction:column;gap:4px}.pro-review-editor-grid label>span{font-size:8.5px;color:var(--text-muted)}
+.pro-review-editor-grid input,.pro-review-editor-grid select,.pro-review-editor-grid textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--text);padding:8px 9px;font:inherit;font-size:10px}
+.pro-review-editor-grid textarea{min-height:84px;resize:vertical}.pro-review-editor-grid .pro-review-wide{grid-column:1/-1}.pro-review-editor-note{font-size:8px;color:var(--text-dim);margin-top:8px}
+.pro-review-card{position:relative;overflow:hidden;border:1px solid rgba(139,92,246,.23);border-radius:12px;background:var(--panel) center/cover no-repeat;min-height:170px}
+.pro-review-card.has-art{color:#fff;border-color:rgba(255,255,255,.12)}
+.pro-review-shade{display:none;position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,8,15,.95),rgba(7,8,15,.78) 58%,rgba(7,8,15,.38))}
+.pro-review-card.has-art .pro-review-shade{display:block}
+.pro-review-inner{position:relative;z-index:1;padding:16px}
+.pro-review-topline{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:8.5px;font-weight:700;letter-spacing:.06em;color:var(--violet)}
+.pro-review-card.has-art .pro-review-topline{color:#d8c8ff}.pro-review-topline b{color:inherit}
+.pro-review-card h3{font:700 18px 'Space Grotesk',sans-serif;letter-spacing:-.025em;margin:8px 0 9px;color:inherit}
+.pro-review-main-text{font-size:10.5px;line-height:1.55;white-space:pre-line;color:var(--text-muted)}
+.pro-review-card.has-art .pro-review-main-text,.pro-review-card.has-art .pro-review-section p{color:rgba(255,255,255,.78)}
+.pro-review-quote{margin:8px 0 10px;padding:8px 11px;border-left:2px solid var(--violet);font:600 11px 'Space Grotesk',sans-serif;color:var(--text);background:rgba(139,92,246,.06)}
+.pro-review-card.has-art .pro-review-quote{color:#fff;background:rgba(8,9,16,.42)}
+.pro-review-section{margin-top:10px;padding-top:9px;border-top:1px solid rgba(139,92,246,.15)}
+.pro-review-section h4{margin:0 0 4px;font-size:10px;color:inherit}.pro-review-section p{margin:0;font-size:9.5px;line-height:1.5;color:var(--text-muted);white-space:pre-line}
+.pro-review-spoiler-label{font-size:8px;color:var(--text-dim);margin-top:5px}
+.pro-review-card.has-art .pro-review-spoiler-label{color:rgba(255,255,255,.54)}
+.pro-review-card.layout-editorial{border-left:4px solid var(--violet)}
+.pro-review-card.layout-minimal{background-image:none!important;min-height:0;box-shadow:none}
+.pro-review-card.layout-minimal .pro-review-shade{display:none!important}
+.pro-review-profile{grid-column:span 2;cursor:pointer}
+.community-review.pro-review-card{padding:0}
+@media(max-width:700px){
+  .pro-review-editor-grid{grid-template-columns:1fr}.pro-review-editor-grid .pro-review-wide{grid-column:auto}
+  .pro-media-art-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .pro-episode-art-control{grid-template-columns:92px 1fr}.pro-episode-art-preview{width:92px}
+  .pro-review-profile{grid-column:span 1}
+}
