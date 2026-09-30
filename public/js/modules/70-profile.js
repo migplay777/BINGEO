@@ -57,7 +57,7 @@
       ['Top 5','Pôster padrão das séries','Escolha seus próprios pôsteres'],
       ['Listas','Até 10 listas próprias','Listas ilimitadas'],
       ['Avaliações','Nota e review tradicionais','Amora, reações, DNA e medalhas'],
-      ['Review Pro','Resenha tradicional','Título, layout, fundo, citação e seções'],
+      ['Edital','Resenha tradicional','Crítica guiada, imagem personalizada, privacidade e comentários'],
       ['Artes de episódios','Arte padrão','Capas e stills alternativos por temporada e episódio'],
       ['Redes sociais','—','Links no perfil'],
       ['Personalização','Recursos essenciais','Experiência mais completa']
@@ -79,7 +79,7 @@
           '<div class="pro-page-poster-row">'+
             '<i class="pro-page-poster poster-one"></i><i class="pro-page-poster poster-two"></i><i class="pro-page-poster poster-three"></i><i class="pro-page-poster poster-four"></i>'+
           '</div>'+
-          '<div class="pro-page-feature-pills"><span>Banner</span><span>GIF</span><span>Top 5</span><span>Listas ∞</span><span>DNA</span></div>'+
+          '<div class="pro-page-feature-pills"><span>Banner</span><span>GIF</span><span>Top 5</span><span>Listas ∞</span><span>Editals</span></div>'+
         '</div>'+
       '</section>'+
       '<section class="pro-visual-compare"><div class="section-title">Veja a diferença no perfil</div><div class="pro-preview-grid">'+
@@ -91,7 +91,7 @@
         '<div class="pro-benefit-card"><span>▥</span><strong>Pôsteres personalizados</strong><p>Escolha a arte que aparece no seu Top 5.</p></div>'+
         '<div class="pro-benefit-card"><span>∞</span><strong>Listas ilimitadas</strong><p>Crie coleções sem o limite de 10 listas do Free.</p></div>'+
         '<div class="pro-benefit-card"><span>✦</span><strong>Avaliações avançadas</strong><p>Amadurecimento da amora, reações, DNA e medalhas.</p></div>'+
-        '<div class="pro-benefit-card"><span>▤</span><strong>Review Pro</strong><p>Publique resenhas com título, layout, imagem, citação e seções.</p></div>'+
+        '<div class="pro-benefit-card"><span>▤</span><strong>Editals</strong><p>Publique críticas guiadas, escolha pôster ou banner e converse pelos comentários.</p></div>'+
         '<div class="pro-benefit-card"><span>▧</span><strong>Artes de temporadas e episódios</strong><p>Escolha pôsteres e stills alternativos oficiais da TMDB.</p></div>'+
         '<div class="pro-benefit-card"><span>↗</span><strong>Redes sociais</strong><p>Adicione seus links diretamente ao perfil.</p></div>'+
         '<div class="pro-benefit-card"><span>◈</span><strong>Mais identidade</strong><p>Deixe sua página realmente diferente das demais.</p></div>'+
