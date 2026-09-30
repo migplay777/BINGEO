@@ -54,7 +54,17 @@
     userProfileBackView:'descobrir',
     socialFeed:[],
     socialFeedLoading:false,
-    socialFeedError:''
+    socialFeedError:'',
+    reviewComposerModes:{},
+    reviewDrafts:{},
+    reviewSpoilerDrafts:{},
+    editalDrafts:{},
+    reviewSaveNotice:{},
+    editalArtworkOptions:{},
+    editalArtworkLoading:{},
+    editalComments:{},
+    editalCommentsOpen:{},
+    editalCommentLoading:{}
   };
   var tmdbHydrationPromises={};
   var characterLocalCache={};
@@ -218,6 +228,16 @@
     state.trendingUsers={};
     state.socialFeedLoading=false;
     state.socialFeedError='';
+    state.reviewComposerModes={};
+    state.reviewDrafts={};
+    state.reviewSpoilerDrafts={};
+    state.editalDrafts={};
+    state.reviewSaveNotice={};
+    state.editalArtworkOptions={};
+    state.editalArtworkLoading={};
+    state.editalComments={};
+    state.editalCommentsOpen={};
+    state.editalCommentLoading={};
     state.userSearchResults=[];
     state.userProfileOpen=null;
     state.userProfileData=null;
@@ -1212,7 +1232,7 @@
       var result=await supabaseClient.rpc('get_following_feed',{p_limit:40});
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
-      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a&&['diary_series','diary_episode','review'].indexOf(a.event_type)>-1;});
+      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a&&['diary_series','diary_episode','review','edital'].indexOf(a.event_type)>-1;});
       var feedCats=[];
       state.socialFeed.forEach(function(a){var cat=ensureRemoteUserCatalog(a);if(cat&&cat.tmdbId&&!cat.poster_path)feedCats.push(cat);});
       if(tmdbConfigured()&&feedCats.length){
