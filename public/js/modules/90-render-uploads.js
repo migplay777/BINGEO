@@ -27,10 +27,13 @@
       btn.classList.toggle('active', btn.dataset.view===state.view);
     });
     renderTicker();
+    var searchWrap=document.querySelector('.search-wrap');
+    if(searchWrap)searchWrap.hidden=state.view!=='descobrir'||!!state.characterOpen||!!state.userProfileOpen||!!state.professionalOpen;
     var root = document.getElementById('viewRoot');
     if(state.characterOpen) root.innerHTML = viewCharacter();
     else if(state.userProfileOpen) root.innerHTML = viewBingeoUserProfile();
     else if(state.professionalOpen) root.innerHTML = viewProfessional();
+    else if(state.view==='home') root.innerHTML = viewHome();
     else if(state.view==='descobrir') root.innerHTML = viewDescobrir();
     else if(state.view==='estante') root.innerHTML = viewEstante();
     else if(state.view==='diario') root.innerHTML = viewDiario();
@@ -41,7 +44,7 @@
     renderModal();
     bindFormsForCurrentView();
     if(state.professionalOpen||state.userProfileOpen||state.characterOpen)return;
-    if(tmdbConfigured()){var visible=[];if(state.view==='descobrir'){var tids=Object.keys(state.trending).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);visible=tids.map(getCatalog);}else if(state.view==='estante'){visible=state.entries.slice(0,8).map(function(e){return getCatalog(e.catalogId);});}else if(state.view==='perfil'){visible=state.profile.topFive.filter(Boolean).slice(0,5).map(getCatalog);}hydrateCatalogs(visible);}
+    if(tmdbConfigured()){var visible=[];if(state.view==='descobrir'){var tids=Object.keys(state.trending).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);visible=discoverPopularCatalogs().concat(tids.map(getCatalog)).filter(Boolean).slice(0,16);}else if(state.view==='estante'){visible=state.entries.slice(0,8).map(function(e){return getCatalog(e.catalogId);});}else if(state.view==='perfil'){visible=state.profile.topFive.filter(Boolean).slice(0,5).map(getCatalog);}hydrateCatalogs(visible);}
   }
 
   function renderTicker(){
@@ -142,12 +145,9 @@
             state.characterOpen=null;state.characterData=null;state.characterError='';state.characterLoading=false;
             state.userProfileOpen=null;state.userProfileData=null;state.userProfileError='';state.userProfileLoading=false;state.view='descobrir';
           }
+          if(state.view!=='descobrir')return;
           state.query=searchInput.value; var pos=searchInput.selectionStart; clearTimeout(tmdbSearchTimer);
           if(state.query.trim()){
-            if(state.view!=='descobrir'){
-              state.view='descobrir';state.listOpen=null;state.listCreateOpen=false;
-              document.querySelectorAll('#navLinks .nav-link').forEach(function(btn){btn.classList.toggle('active',btn.dataset.view==='descobrir');});
-            }
             state.tmdbSearchLoading=true;state.tmdbSearchError='';state.tmdbSearchResults=[];state.tmdbPersonResults=[];state.characterSearchResults=[];state.userSearchResults=[];var req=++state.tmdbSearchRequest;
             var root=document.getElementById('viewRoot');root.innerHTML=viewDescobrir();
             tmdbSearchTimer=setTimeout(function(){
