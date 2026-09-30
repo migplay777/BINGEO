@@ -47,6 +47,10 @@
   .diary-feed-rating{color:#ffd66b;}
   .diary-feed-note{margin-top:12px;padding:10px 11px;border-left:2px solid rgba(139,92,246,.48);background:rgba(139,92,246,.045);border-radius:0 8px 8px 0;color:var(--text-muted);font-size:11.5px;line-height:1.5;font-style:italic;}
   .diary-feed-empty{padding:18px 0 2px;color:var(--text-muted);font-size:12.5px;line-height:1.55;}
+  .feed-review-shell{padding:12px;border:1px solid var(--line);border-radius:15px;background:linear-gradient(145deg,rgba(255,255,255,.018),rgba(139,92,246,.025)),var(--panel);}
+  .feed-review-shell>.community-review{margin:12px 0 0;}
+  .feed-review-userline{display:flex;align-items:center;gap:8px;min-width:0;}
+  .feed-review-standard .community-review-text{margin-top:10px;white-space:pre-line;}
   @media(max-width:640px){
     .diary-feed-card{grid-template-columns:88px minmax(0,1fr);min-height:138px;border-radius:12px;}
     .diary-feed-poster{width:88px;min-height:138px;}
