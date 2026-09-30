@@ -1211,7 +1211,7 @@
       var result=await supabaseClient.rpc('get_following_feed',{p_limit:40});
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
-      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a.event_type==='diary_series'||a.event_type==='diary_episode';});
+      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a&&['diary_series','diary_episode','review'].indexOf(a.event_type)>-1;});
       var feedCats=[];
       state.socialFeed.forEach(function(a){var cat=ensureRemoteUserCatalog(a);if(cat&&cat.tmdbId&&!cat.poster_path)feedCats.push(cat);});
       if(tmdbConfigured()&&feedCats.length){
@@ -1269,8 +1269,11 @@
     });
     return bits.length?'<div class="user-eval-breakdown">'+bits.slice(0,10).map(function(x){return '<span>'+escapeHtml(x)+'</span>';}).join('')+'</div>':'';
   }
+  function userEvaluationHasReview(ev){
+    return !!(ev&&String(ev.review||'').trim()) || !!(ev&&ev.plan==='pro'&&proReviewHasContent(ev.pro_review));
+  }
   function canViewUserEvaluationReview(ev){
-    if(!ev||!ev.review||ev.is_own)return true;
+    if(!ev||!userEvaluationHasReview(ev)||ev.is_own)return true;
     if(!ev.spoiler_level||ev.spoiler_level==='none')return true;
     var mine=getEntry(ev.catalog_id);
     if(mine&&mine.status==='completo')return true;
@@ -1280,14 +1283,14 @@
   }
   function userEvaluationCardHtml(ev){
     var cat=ensureRemoteUserCatalog(ev),poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'';
-    if(ev.review&&canViewUserEvaluationReview(ev)&&ev.plan==='pro'&&proReviewActive(ev.pro_review)){
+    if(canViewUserEvaluationReview(ev)&&ev.plan==='pro'&&proReviewHasContent(ev.pro_review)){
       return proReviewProfileCardHtml(ev,cat);
     }
     return '<div class="user-eval-card" data-action="open-show" data-catalog="'+escapeHtml(ev.catalog_id||'')+'">'+
       '<div class="user-eval-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div>'+
       '<div><div class="user-eval-title">'+escapeHtml(ev.title||cat&&cat.title||'Série')+'</div>'+
       '<div class="user-eval-meta">'+(ev.rating!=null?'★ '+Number(ev.rating).toFixed(1):'Avaliação Bingeo')+'</div>'+
-      (ev.review?(canViewUserEvaluationReview(ev)?'<div class="user-eval-review">'+escapeHtml(ev.review)+'</div>':'<div class="user-eval-review">🔒 Resenha ocultada por spoilers.</div>'):'')+userEvaluationExtraHtml(ev)+'</div></div>';
+      (userEvaluationHasReview(ev)?(canViewUserEvaluationReview(ev)?(ev.review?'<div class="user-eval-review">'+escapeHtml(ev.review)+'</div>':''):'<div class="user-eval-review">🔒 Resenha ocultada por spoilers.</div>'):'')+userEvaluationExtraHtml(ev)+'</div></div>';
   }
   function activityTime(iso){
     try{return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}
@@ -1354,11 +1357,58 @@
     '</article>';
   }
 
+  function canViewFeedReview(a){
+    var p=a&&a.payload||{},level=p.spoiler_level||'none';
+    if(level==='none')return true;
+    var mine=getEntry(a.catalog_id);
+    if(mine&&mine.status==='completo')return true;
+    if(level==='full')return false;
+    var progress=userEpisodeProgress(a.catalog_id),s=Number(p.spoiler_season)||0,e=Number(p.spoiler_episode)||0;
+    return progress.season>s||(progress.season===s&&progress.episode>=e);
+  }
+  function reviewFeedCardHtml(a){
+    var payload=a.payload||{},cat=ensureRemoteUserCatalog(a);
+    var initials=(a.username||'?').charAt(0).toUpperCase();
+    var avatar=a.avatar_url&&/^https?:\/\//i.test(a.avatar_url)?a.avatar_url:'';
+    var ns=a.name_style||{},nameClass='diary-feed-username'+(a.plan==='pro'&&ns.effect==='glow'?' name-glow':'')+(a.plan==='pro'&&ns.effect==='animated'?' name-animated':'');
+    var nameStyle=a.plan==='pro'&&ns.color?'color:'+escapeHtml(ns.color)+';':'';
+    var review={
+      username:a.username,plan:a.plan,rating:a.rating,review:String(payload.review||''),
+      pro_review:payload.pro_review||{},criteria_ratings:payload.criteria_ratings||{},
+      badges:Array.isArray(payload.badges)?payload.badges:[],
+      spoiler_level:payload.spoiler_level||'none',spoiler_season:payload.spoiler_season||null,spoiler_episode:payload.spoiler_episode||null
+    };
+    var header='<div class="feed-review-userline">'+
+      '<div class="diary-feed-avatar" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
+      '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+(a.plan==='pro'&&proReviewHasContent(review.pro_review)?'Review Pro':'Resenha')+'</span></div>'+
+      '<span class="diary-feed-time">'+activityTime(a.created_at)+'</span>'+
+    '</div>';
+    if(!canViewFeedReview(a)){
+      return '<article class="feed-review-shell">'+header+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin-top:5px;">Esta resenha está escondida porque passa do seu progresso registrado.</div></div></article>';
+    }
+    var tags=criteriaSummaryHtml(review.criteria_ratings)+badgesSummaryHtml(review.badges);
+    if(a.plan==='pro'&&proReviewHasContent(review.pro_review)){
+      var top='<div class="pro-review-topline"><span>✦ REVIEW PRO</span><b>'+(a.rating!=null?'★ '+Number(a.rating).toFixed(1):'Sem nota')+'</b></div>';
+      return '<section class="feed-review-shell">'+header+proReviewCommunityHtml(review,a.catalog_id,top,tags,spoilerLabel(review))+'</section>';
+    }
+    var poster=cat?tmdbImageUrl(cat.poster_path,'w342'):'',backdrop=cat?tmdbImageUrl(cat.backdrop_path,'w500'):'',artwork=poster||backdrop;
+    return '<article class="diary-feed-card feed-review-standard">'+
+      '<div class="diary-feed-poster" '+(a.catalog_id?'data-action="open-show" data-catalog="'+escapeHtml(a.catalog_id)+'"':'')+' style="'+(artwork?'background-image:url(\''+artwork.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+      '<div class="diary-feed-content">'+header+
+        '<div class="diary-feed-title" '+(a.catalog_id?'data-action="open-show" data-catalog="'+escapeHtml(a.catalog_id)+'"':'')+'>'+escapeHtml(a.title||cat&&cat.title||'Série')+'</div>'+
+        (a.rating!=null?'<div class="diary-feed-meta"><span class="diary-feed-pill diary-feed-rating">★ '+Number(a.rating).toFixed(1)+'</span></div>':'')+
+        '<div class="community-review-text">'+escapeHtml(review.review||'')+'</div>'+tags+
+      '</div>'+
+    '</article>';
+  }
+  function followingFeedItemHtml(a){
+    return a&&a.event_type==='review'?reviewFeedCardHtml(a):diaryFeedCardHtml(a);
+  }
   function followingFeedHtml(){
-    if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div></div><div class="tmdb-loading">Carregando diário…</div></section>';
-    if(state.socialFeedError)return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div></div><div class="empty">'+escapeHtml(state.socialFeedError)+'</div></section>';
-    if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div></div><div class="diary-feed-empty"><strong>Ainda não há registros no diário.</strong><br>Quando alguém que você segue registrar uma série ou episódio no diário, ele aparece aqui.</div></section>';
-    return '<section class="social-feed"><div class="section-head"><div class="section-title">Diário de quem você segue</div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(diaryFeedCardHtml).join('')+'</div></section>';
+    if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div></div><div class="tmdb-loading">Carregando atividade…</div></section>';
+    if(state.socialFeedError)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div></div><div class="empty">'+escapeHtml(state.socialFeedError)+'</div></section>';
+    if(!state.socialFeed.length)return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div></div><div class="diary-feed-empty"><strong>Ainda não há atividade recente.</strong><br>Registros no diário e resenhas de quem você segue aparecem aqui.</div></section>';
+    return '<section class="social-feed"><div class="section-head"><div class="section-title">Atividade de quem você segue</div><button class="btn btn-ghost btn-sm" data-action="refresh-social-feed">Atualizar</button></div><div class="social-feed-list">'+state.socialFeed.map(followingFeedItemHtml).join('')+'</div></section>';
   }
   function userProfileStatsHtml(u){
     var avg=u.avg_rating==null?'—':Number(u.avg_rating).toFixed(1);
