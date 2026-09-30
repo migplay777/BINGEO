@@ -1386,7 +1386,7 @@
     var banner=u.banner_url&&/^https?:\/\//i.test(u.banner_url)?u.banner_url:'';
     var socials=Array.isArray(u.social_links)?u.social_links:[];
     var top=Array.isArray(u.top_five)?u.top_five:[],evals=Array.isArray(u.evaluations)?u.evaluations:[],acts=Array.isArray(u.recent_activity)?u.recent_activity:[];
-    var html='<div class="user-view-page '+proProfileSkinClass(u)+'"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
+    var html='<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
       (banner?'<div class="user-view-banner" style="background-image:url(\''+banner.replace(/'/g,'%27')+'\')"></div>':'')+
       '<div class="user-view-head'+(banner?' with-banner':'')+'"><div class="user-view-avatar '+proAvatarFrameClass(u)+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
       '<div style="min-width:0;flex:1;"><div class="'+userNameClass(u)+'" style="'+userNameStyle(u)+'">@'+escapeHtml(u.username||'usuário')+'</div>'+proProfileBadgeHtml(u)+

@@ -92,7 +92,6 @@
         '<div class="pro-benefit-card"><span>↗</span><strong>Redes sociais</strong><p>Adicione seus links diretamente ao perfil.</p></div>'+
         '<div class="pro-benefit-card"><span>◈</span><strong>Mais identidade</strong><p>Deixe sua página realmente diferente das demais.</p></div>'+
       '</div></section>'+
-      proExpansionBenefitsHtml()+
       '<section class="pro-comparison"><div class="section-title">Free × Pro</div><div class="pro-comparison-table"><div class="pro-comparison-row head"><span>Recurso</span><span>Free</span><span>Pro</span></div>'+
         features.map(function(f){return '<div class="pro-comparison-row"><span>'+escapeHtml(f[0])+'</span><span>'+escapeHtml(f[1])+'</span><span class="pro-comparison-pro">'+escapeHtml(f[2])+'</span></div>';}).join('')+
       '</div></section>'+
@@ -261,7 +260,6 @@
       html += '<div class="empty"><strong>Ainda sem dados suficientes.</strong>Adicione e avalie títulos para ver suas estatísticas aqui.</div>';
     }
     html += proOwnHighlightedListHtml();
-    html += proProfileFeatureHubHtml();
     html += ownEvaluationsSectionHtml();
     html += peopleFavoritesSectionsHtml({professionals:state.favoriteProfessionals,characters:state.favoriteCharacters});
     if(favorites.length){
@@ -269,7 +267,7 @@
     }
     if(!hasPro())html+='<section class="profile-pro-teaser"><div class="profile-pro-teaser-copy"><span class="pro-hero-badge">✦ BINGEO PRO</span><h3>Leve seu perfil ainda mais longe</h3><p>Banner personalizado, GIF no avatar, pôsteres do Top 5, nome com efeitos, redes sociais, listas ilimitadas e avaliações avançadas.</p><div class="profile-pro-mini-features"><span>Banner</span><span>GIF</span><span>Top 5</span><span>Listas ∞</span><span>DNA</span></div></div><button class="btn btn-primary" data-action="open-pro" data-source="perfil-rodape">Descobrir Bingeo Pro</button></section>';
     html += '<div class="tmdb-credit"><a class="tmdb-logo-badge" href="https://www.themoviedb.org" target="_blank" rel="noopener noreferrer">TMDB</a><span>This product uses the TMDB API but is not endorsed or certified by TMDB.</span></div>';
-    return '<div class="'+proProfileSkinClass(state.profile)+'">'+html+'</div>';
+    return html;
   }
 
   

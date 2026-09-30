@@ -38,8 +38,6 @@
     else if(state.view==='perfil') root.innerHTML = viewPerfil();
     else if(state.view==='editar-perfil') root.innerHTML = viewEditarPerfil();
     else if(state.view==='pro') root.innerHTML = viewPro();
-    else if(state.view==='pro-estatisticas') root.innerHTML = viewProStatistics();
-    else if(state.view==='pro-wrapped') root.innerHTML = viewProWrapped();
     renderModal();
     bindFormsForCurrentView();
     if(state.professionalOpen||state.userProfileOpen||state.characterOpen)return;
