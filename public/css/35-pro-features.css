@@ -104,3 +104,40 @@
   .pro-episode-art-control{grid-template-columns:92px 1fr}.pro-episode-art-preview{width:92px}
   .pro-review-profile{grid-column:span 1}
 }
+
+
+/* ---- Editals: crítica guiada do Bingeo Pro ---- */
+.review-mode-tabs{display:flex;gap:6px;margin:0 0 12px;padding:4px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2);width:max-content;max-width:100%}
+.review-mode-tabs button{border:0;background:transparent;color:var(--text-muted);padding:7px 13px;border-radius:8px;font:700 11px 'Space Grotesk',sans-serif;cursor:pointer}
+.review-mode-tabs button.active{background:var(--panel);color:var(--text);box-shadow:0 3px 12px rgba(0,0,0,.16)}
+.review-mode-tabs button span{color:var(--violet);font-size:8px;margin-left:4px}
+.review-save-notice{margin:0 0 10px;padding:9px 11px;border:1px solid rgba(74,222,128,.28);border-radius:9px;background:rgba(74,222,128,.08);color:#b7f7cc;font-size:11px;font-weight:700}
+.edital-editor{margin-top:10px;border:1px solid rgba(139,92,246,.24);border-radius:13px;background:linear-gradient(145deg,rgba(139,92,246,.06),rgba(76,124,240,.025)),var(--panel);padding:14px}
+.edital-editor-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.edital-editor-head strong{display:block;font:700 16px 'Space Grotesk',sans-serif}
+.edital-editor-head small{display:block;color:var(--text-muted);font-size:10px;line-height:1.45;margin-top:3px;max-width:560px}
+.edital-tip{margin:11px 0;padding:9px 11px;border-left:2px solid var(--violet);background:rgba(139,92,246,.05);color:var(--text-muted);font-size:10.5px;line-height:1.55}
+.edital-editor-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.edital-editor-grid label{display:flex;flex-direction:column;gap:5px}
+.edital-editor-grid label>span{font-size:9.5px;font-weight:700;color:var(--text)}
+.edital-editor-grid label>span em{display:block;margin-top:2px;font-style:normal;font-weight:400;color:var(--text-dim);font-size:8.5px;line-height:1.35}
+.edital-editor-grid input,.edital-editor-grid select,.edital-editor-grid textarea{width:100%;box-sizing:border-box;border:1px solid var(--line);border-radius:8px;background:var(--panel-2);color:var(--text);padding:9px 10px;font:inherit;font-size:10.5px;outline:none}
+.edital-editor-grid textarea{min-height:110px;resize:vertical;line-height:1.5}
+.edital-editor-grid input:focus,.edital-editor-grid select:focus,.edital-editor-grid textarea:focus{border-color:var(--violet)}
+.edital-editor-grid .edital-wide{grid-column:1/-1}
+.edital-art-box{margin-top:13px;padding-top:12px;border-top:1px solid var(--line)}
+.edital-guide-label{font:700 10px 'Space Grotesk',sans-serif;margin-bottom:7px}
+.edital-art-tabs{display:flex;gap:6px;margin-bottom:9px}
+.edital-art-tab{border:1px solid var(--line);background:var(--panel-2);color:var(--text-muted);padding:6px 10px;border-radius:8px;font-size:9.5px;cursor:pointer}
+.edital-art-tab.active{border-color:var(--violet);color:var(--text);background:rgba(139,92,246,.1)}
+.edital-art-preview{height:150px;border:1px solid var(--line);border-radius:10px;background:#0d0f16 center/cover no-repeat;margin-bottom:9px}
+.edital-art-preview.poster{width:100px;height:150px;background-size:cover}
+.edital-art-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(118px,1fr));gap:8px;margin-top:8px}
+.edital-art-choice{position:relative;aspect-ratio:16/9;border:1px solid var(--line);border-radius:8px;background:#0d0f16 center/cover no-repeat;cursor:pointer;overflow:hidden}
+.edital-art-choice.poster{aspect-ratio:2/3}
+.edital-art-choice.selected{border-color:var(--violet);box-shadow:0 0 0 2px rgba(139,92,246,.18)}
+.edital-art-choice span{position:absolute;left:5px;bottom:5px;padding:3px 5px;border-radius:5px;background:rgba(0,0,0,.7);color:#fff;font-size:8px}
+.edital-lead{margin:9px 0 3px;font-size:11.5px;line-height:1.55;font-weight:600;color:inherit}
+.edital-conclusion{border-top-color:rgba(139,92,246,.3)}
+.community-edital-label{margin-left:5px;padding:2px 5px;border:1px solid rgba(139,92,246,.32);border-radius:999px;color:var(--violet);font-size:8px;vertical-align:middle}
+@media(max-width:700px){.edital-editor-grid{grid-template-columns:1fr}.edital-editor-grid .edital-wide{grid-column:auto}.review-mode-tabs{width:100%}.review-mode-tabs button{flex:1}.edital-art-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
