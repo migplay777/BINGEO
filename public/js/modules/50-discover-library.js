@@ -1,6 +1,13 @@
 /* ---------------- view: home / descobrir ---------------- */
+  function trendingHomeHtml(){
+    var trendIds=Object.keys(state.trending).filter(function(id){return getCatalog(id)&&state.trending[id]>0;}).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);
+    var html='<div class="trending"><div class="trending-head"><h2>Mais faladas no Bingeo</h2><span class="trending-note">Ranking compartilhado entre toda a comunidade · últimos 30 dias</span></div>';
+    if(trendIds.length===0)html+='<p style="color:var(--text-muted);font-size:13px;margin:0;">Ainda não há interações suficientes da comunidade para formar o ranking.</p>';
+    else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id),people=Number(state.trendingUsers[id]||0);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações'+(people?' · '+people+' usuário'+(people===1?'':'s'):'')+'</div></div>';}).join('')+'</div>';
+    return html+'</div>';
+  }
   function viewHome(){
-    return followingFeedHtml()+proHomeBannerHtml();
+    return trendingHomeHtml()+followingFeedHtml()+proHomeBannerHtml();
   }
   function discoverPopularCatalogs(){
     var ids=[
@@ -22,11 +29,6 @@
     html+=popular.length?'<div class="grid">'+popular.map(catalogCardHtml).join('')+'</div>':'<div class="empty">Não foi possível carregar as séries populares.</div>';
     html+='</section>';
 
-    var trendIds=Object.keys(state.trending).filter(function(id){return getCatalog(id)&&state.trending[id]>0;}).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);
-    html+='<div class="trending"><div class="trending-head"><h2>Mais faladas no Bingeo</h2><span class="trending-note">Ranking compartilhado entre toda a comunidade · últimos 30 dias</span></div>';
-    if(trendIds.length===0) html+='<p style="color:var(--text-muted);font-size:13px;margin:0;">Ainda não há interações suficientes da comunidade para formar o ranking.</p>';
-    else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id),people=Number(state.trendingUsers[id]||0);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações'+(people?' · '+people+' usuário'+(people===1?'':'s'):'')+'</div></div>';}).join('')+'</div>';
-    html+='</div>';
     return html;
   }
 
