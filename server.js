@@ -21,6 +21,7 @@ const APP_MODULE_FILES = [
   'js/modules/50-discover-library.js',
   'js/modules/60-lists.js',
   'js/modules/65-pro-features.js',
+  'js/modules/67-review-system.js',
   'js/modules/70-profile.js',
   'js/modules/80-evaluations-modal.js',
   'js/modules/90-render-uploads.js',
