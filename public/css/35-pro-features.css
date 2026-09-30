@@ -141,3 +141,6 @@
 .edital-conclusion{border-top-color:rgba(139,92,246,.3)}
 .community-edital-label{margin-left:5px;padding:2px 5px;border:1px solid rgba(139,92,246,.32);border-radius:999px;color:var(--violet);font-size:8px;vertical-align:middle}
 @media(max-width:700px){.edital-editor-grid{grid-template-columns:1fr}.edital-editor-grid .edital-wide{grid-column:auto}.review-mode-tabs{width:100%}.review-mode-tabs button{flex:1}.edital-art-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.edital-card.has-art.art-poster{background-size:auto 100%;background-position:right center;background-repeat:no-repeat;background-color:var(--panel)}
+.edital-card.has-art.art-poster .pro-review-shade{background:linear-gradient(90deg,rgba(7,8,15,.98),rgba(7,8,15,.9) 58%,rgba(7,8,15,.38))}
