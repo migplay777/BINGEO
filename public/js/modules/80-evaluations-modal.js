@@ -144,15 +144,14 @@
     return 'Spoilers até T'+(review.spoiler_season||'?')+'E'+(review.spoiler_episode||'?');
   }
   function communityReviewHtml(review,catalogId,index){
-    var unlocked=canViewCommunityReview(catalogId,review,index);
+    var unlocked=canViewCommunityReview(catalogId,review,index),isEdital=review&&review.review_type==='edital';
     var rating=review.rating!=null?'★ '+Number(review.rating).toFixed(1):'Sem nota';
-    var top='<div class="community-review-top"><span class="community-review-user">@'+escapeHtml(review.username||'usuário')+'</span><span class="card-stars">'+rating+'</span></div>';
+    var top='<div class="community-review-top"><span class="community-review-user">@'+escapeHtml(review.username||'usuário')+(isEdital?' <span class="community-edital-label">✦ Edital</span>':'')+'</span><span class="card-stars">'+rating+'</span></div>';
     var tags=criteriaSummaryHtml(review.criteria_ratings)+badgesSummaryHtml(review.badges);
     if(!unlocked){
-      return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta resenha está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'">Revelar mesmo assim</button></div></div>';
+      return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta publicação está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'">Revelar mesmo assim</button></div></div>';
     }
-    var proHtml=review.plan==='pro'&&proReviewActive(review.pro_review)?proReviewCommunityHtml(review,catalogId,top,tags,spoilerLabel(review)):'';
-    if(proHtml)return proHtml;
+    if(isEdital)return editalCardHtml(review,catalogId,top,tags,spoilerLabel(review),false);
     return '<div class="community-review">'+top+'<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">'+escapeHtml(spoilerLabel(review))+'</div><div class="community-review-text">'+escapeHtml(review.review||'')+'</div>'+tags+'</div>';
   }
   function seriesCommunityHtml(cat){
@@ -168,7 +167,7 @@
     var lists=Array.isArray(data.popular_lists)?data.popular_lists:[];
     var html='<div class="series-community"><div class="community-head"><div><div class="community-title">Comunidade Bingeo</div><div style="font-size:10.5px;color:var(--text-dim);margin-top:2px;">O que a comunidade está achando</div></div><div class="community-score">'+(data.avg_rating!=null?Number(data.avg_rating).toFixed(1):'—')+' <small>/ 5 · '+Number(data.rating_count||0)+' avaliações</small></div></div>';
     html+='<div class="community-stat-grid"><div class="community-stat"><strong>'+Number(data.watching_count||0)+'</strong><span>assistindo</span></div><div class="community-stat"><strong>'+Number(data.completed_count||0)+'</strong><span>concluíram</span></div><div class="community-stat"><strong>'+Number(data.abandoned_count||0)+'</strong><span>abandonaram</span></div></div>'+distHtml;
-    html+='<div class="community-subtitle">Top reviews</div>'+(reviews.length?reviews.map(function(rv,i){return communityReviewHtml(rv,cat.id,i);}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há resenhas públicas para esta série.</div>');
+    html+='<div class="community-subtitle">Resenhas e Editals</div>'+(reviews.length?reviews.map(function(rv,i){return communityReviewHtml(rv,cat.id,i);}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há resenhas ou Editals visíveis para esta série.</div>');
     if(lists.length){
       html+='<div class="community-subtitle">Listas populares com esta série</div><div class="community-list-row">'+lists.map(function(l){
         return '<div class="community-list-card"><strong>'+escapeHtml(l.name||'Lista')+'</strong><span>por @'+escapeHtml(l.owner||'usuário')+' · '+Number(l.item_count||0)+' títulos</span></div>';
@@ -291,18 +290,8 @@
         '</div>' +
 
         '<div class="modal-section">' +
-          '<label class="field-label">Resenha e spoilers</label>' +
-          '<div class="spoiler-controls">' +
-            '<select id="spoilerLevel"><option value="none" '+((entry.spoilerLevel||'none')==='none'?'selected':'')+'>Sem spoilers</option><option value="episode" '+(entry.spoilerLevel==='episode'?'selected':'')+'>Spoilers até episódio</option><option value="full" '+(entry.spoilerLevel==='full'?'selected':'')+'>Série completa</option></select>' +
-            '<input id="spoilerSeason" type="number" min="1" placeholder="Temp." value="'+(entry.spoilerSeason||'')+'" '+(entry.spoilerLevel==='episode'?'':'disabled')+'>' +
-            '<input id="spoilerEpisode" type="number" min="1" placeholder="Ep." value="'+(entry.spoilerEpisode||'')+'" '+(entry.spoilerLevel==='episode'?'':'disabled')+'>' +
-          '</div>' +
-          '<textarea id="reviewText" placeholder="O que você achou?">' + escapeHtml(entry.review||'') + '</textarea>' +
-          proReviewEditorHtml(entry,cat) +
-          '<div style="margin-top:8px;" class="inline-actions">' +
-            '<button class="btn btn-primary btn-sm" data-action="save-review" data-catalog="' + cat.id + '">Salvar resenha</button>' +
-            '<button class="btn btn-ghost btn-sm" data-action="log-today" data-catalog="' + cat.id + '">Registrar hoje no diário</button>' +
-          '</div>' +
+          '<label class="field-label">'+(hasPro()?'Publicar crítica':'Resenha e spoilers')+'</label>' +
+          reviewComposerHtml(entry,cat) +
         '</div>' +
 
         '<div class="modal-footer">' +
@@ -338,6 +327,7 @@
     if(state.characterOpen)root.innerHTML=viewCharacter();
     else if(state.userProfileOpen)root.innerHTML=viewBingeoUserProfile();
     else if(state.professionalOpen)root.innerHTML=viewProfessional();
+    else if(state.view==='home')root.innerHTML=viewHome();
     else if(state.view==='descobrir')root.innerHTML=viewDescobrir();
     else if(state.view==='estante')root.innerHTML=viewEstante();
     else if(state.view==='diario')root.innerHTML=viewDiario();
