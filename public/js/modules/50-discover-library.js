@@ -1,15 +1,32 @@
-/* ---------------- view: descobrir ---------------- */
+/* ---------------- view: home / descobrir ---------------- */
+  function viewHome(){
+    return followingFeedHtml()+proHomeBannerHtml();
+  }
+  function discoverPopularCatalogs(){
+    var ids=[
+      'round-6','stranger-things','breaking-bad','the-office',
+      'friends','dark','the-last-of-us','house-of-dragon',
+      'bridgerton','euphoria','the-bear','chernobyl'
+    ];
+    return ids.map(getCatalog).filter(Boolean);
+  }
   function viewDescobrir(){
+    var q=state.query.trim();
+    if(q){
+      return '<div class="section-head"><div><div class="section-title">Resultados da busca</div><div style="font-size:11px;color:var(--text-dim);margin-top:3px;">Séries, personagens, profissionais e usuários do Bingeo</div></div></div>'+tmdbSearchResultsHtml();
+    }
+
     var html='';
+    var popular=discoverPopularCatalogs();
+    html+='<section class="section discover-popular"><div class="section-head"><div><div class="section-title">Séries populares</div><div style="font-size:11px;color:var(--text-dim);margin-top:3px;">Algumas das séries mais conhecidas para começar a explorar o Bingeo</div></div></div>';
+    html+=popular.length?'<div class="grid">'+popular.map(catalogCardHtml).join('')+'</div>':'<div class="empty">Não foi possível carregar as séries populares.</div>';
+    html+='</section>';
+
     var trendIds=Object.keys(state.trending).filter(function(id){return getCatalog(id)&&state.trending[id]>0;}).sort(function(a,b){return state.trending[b]-state.trending[a];}).slice(0,8);
-    html+='<div class="trending"><div class="trending-head"><h2>Séries mais faladas do momento</h2><span class="trending-note">Ranking compartilhado entre toda a comunidade do Bingeo · últimos 30 dias</span></div>';
+    html+='<div class="trending"><div class="trending-head"><h2>Mais faladas no Bingeo</h2><span class="trending-note">Ranking compartilhado entre toda a comunidade · últimos 30 dias</span></div>';
     if(trendIds.length===0) html+='<p style="color:var(--text-muted);font-size:13px;margin:0;">Ainda não há interações suficientes da comunidade para formar o ranking.</p>';
     else html+='<div class="trend-row">'+trendIds.map(function(id,i){var cat=getCatalog(id),people=Number(state.trendingUsers[id]||0);return '<div class="trend-card" data-action="open-show" data-catalog="'+cat.id+'">'+posterHtml(cat,'<span class="trend-rank">#'+(i+1)+'</span>','trend-poster')+'<div class="trend-title">'+escapeHtml(cat.title)+'</div><div class="trend-count">'+state.trending[id]+' interações'+(people?' · '+people+' usuário'+(people===1?'':'s'):'')+'</div></div>';}).join('')+'</div>';
     html+='</div>';
-    html+=followingFeedHtml();
-    html+=proHomeBannerHtml();
-    var q=state.query.trim();
-    if(q)html+=tmdbSearchResultsHtml();
     return html;
   }
 
