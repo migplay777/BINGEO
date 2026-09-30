@@ -1,5 +1,11 @@
 /* ---------------- persistent form delegation ---------------- */
   document.addEventListener('change', function(e){
+    var spoilerSel=e.target&&e.target.closest?e.target.closest('#spoilerLevel'):null;
+    if(spoilerSel){
+      var enabled=spoilerSel.value==='episode',ss=document.getElementById('spoilerSeason'),se=document.getElementById('spoilerEpisode');
+      if(ss)ss.disabled=!enabled;if(se)se.disabled=!enabled;
+      return;
+    }
     var statusSel=e.target&&e.target.closest?e.target.closest('#statusSelect'):null;
     if(!statusSel)return;
 
@@ -52,6 +58,7 @@
 
     if(action==='open-pro'){openProView(el.dataset.source||'');return;}
     if(handleProFeatureAction(action,el))return;
+    if(handleEditalAction(action,el))return;
     if(action==='pro-checkout'){alert('A página do Bingeo Pro está pronta. O checkout será conectado quando definirmos o preço e o meio de pagamento.');return;}
 
     if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
@@ -316,20 +323,18 @@ else if(action==='edit-profile'){
       saveData(); syncEntryToSupabase(entryEp); renderMainViewOnly(); renderModalPreserveScroll();
     }
     else if(action==='save-review'){
-      var en4 = getEntry(el.dataset.catalog);
-      var ta = document.getElementById('reviewText');
-      if(en4 && ta){
-        en4.review = ta.value;
-        if(hasPro())en4.proReview=readProReviewForm(en4);
-        var sl=document.getElementById('spoilerLevel'),ss=document.getElementById('spoilerSeason'),se=document.getElementById('spoilerEpisode');
-        en4.spoilerLevel=sl?sl.value:'none';
-        en4.spoilerSeason=en4.spoilerLevel==='episode'&&ss&&ss.value?Number(ss.value):null;
-        en4.spoilerEpisode=en4.spoilerLevel==='episode'&&se&&se.value?Number(se.value):null;
-        en4.dateUpdated=new Date().toISOString();
-        var hasReviewContent=!!ta.value.trim() || (hasPro()&&proReviewHasContent(en4.proReview));
-        if(hasReviewContent) bumpTrending(en4.catalogId,'review');
-        saveData(); syncEntryToSupabase(en4).then(function(){loadSeriesCommunity(en4.catalogId);}); if(hasReviewContent)publishActivity('review',en4,{rating:en4.rating,payload:{spoiler_level:en4.spoilerLevel,spoiler_season:en4.spoilerSeason,spoiler_episode:en4.spoilerEpisode,pro_review:normalizeProReview(en4.proReview||{})}}); renderMainViewOnly(); renderModalPreserveScroll();
-      }
+      var en4=getEntry(el.dataset.catalog);
+      if(!en4)return;
+      el.disabled=true;
+      saveReviewPostFromComposer(en4).then(function(){
+        renderMainViewOnly();
+        renderModalPreserveScroll();
+        clearReviewSaveNoticeLater(en4.catalogId);
+      }).catch(function(err){
+        alert(err.message||'Não foi possível salvar esta publicação.');
+      }).finally(function(){
+        el.disabled=false;
+      });
     }
     else if(action==='delete-diary'){
       state.diary = state.diary.filter(function(d){ return d.id!==el.dataset.entry; });
