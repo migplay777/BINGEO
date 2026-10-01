@@ -31,3 +31,5 @@
 .auth-legal-consent{display:flex;align-items:flex-start;gap:8px;margin:10px 0 2px;color:var(--text-muted);font-size:10px;line-height:1.45}
 .auth-legal-consent input{margin-top:2px;accent-color:var(--violet)}
 .auth-legal-consent a,.auth-foot a{color:var(--violet);text-decoration:none}.auth-legal-consent a:hover,.auth-foot a:hover{text-decoration:underline}
+
+.pro-active-chip-button{font:inherit;cursor:pointer}
