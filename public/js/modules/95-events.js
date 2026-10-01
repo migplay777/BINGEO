@@ -293,8 +293,6 @@ else if(action==='edit-profile'){
     }
     else if(action==='remove-social'){ if(!hasPro()){alert('Links sociais são exclusivos do Bingeo Pro.');return;} var si=parseInt(el.dataset.index,10); if(Array.isArray(state.profile.socialLinks)){state.profile.socialLinks.splice(si,1);saveData();syncProfileToSupabase();render();} }
     else if(action==='tmdb-retry'){var rc=getCatalog(el.dataset.catalog);if(rc)loadTmdbSeries(rc,true).then(function(){renderModalPreserveScroll();}).catch(function(){renderModalPreserveScroll();});}
-    else if(action==='demo-pro'){ state.profile.plan='pro'; saveData(); syncProfileToSupabase(); render(); }
-    else if(action==='demo-free'){ var keepTheme=normalizeTheme(state.profile.nameStyle&&state.profile.nameStyle.theme),keepHighlights=normalizeProfileHighlights(state.profile.nameStyle&&state.profile.nameStyle.highlights,state.profile.topCharacters); state.profile.plan='free'; state.profile.banner=null; state.profile.nameStyle={color:null,effect:'none',theme:keepTheme,highlights:keepHighlights}; state.profile.socialLinks=[]; saveData(); syncProfileToSupabase(); render(); }
     else if(action==='remove-avatar'){ state.profile.photo=null; saveData(); syncProfileToSupabase(); render(); }
     else if(action==='toggle-fav'){
       var en2 = getEntry(el.dataset.catalog);
