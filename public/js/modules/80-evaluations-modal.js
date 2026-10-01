@@ -143,13 +143,15 @@
     if(review.spoiler_level==='full')return 'Spoilers da série completa';
     return 'Spoilers até T'+(review.spoiler_season||'?')+'E'+(review.spoiler_episode||'?');
   }
-  function communityReviewHtml(review,catalogId,index){
-    var unlocked=canViewCommunityReview(catalogId,review,index),isEdital=review&&review.review_type==='edital';
+  function communityReviewHtml(review,catalogId,index,collection){
+    collection=collection==='edital'?'edital':'review';
+    var unlocked=canViewCommunityReview(catalogId,review,index);
+    var isEdital=collection==='edital'||review&&review.review_type==='edital';
     var rating=review.rating!=null?'★ '+Number(review.rating).toFixed(1):'Sem nota';
     var top='<div class="community-review-top"><span class="community-review-user">@'+escapeHtml(review.username||'usuário')+(isEdital?' <span class="community-edital-label">✦ Edital</span>':'')+'</span><span class="card-stars">'+rating+'</span></div>';
     var tags=criteriaSummaryHtml(review.criteria_ratings)+badgesSummaryHtml(review.badges);
     if(!unlocked){
-      return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta publicação está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'">Revelar mesmo assim</button></div></div>';
+      return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta publicação está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'" data-review-collection="'+collection+'">Revelar mesmo assim</button></div></div>';
     }
     if(isEdital)return editalCardHtml(review,catalogId,top,tags,spoilerLabel(review),false);
     return '<div class="community-review">'+top+'<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">'+escapeHtml(spoilerLabel(review))+'</div><div class="community-review-text">'+escapeHtml(review.review||'')+'</div>'+tags+'</div>';
@@ -158,16 +160,29 @@
     var data=state.seriesCommunity[cat.id];
     if(state.communityLoading[cat.id]&&!data)return '<div class="series-community"><div class="tmdb-loading">Carregando comunidade Bingeo…</div></div>';
     if(!data)return '<div class="series-community"><div class="community-title">Comunidade Bingeo</div><div style="font-size:12px;color:var(--text-muted);margin-top:5px;">As notas, resenhas e listas da comunidade aparecem aqui.</div></div>';
+
+    var reviews=Array.isArray(data.top_reviews)?data.top_reviews:[];
+    var editals=Array.isArray(data.editals)?data.editals:[];
+    if(state.seriesEditalsOpen[cat.id]){
+      return '<div class="series-community series-editals-view">'+
+        '<div class="community-editals-head"><div><div class="community-title">Editals de '+escapeHtml(cat.title)+'</div><div class="community-editals-copy">Críticas estruturadas publicadas por usuários do Bingeo Pro.</div></div>'+
+        '<button class="btn btn-ghost btn-sm" data-action="toggle-series-editals" data-catalog="'+escapeHtml(cat.id)+'">← Voltar para a comunidade</button></div>'+
+        '<div class="community-editals-list">'+
+          (editals.length?editals.map(function(rv,i){return communityReviewHtml(rv,cat.id,i,'edital');}).join(''):'<div class="community-editals-empty"><strong>Ainda não há Editals desta série.</strong><span>Quando alguém publicar um Edital visível para você, ele aparecerá aqui.</span></div>')+
+        '</div>'+
+      '</div>';
+    }
+
     var dist=data.distribution||{},max=Math.max(1,Number(dist['1']||0),Number(dist['2']||0),Number(dist['3']||0),Number(dist['4']||0),Number(dist['5']||0));
     var distHtml='<div class="rating-dist">'+[5,4,3,2,1].map(function(n){
       var count=Number(dist[String(n)]||0),pct=(count/max)*100;
       return '<span>'+n+'★</span><div class="rating-dist-track"><div class="rating-dist-fill" style="width:'+pct+'%"></div></div><span>'+count+'</span>';
     }).join('')+'</div>';
-    var reviews=Array.isArray(data.top_reviews)?data.top_reviews:[];
     var lists=Array.isArray(data.popular_lists)?data.popular_lists:[];
     var html='<div class="series-community"><div class="community-head"><div><div class="community-title">Comunidade Bingeo</div><div style="font-size:10.5px;color:var(--text-dim);margin-top:2px;">O que a comunidade está achando</div></div><div class="community-score">'+(data.avg_rating!=null?Number(data.avg_rating).toFixed(1):'—')+' <small>/ 5 · '+Number(data.rating_count||0)+' avaliações</small></div></div>';
     html+='<div class="community-stat-grid"><div class="community-stat"><strong>'+Number(data.watching_count||0)+'</strong><span>assistindo</span></div><div class="community-stat"><strong>'+Number(data.completed_count||0)+'</strong><span>concluíram</span></div><div class="community-stat"><strong>'+Number(data.abandoned_count||0)+'</strong><span>abandonaram</span></div></div>'+distHtml;
-    html+='<div class="community-subtitle">Resenhas e Editals</div>'+(reviews.length?reviews.map(function(rv,i){return communityReviewHtml(rv,cat.id,i);}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há resenhas ou Editals visíveis para esta série.</div>');
+    html+='<div class="community-section-heading"><div><div class="community-subtitle">Resenhas da comunidade</div><div class="community-section-note">Aqui aparecem somente resenhas publicadas por usuários do plano Free.</div></div><button class="community-editals-button" data-action="toggle-series-editals" data-catalog="'+escapeHtml(cat.id)+'"><span>✦ Ver Editals</span><b>'+editals.length+'</b></button></div>';
+    html+=(reviews.length?reviews.map(function(rv,i){return communityReviewHtml(rv,cat.id,i,'review');}).join(''):'<div style="font-size:12px;color:var(--text-muted);">Ainda não há resenhas do plano Free para esta série.</div>');
     if(lists.length){
       html+='<div class="community-subtitle">Listas populares com esta série</div><div class="community-list-row">'+lists.map(function(l){
         return '<div class="community-list-card"><strong>'+escapeHtml(l.name||'Lista')+'</strong><span>por @'+escapeHtml(l.owner||'usuário')+' · '+Number(l.item_count||0)+' títulos</span></div>';
@@ -175,6 +190,7 @@
     }
     return html+'</div>';
   }
+
   async function loadSeriesCommunity(catalogId,rerender){
     if(!catalogId||state.communityLoading[catalogId])return;
     state.communityLoading[catalogId]=true;
