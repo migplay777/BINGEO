@@ -144,3 +144,21 @@
 
 .edital-card.has-art.art-poster{background-size:auto 100%;background-position:right center;background-repeat:no-repeat;background-color:var(--panel)}
 .edital-card.has-art.art-poster .pro-review-shade{background:linear-gradient(90deg,rgba(7,8,15,.98),rgba(7,8,15,.9) 58%,rgba(7,8,15,.38))}
+
+/* Editals mais compactos: formato próximo de 4:3, sem cortar textos longos */
+.edital-card{
+  width:min(100%,760px);
+  min-height:480px;
+  margin-left:auto;
+  margin-right:auto;
+}
+.edital-card .pro-review-inner{
+  padding:20px 22px;
+}
+@media(max-width:820px){
+  .edital-card{width:100%;min-height:400px;}
+}
+@media(max-width:640px){
+  .edital-card{min-height:0;}
+  .edital-card .pro-review-inner{padding:16px;}
+}
