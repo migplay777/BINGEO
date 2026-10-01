@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Segurança — Bingeo</title>
+<link rel="icon" type="image/jpeg" href="/assets/bingeo-logo.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/legal/legal.css?v=20261001-1">
+</head>
+<body><main class="legal-shell">
+<div class="legal-top"><a class="legal-brand" href="/">Bingeo<span>.</span></a><a class="legal-back" href="/">← Voltar ao Bingeo</a></div>
+<section class="legal-hero"><div class="legal-kicker">SEGURANÇA DO SERVIÇO</div><h1>Segurança</h1><div class="legal-sub">Princípios e controles usados para reduzir riscos em contas, dados e pagamentos.</div><span class="legal-version">Versão 01/10/2026</span></section>
+<div class="legal-nav"><a href="/legal/termos.html">Termos</a><a href="/legal/privacidade.html">Privacidade</a><a href="/legal/reembolsos-cancelamento.html">Cancelamento e reembolso</a><a href="/legal/seguranca.html">Segurança</a></div>
+<div class="legal-card legal-warning legal-config-warning"><strong>Aviso de pré-lançamento comercial.</strong><p>Os dados jurídicos do fornecedor ainda não foram configurados. O Bingeo bloqueia a contratação paga enquanto nome/razão social, CPF/CNPJ, endereço e canais de atendimento obrigatórios não estiverem publicados.</p></div>
+
+<section class="legal-card"><h2>Identificação do fornecedor</h2><div class="supplier-grid">
+<b>Fornecedor</b><span class="legal-supplier-name"></span>
+<b>CPF/CNPJ</b><span class="legal-supplier-tax"></span>
+<b>Endereço</b><span class="legal-supplier-address"></span>
+<b>Suporte</b><span class="legal-support-email"></span>
+<b>Privacidade/LGPD</b><span class="legal-privacy-email"></span>
+</div></section>
+<section class="legal-card legal-highlight"><h2>Pagamento isolado do Bingeo</h2>
+<p>O checkout é hospedado pelo Asaas. O Bingeo não cria campos próprios para capturar número completo do cartão ou CVV e não armazena esses dados. O servidor recebe apenas identificadores e estados necessários para ativar, cancelar, conciliar ou estornar a assinatura.</p></section>
+<section class="legal-card"><h2>1. Controles técnicos</h2>
+<ul><li>HTTPS/HSTS, política de conteúdo e cabeçalhos de segurança.</li>
+<li>Autorização por sessão válida e Row Level Security no banco.</li>
+<li>Dados financeiros operacionais segregados em schema privado e sem acesso direto pelo navegador.</li>
+<li>Privilégios mínimos para funções e tabelas sensíveis.</li>
+<li>Limites de requisição e validação de tamanho/formato de entradas e uploads.</li>
+<li>Chaves privadas mantidas somente como segredos do servidor, nunca no JavaScript público.</li></ul></section>
+<section class="legal-card"><h2>2. Webhooks de pagamento</h2>
+<p>Notificações do Asaas são aceitas somente com token de autenticação dedicado. Cada evento possui identificador persistido para idempotência, reduzindo o risco de processar duas vezes uma mesma cobrança. O redirecionamento do navegador após o checkout nunca é tratado como prova de pagamento.</p></section>
+<section class="legal-card"><h2>3. Assinatura Pro controlada pelo servidor</h2>
+<p>O usuário não consegue transformar a própria conta em Pro alterando JavaScript ou enviando um valor de plano diretamente ao banco. O plano é atualizado pelo backend a partir do estado de cobrança validado e por regras de banco que impedem elevação de plano pelo cliente.</p></section>
+<section class="legal-card"><h2>4. Privacidade por minimização</h2>
+<p>Dados de cartão permanecem no processador. Para prova de aceite contratual, o Bingeo registra versões dos documentos aceitos e hashes protegidos de informações técnicas, em vez de armazenar esses valores em claro quando não são necessários.</p></section>
+<section class="legal-card"><h2>5. Comunicação de vulnerabilidades e incidentes</h2>
+<p>Suspeitas de acesso indevido, falhas de conta ou vulnerabilidades podem ser comunicadas para <strong class="legal-support-email"></strong>. Questões relacionadas a dados pessoais podem ser enviadas para <strong class="legal-privacy-email"></strong>. O Bingeo poderá preservar logs estritamente necessários para investigar e mitigar incidentes.</p></section>
+
+<footer class="legal-footer">Bingeo · documentos aplicáveis ao serviço digital e ao plano Bingeo Pro. Nenhuma cláusula pretende afastar direitos obrigatórios previstos na legislação brasileira.</footer>
+</main><script src="/legal/legal.js?v=20261001-1"></script></body></html>
