@@ -99,10 +99,7 @@
       '<section class="pro-comparison"><div class="section-title">Free × Pro</div><div class="pro-comparison-table"><div class="pro-comparison-row head"><span>Recurso</span><span>Free</span><span>Pro</span></div>'+
         features.map(function(f){return '<div class="pro-comparison-row"><span>'+escapeHtml(f[0])+'</span><span>'+escapeHtml(f[1])+'</span><span class="pro-comparison-pro">'+escapeHtml(f[2])+'</span></div>';}).join('')+
       '</div></section>'+
-      '<section class="pro-purchase-card">'+
-        '<div><span class="pro-purchase-eyebrow">ASSINATURA</span><h2>Bingeo Pro</h2><p>O checkout e o preço serão conectados na próxima etapa da implementação.</p></div>'+
-        (active?'<span class="pro-current-plan">✓ Plano ativo</span>':'<button class="btn btn-primary" data-action="pro-checkout">Continuar para assinatura</button>')+
-      '</section>'+
+      billingProPurchaseHtml(active)+
     '</div>';
   }
 
