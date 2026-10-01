@@ -1,12 +1,15 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const TMDB_READ_TOKEN = process.env.TMDB_READ_TOKEN;
 const THETVDB_API_KEY = process.env.THETVDB_API_KEY;
 const THETVDB_PIN = process.env.THETVDB_PIN || '';
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://bazujvpppbxxiymxweiq.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || 'sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
 let theTvdbToken = null;
 let theTvdbTokenExpiresAt = 0;
 
@@ -70,6 +73,51 @@ function fixedWindowRateLimit({windowMs, max, prefix}) {
   };
 }
 app.use('/api', fixedWindowRateLimit({windowMs:60 * 1000, max:180, prefix:'api'}));
+
+const verifiedApiTokens = new Map();
+const API_TOKEN_CACHE_MAX = 5000;
+async function requireAuthenticatedApiUser(req, res, next) {
+  if (req.path === '/health') return next();
+
+  const raw = String(req.get('authorization') || '');
+  const match = raw.match(/^Bearer\s+([^\s]+)$/i);
+  if (!match || match[1].length < 20 || match[1].length > 4096) {
+    return res.status(401).json({error:'Autenticação necessária.'});
+  }
+
+  const token = match[1];
+  const cacheKey = crypto.createHash('sha256').update(token).digest('hex');
+  const now = Date.now();
+  const cachedUntil = verifiedApiTokens.get(cacheKey) || 0;
+  if (cachedUntil > now) return next();
+
+  try {
+    const response = await fetch(SUPABASE_URL + '/auth/v1/user', {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/json'
+      },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (!response.ok) {
+      return res.status(401).json({error:'Sessão inválida ou expirada.'});
+    }
+
+    verifiedApiTokens.set(cacheKey, now + 60000);
+    if (verifiedApiTokens.size > API_TOKEN_CACHE_MAX) {
+      for (const [key, expiresAt] of verifiedApiTokens) {
+        if (expiresAt <= now) verifiedApiTokens.delete(key);
+        if (verifiedApiTokens.size <= API_TOKEN_CACHE_MAX) break;
+      }
+    }
+    return next();
+  } catch (error) {
+    console.error('Falha ao validar sessão da API:', error && error.message ? error.message : 'erro desconhecido');
+    return res.status(503).json({error:'Não foi possível validar a sessão agora.'});
+  }
+}
+app.use('/api', requireAuthenticatedApiUser);
 
 function safeProxyPath(raw) {
   const value = String(raw || '');
