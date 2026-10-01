@@ -287,7 +287,7 @@ else if(action==='edit-profile'){
     else if(action==='add-social'){
       if(!hasPro()){alert('Links sociais são exclusivos do Bingeo Pro.');return;}
       var sp=document.getElementById('socialPlatform'),su=document.getElementById('socialUrl'); var url=normalizeSocialUrl(su?su.value:'');
-      if(!url || !validSocialUrl(url)){alert('Informe uma URL HTTP/HTTPS válida.');return;}
+      if(!url || !validSocialUrl(url)){alert('Informe uma URL HTTPS válida.');return;}
       state.profile.socialLinks=Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[];
       state.profile.socialLinks.push({id:uid(),platform:sp?sp.value:'website',url:url}); if(su)su.value=''; saveData(); syncProfileToSupabase(); render();
     }
