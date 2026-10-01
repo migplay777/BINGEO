@@ -65,7 +65,12 @@
     editalComments:{},
     editalCommentsOpen:{},
     editalCommentLoading:{},
-    seriesEditalsOpen:{}
+    seriesEditalsOpen:{},
+    billingConfig:null,
+    billingStatus:null,
+    billingLoading:false,
+    billingError:'',
+    billingNotice:''
   };
   var tmdbHydrationPromises={};
   var characterLocalCache={};
@@ -240,6 +245,11 @@
     state.editalCommentsOpen={};
     state.editalCommentLoading={};
     state.seriesEditalsOpen={};
+    state.billingConfig=null;
+    state.billingStatus=null;
+    state.billingLoading=false;
+    state.billingError='';
+    state.billingNotice='';
     state.userSearchResults=[];
     state.userProfileOpen=null;
     state.userProfileData=null;
