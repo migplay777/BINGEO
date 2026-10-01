@@ -232,6 +232,45 @@ async function asaasRequest(method,resource,body) {
   return data;
 }
 
+const ASAAS_BILLING_EVENTS=[
+  'CHECKOUT_CREATED','CHECKOUT_CANCELED','CHECKOUT_EXPIRED','CHECKOUT_PAID',
+  'SUBSCRIPTION_CREATED','SUBSCRIPTION_UPDATED','SUBSCRIPTION_INACTIVATED','SUBSCRIPTION_DELETED',
+  'PAYMENT_CREATED','PAYMENT_UPDATED','PAYMENT_CONFIRMED','PAYMENT_RECEIVED',
+  'PAYMENT_OVERDUE','PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
+  'PAYMENT_REFUNDED','PAYMENT_PARTIALLY_REFUNDED','PAYMENT_REFUND_IN_PROGRESS',
+  'PAYMENT_CHARGEBACK_REQUESTED','PAYMENT_CHARGEBACK_DISPUTE'
+];
+
+async function ensureAsaasWebhook() {
+  if(!ASAAS_API_KEY||!ASAAS_WEBHOOK_TOKEN||!BINGEO_SUPPORT_EMAIL)return {configured:false,reason:'missing_config'};
+  const targetUrl=BINGEO_BASE_URL+'/api/billing/webhooks/asaas';
+  try{
+    const list=await asaasRequest('GET','/webhooks?offset=0&limit=100');
+    const rows=Array.isArray(list)?list:(Array.isArray(list&&list.data)?list.data:[]);
+    const existing=rows.find(item=>item&&String(item.url||'')===targetUrl);
+    const payload={
+      name:'Bingeo Billing',
+      url:targetUrl,
+      email:BINGEO_SUPPORT_EMAIL,
+      enabled:true,
+      interrupted:false,
+      apiVersion:3,
+      authToken:ASAAS_WEBHOOK_TOKEN,
+      sendType:'SEQUENTIALLY',
+      events:ASAAS_BILLING_EVENTS
+    };
+    if(existing&&existing.id){
+      await asaasRequest('PUT','/webhooks/'+encodeURIComponent(existing.id),payload);
+      return {configured:true,mode:'updated',id:existing.id};
+    }
+    const created=await asaasRequest('POST','/webhooks',payload);
+    return {configured:true,mode:'created',id:created&&created.id||null};
+  }catch(error){
+    console.error('Não foi possível configurar o webhook Asaas:',error&&error.message?error.message:error);
+    return {configured:false,reason:'provider_error'};
+  }
+}
+
 function saoPauloDateTime(minutesAhead=2) {
   const d=new Date(Date.now()+minutesAhead*60000);
   const parts=new Intl.DateTimeFormat('en-CA',{
@@ -819,4 +858,9 @@ app.get('/api/health', (_req, res) => {
 });
 
 
-app.listen(PORT, () => console.log('Bingeo rodando na porta ' + PORT));
+app.listen(PORT, () => {
+  console.log('Bingeo rodando na porta ' + PORT);
+  ensureAsaasWebhook().then(result=>{
+    if(result&&result.configured)console.log('Webhook Asaas pronto ('+result.mode+').');
+  });
+});
