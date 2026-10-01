@@ -18,8 +18,10 @@
     var signup=mode==='signup';
     document.getElementById('authUsernameField').style.display=signup?'block':'none';
     document.getElementById('authConfirmField').style.display=signup?'block':'none';
+    document.getElementById('authLegalField').style.display=signup?'flex':'none';
     document.getElementById('authUsername').required=signup;
     document.getElementById('authConfirmPassword').required=signup;
+    document.getElementById('authLegalConsent').required=signup;
     document.getElementById('authSubmit').textContent=signup?'Criar conta':'Entrar';
     var passwordInput=document.getElementById('authPassword'),confirmInput=document.getElementById('authConfirmPassword');
     passwordInput.autocomplete=signup?'new-password':'current-password';
@@ -42,6 +44,7 @@
       if(username.length<3||username.length>30){err.textContent='O nome de usuário precisa ter entre 3 e 30 caracteres.';return;}
       if(password.length<8){err.textContent='A senha precisa ter pelo menos 8 caracteres.';return;}
       if(password!==confirmPassword){err.textContent='As senhas não coincidem.';return;}
+      if(!document.getElementById('authLegalConsent').checked){err.textContent='Leia e aceite os Termos de Uso e a Política de Privacidade para criar a conta.';return;}
     }
     btn.disabled=true;btn.textContent='Aguarde…';
     try{
@@ -51,7 +54,12 @@
           email:email,
           password:password,
           options:{
-            data:{username:username},
+            data:{
+              username:username,
+              legal_accepted:true,
+              terms_version:'2026-10-01',
+              privacy_version:'2026-10-01'
+            },
             emailRedirectTo:authRedirectUrl()
           }
         });
