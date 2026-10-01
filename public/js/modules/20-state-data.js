@@ -483,7 +483,14 @@
   }
   async function uploadProfileDataUrl(dataUrl,kind){
     if(!currentUserId||!/^data:image\//i.test(String(dataUrl||'')))return dataUrl;
-    var blob=dataUrlToBlob(dataUrl),ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'')||'jpg';
+    if(kind!=='avatar'&&kind!=='banner')throw new Error('Tipo de mídia de perfil inválido.');
+    var blob=dataUrlToBlob(dataUrl);
+    var allowed=['image/jpeg','image/png','image/webp','image/gif'];
+    if(allowed.indexOf(String(blob.type||'').toLowerCase())===-1)throw new Error('Formato de imagem não permitido.');
+    if(blob.size>8*1024*1024)throw new Error('A imagem excede o limite de 8 MB.');
+    if(kind==='banner'&&!hasPro())throw new Error('Banner é exclusivo do Bingeo Pro.');
+    if(kind==='avatar'&&blob.type==='image/gif'&&!hasPro())throw new Error('GIF no avatar é exclusivo do Bingeo Pro.');
+    var ext=(blob.type.split('/')[1]||'jpg').replace('jpeg','jpg').replace(/[^a-z0-9]/gi,'')||'jpg';
     var path=currentUserId+'/'+kind+'-'+Date.now()+'.'+ext;
     var result=await supabaseClient.storage.from('profile-media').upload(path,blob,{contentType:blob.type,upsert:true});
     if(result.error)throw result.error;
