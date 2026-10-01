@@ -24,7 +24,13 @@
   }
   function tmdbCacheGet(key,maxAgeMs){var cache=tmdbCacheRead(),item=cache[key];if(!item||!item.savedAt)return null;if(maxAgeMs&&Date.now()-item.savedAt>maxAgeMs){delete cache[key];return null;}return item.value||null;}
   function tmdbCacheSet(key,value){var cache=tmdbCacheRead();cache[key]={savedAt:Date.now(),value:value};var keys=Object.keys(cache);if(keys.length>60){keys.sort(function(a,b){return cache[a].savedAt-cache[b].savedAt;}).slice(0,keys.length-60).forEach(function(k){delete cache[k];});}tmdbCacheWrite(cache);}
-  async function tmdbFetch(path,params){params=params||{};var qs=[];Object.keys(params).forEach(function(k){if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));});var url='/api/tmdb'+path+(qs.length?'?'+qs.join('&'):'');var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);try{var res=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});if(!res.ok){var msg='TMDB HTTP '+res.status;try{var body=await res.json();if(body&&(body.status_message||body.error))msg=body.status_message||body.error;}catch(e){}throw new Error(msg);}return await res.json();}catch(err){if(err&&err.name==='AbortError')throw new Error('A TMDB demorou para responder. Tente novamente.');throw err;}finally{clearTimeout(timer);}}
+  async function bingeoApiHeaders(){
+    var result=await supabaseClient.auth.getSession();
+    var session=result&&result.data&&result.data.session;
+    if(!session||!session.access_token)throw new Error('Sua sessão expirou. Entre novamente para continuar.');
+    return {'Accept':'application/json','X-Bingeo-Session':session.access_token};
+  }
+  async function tmdbFetch(path,params){params=params||{};var qs=[];Object.keys(params).forEach(function(k){if(params[k]!==undefined&&params[k]!==null&&params[k]!=='')qs.push(encodeURIComponent(k)+'='+encodeURIComponent(params[k]));});var url='/api/tmdb'+path+(qs.length?'?'+qs.join('&'):'');var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);try{var res=await fetch(url,{headers:await bingeoApiHeaders(),signal:controller.signal});if(!res.ok){var msg='TMDB HTTP '+res.status;try{var body=await res.json();if(body&&(body.status_message||body.error))msg=body.status_message||body.error;}catch(e){}throw new Error(msg);}return await res.json();}catch(err){if(err&&err.name==='AbortError')throw new Error('A TMDB demorou para responder. Tente novamente.');throw err;}finally{clearTimeout(timer);}}
   async function tvmazeFetch(path,params){
     params=params||{};
     var qs=[];
@@ -34,7 +40,7 @@
     var url='/api/tvmaze/'+String(path||'').replace(/^\/+/, '')+(qs.length?'?'+qs.join('&'):'');
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
     try{
-      var res=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+      var res=await fetch(url,{headers:await bingeoApiHeaders(),signal:controller.signal});
       if(!res.ok){
         var msg='TVmaze HTTP '+res.status;
         try{var body=await res.json();if(body&&body.error)msg=body.error;}catch(e){}
@@ -53,7 +59,7 @@
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
     try{
       var res=await fetch('/api/anilist/search?q='+encodeURIComponent(title),{
-        headers:{'Accept':'application/json'},
+        headers:await bingeoApiHeaders(),
         signal:controller.signal
       });
       if(!res.ok){
@@ -74,7 +80,7 @@
     if(!name)return [];
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
     try{
-      var res=await fetch('/api/anilist/characters/search?q='+encodeURIComponent(name),{headers:{'Accept':'application/json'},signal:controller.signal});
+      var res=await fetch('/api/anilist/characters/search?q='+encodeURIComponent(name),{headers:await bingeoApiHeaders(),signal:controller.signal});
       if(!res.ok)throw new Error('AniList personagens HTTP '+res.status);
       var data=await res.json(),page=data&&data.data&&data.data.Page;
       return page&&Array.isArray(page.characters)?page.characters:[];
@@ -88,7 +94,7 @@
     if(!name)return [];
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
     try{
-      var res=await fetch('/api/jikan/characters/search?q='+encodeURIComponent(name),{headers:{'Accept':'application/json'},signal:controller.signal});
+      var res=await fetch('/api/jikan/characters/search?q='+encodeURIComponent(name),{headers:await bingeoApiHeaders(),signal:controller.signal});
       if(!res.ok)throw new Error('Jikan HTTP '+res.status);
       var data=await res.json();
       return Array.isArray(data&&data.data)?data.data:[];
@@ -101,7 +107,7 @@
     if(!malId)return [];
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},12000);
     try{
-      var res=await fetch('/api/jikan/characters/'+encodeURIComponent(malId)+'/pictures',{headers:{'Accept':'application/json'},signal:controller.signal});
+      var res=await fetch('/api/jikan/characters/'+encodeURIComponent(malId)+'/pictures',{headers:await bingeoApiHeaders(),signal:controller.signal});
       if(!res.ok)throw new Error('Jikan imagens HTTP '+res.status);
       var data=await res.json();
       return Array.isArray(data&&data.data)?data.data:[];
@@ -164,7 +170,7 @@
     var url='/api/thetvdb/'+String(path||'').replace(/^\/+/, '')+(qs.length?'?'+qs.join('&'):'');
     var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},14000);
     try{
-      var res=await fetch(url,{headers:{'Accept':'application/json'},signal:controller.signal});
+      var res=await fetch(url,{headers:await bingeoApiHeaders(),signal:controller.signal});
       if(!res.ok){
         var msg='TheTVDB HTTP '+res.status;
         try{var body=await res.json();if(body&&(body.message||body.error))msg=body.message||body.error;}catch(e){}
