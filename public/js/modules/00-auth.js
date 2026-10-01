@@ -21,7 +21,10 @@
     document.getElementById('authUsername').required=signup;
     document.getElementById('authConfirmPassword').required=signup;
     document.getElementById('authSubmit').textContent=signup?'Criar conta':'Entrar';
-    document.getElementById('authPassword').autocomplete=signup?'new-password':'current-password';
+    var passwordInput=document.getElementById('authPassword'),confirmInput=document.getElementById('authConfirmPassword');
+    passwordInput.autocomplete=signup?'new-password':'current-password';
+    passwordInput.minLength=signup?8:1;
+    confirmInput.minLength=signup?8:1;
     document.getElementById('authLoginTab').classList.toggle('active',!signup);
     document.getElementById('authSignupTab').classList.toggle('active',signup);
     document.getElementById('authSubtitle').textContent=signup?'Crie sua conta para salvar estante, avaliações, diário e listas em um só lugar.':'Entre para continuar acompanhando suas séries, avaliações, diário e listas.';
@@ -36,7 +39,8 @@
     if(authMode==='signup'){
       var confirmPassword=document.getElementById('authConfirmPassword').value;
       var username=document.getElementById('authUsername').value.trim();
-      if(username.length<3){err.textContent='O nome de usuário precisa ter pelo menos 3 caracteres.';return;}
+      if(username.length<3||username.length>30){err.textContent='O nome de usuário precisa ter entre 3 e 30 caracteres.';return;}
+      if(password.length<8){err.textContent='A senha precisa ter pelo menos 8 caracteres.';return;}
       if(password!==confirmPassword){err.textContent='As senhas não coincidem.';return;}
     }
     btn.disabled=true;btn.textContent='Aguarde…';
