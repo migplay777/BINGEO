@@ -64,7 +64,8 @@
     editalArtworkLoading:{},
     editalComments:{},
     editalCommentsOpen:{},
-    editalCommentLoading:{}
+    editalCommentLoading:{},
+    seriesEditalsOpen:{}
   };
   var tmdbHydrationPromises={};
   var characterLocalCache={};
@@ -238,6 +239,7 @@
     state.editalComments={};
     state.editalCommentsOpen={};
     state.editalCommentLoading={};
+    state.seriesEditalsOpen={};
     state.userSearchResults=[];
     state.userProfileOpen=null;
     state.userProfileData=null;
