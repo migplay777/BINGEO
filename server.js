@@ -30,6 +30,7 @@ const securityHeaders = (_req, res, next) => {
       "frame-ancestors 'none'",
       "form-action 'self'",
       "script-src 'self' https://cdn.jsdelivr.net",
+      "script-src-attr 'none'",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: blob: https:",
@@ -37,9 +38,7 @@ const securityHeaders = (_req, res, next) => {
       'upgrade-insecure-requests'
     ].join('; ')
   );
-  if (process.env.NODE_ENV === 'production') {
-    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
-  }
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   next();
 };
 app.use(securityHeaders);
@@ -212,7 +211,7 @@ app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
     const body = await response.text();
     res.status(response.status);
     res.set('Content-Type', response.headers.get('content-type') || 'application/json');
-    if (response.ok) res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+    if (response.ok) res.set('Cache-Control', 'private, max-age=300');
     res.send(body);
   } catch (error) {
     console.error('Erro ao acessar TMDB:', error);
@@ -245,7 +244,7 @@ app.get(/^\/api\/tvmaze\/(.*)/, async (req, res) => {
     res.set('Content-Type', response.headers.get('content-type') || 'application/json');
 
     if (response.ok) {
-      res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.set('Cache-Control', 'private, max-age=3600');
     }
 
     res.send(body);
@@ -339,7 +338,7 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
     res.set('Content-Type', response.headers.get('content-type') || 'application/json');
 
     if (response.ok) {
-      res.set('Cache-Control', 'public, s-maxage=3600, stale-while-revalidate=86400');
+      res.set('Cache-Control', 'private, max-age=3600');
     }
 
     res.send(body);
@@ -414,7 +413,7 @@ app.get('/api/anilist/search', async (req, res) => {
     if (retryAfter) res.set('Retry-After', retryAfter);
 
     if (response.ok) {
-      res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+      res.set('Cache-Control', 'private, max-age=86400');
     }
 
     res.send(body);
@@ -453,7 +452,7 @@ app.get('/api/anilist/characters/search', async (req, res) => {
     res.set('Content-Type', response.headers.get('content-type') || 'application/json');
     const retryAfter = response.headers.get('retry-after');
     if (retryAfter) res.set('Retry-After', retryAfter);
-    if (response.ok) res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    if (response.ok) res.set('Cache-Control', 'private, max-age=86400');
     res.send(body);
   } catch (error) {
     console.error('Erro ao acessar personagens da AniList:', error);
@@ -476,7 +475,7 @@ app.get('/api/jikan/characters/search', async (req, res) => {
     res.set('Content-Type', response.headers.get('content-type') || 'application/json');
     const retryAfter = response.headers.get('retry-after');
     if (retryAfter) res.set('Retry-After', retryAfter);
-    if (response.ok) res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    if (response.ok) res.set('Cache-Control', 'private, max-age=86400');
     res.send(body);
   } catch (error) {
     console.error('Erro ao pesquisar personagem na Jikan:', error);
@@ -498,7 +497,7 @@ app.get('/api/jikan/characters/:malId/pictures', async (req, res) => {
     res.set('Content-Type', response.headers.get('content-type') || 'application/json');
     const retryAfter = response.headers.get('retry-after');
     if (retryAfter) res.set('Retry-After', retryAfter);
-    if (response.ok) res.set('Cache-Control', 'public, s-maxage=86400, stale-while-revalidate=604800');
+    if (response.ok) res.set('Cache-Control', 'private, max-age=86400');
     res.send(body);
   } catch (error) {
     console.error('Erro ao buscar imagens do personagem na Jikan:', error);
