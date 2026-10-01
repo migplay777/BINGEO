@@ -57,9 +57,9 @@
     closeHeaderProfileMenu();
 
     if(action==='open-pro'){openProView(el.dataset.source||'');return;}
+    if(handleBillingAction(action,el))return;
     if(handleProFeatureAction(action,el))return;
     if(handleEditalAction(action,el))return;
-    if(action==='pro-checkout'){alert('A página do Bingeo Pro está pronta. O checkout será conectado quando definirmos o preço e o meio de pagamento.');return;}
 
     if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
     else if(action==='share-own-profile'){
