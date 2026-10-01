@@ -222,8 +222,8 @@
   }
   function socialLabel(platform){var m={instagram:'Instagram',x:'X',twitter:'X',tiktok:'TikTok',youtube:'YouTube',twitch:'Twitch',discord:'Discord',github:'GitHub',website:'Site'};return m[platform]||platform;}
   function socialIcon(platform){var m={instagram:'◎',x:'𝕏',twitter:'𝕏',tiktok:'♪',youtube:'▶',twitch:'▣',discord:'◈',github:'◉',website:'↗'};return m[platform]||'↗';}
-  function validSocialUrl(url){try{var u=new URL(url);return u.protocol==='https:'||u.protocol==='http:';}catch(e){return false;}}
-  function normalizeSocialUrl(url){var u=(url||'').trim();if(!u)return '';if(!/^https?:\/\//i.test(u))u='https://'+u;return u;}
+  function validSocialUrl(url){try{var u=new URL(url);return u.protocol==='https:';}catch(e){return false;}}
+  function normalizeSocialUrl(url){var u=(url||'').trim();if(!u)return '';if(!/^https?:\/\//i.test(u))u='https://'+u;if(/^http:\/\//i.test(u))u='https://'+u.slice(7);return u;}
   function profileShareUrl(userId){
     var base=(window.location.origin||'https://bingeo.onrender.com').replace(/\/$/,'');
     return base+'/?perfil='+encodeURIComponent(userId||currentUserId||'');
