@@ -185,14 +185,17 @@ function hmacAudit(value) {
 
 async function supabaseServiceRpc(name,payload) {
   if (!SUPABASE_SECRET_KEY) throw new Error('SUPABASE_SECRET_KEY não configurada.');
+  const headers={
+    apikey:SUPABASE_SECRET_KEY,
+    Accept:'application/json',
+    'Content-Type':'application/json'
+  };
+  if (!String(SUPABASE_SECRET_KEY).startsWith('sb_secret_')) {
+    headers.Authorization='Bearer '+SUPABASE_SECRET_KEY;
+  }
   const response=await fetch(SUPABASE_URL+'/rest/v1/rpc/'+encodeURIComponent(name),{
     method:'POST',
-    headers:{
-      apikey:SUPABASE_SECRET_KEY,
-      Authorization:'Bearer '+SUPABASE_SECRET_KEY,
-      Accept:'application/json',
-      'Content-Type':'application/json'
-    },
+    headers,
     body:JSON.stringify(payload||{}),
     signal:AbortSignal.timeout(10000)
   });
@@ -796,14 +799,24 @@ app.get('/api/jikan/characters/:malId/pictures', async (req, res) => {
   }
 });
 
-app.get('/api/health', (_req, res) => res.json({
-  ok: true,
-  tmdbConfigured: !!TMDB_READ_TOKEN,
-  tvmazeConfigured: true,
-  thetvdbConfigured: !!THETVDB_API_KEY,
-  anilistConfigured: true,
-  jikanConfigured: true
-}));
+app.get('/api/health', (_req, res) => {
+  const billing=billingLegalConfig();
+  res.json({
+    ok:true,
+    tmdbConfigured:!!TMDB_READ_TOKEN,
+    tvmazeConfigured:true,
+    thetvdbConfigured:!!THETVDB_API_KEY,
+    anilistConfigured:true,
+    jikanConfigured:true,
+    billing:{
+      provider:'asaas',
+      environment:ASAAS_ENV,
+      technicalReady:billing.technicalReady,
+      legalReady:billing.legalReady,
+      ready:billing.ready
+    }
+  });
+});
 
 
 app.listen(PORT, () => console.log('Bingeo rodando na porta ' + PORT));
