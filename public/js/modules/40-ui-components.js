@@ -78,6 +78,9 @@
     state.query='';
     state.view='pro';
     render();
+    Promise.allSettled([loadBillingConfig(),loadBillingStatus()]).then(function(){
+      if(state.view==='pro')renderMainViewOnly();
+    });
   }
 
   /* ---------------- stars widget ---------------- */
