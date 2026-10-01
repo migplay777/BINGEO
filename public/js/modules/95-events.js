@@ -239,8 +239,15 @@
     else if(action==='reveal-spoiler'){
       var rvData=state.seriesCommunity[el.dataset.catalog];
       var rvIndex=Number(el.dataset.reviewIndex)||0;
-      var rv=rvData&&rvData.top_reviews&&rvData.top_reviews[rvIndex];
+      var rvCollection=el.dataset.reviewCollection==='edital'?'editals':'top_reviews';
+      var rv=rvData&&rvData[rvCollection]&&rvData[rvCollection][rvIndex];
       if(rv){state.revealedSpoilers[spoilerKey(el.dataset.catalog,rv,rvIndex)]=true;renderModalPreserveScroll();}
+    }
+    else if(action==='toggle-series-editals'){
+      var editalCatalog=String(el.dataset.catalog||'');
+      if(!editalCatalog)return;
+      state.seriesEditalsOpen[editalCatalog]=!state.seriesEditalsOpen[editalCatalog];
+      renderModalPreserveScroll();
     }
 else if(action==='edit-profile'){
       state.userProfileOpen=null;state.userProfileData=null;state.professionalOpen=null;state.characterOpen=null;state.modalCatalogId=null;state.query='';state.profile.editing=false;state.view='editar-perfil';render();
