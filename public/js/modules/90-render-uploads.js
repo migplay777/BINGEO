@@ -191,6 +191,12 @@
   }
 
   /* ---------------- avatar/banner upload ---------------- */
+  function safeImageUpload(file,maxBytes){
+    if(!file)return false;
+    var allowed=['image/jpeg','image/png','image/webp','image/gif'];
+    if(allowed.indexOf(String(file.type||'').toLowerCase())===-1)return false;
+    return Number(file.size||0)>0&&Number(file.size||0)<=Number(maxBytes||8*1024*1024);
+  }
   function readAndResizeImage(file){
     return new Promise(function(resolve, reject){
       if(file && file.type==='image/gif' && hasPro()){
@@ -224,6 +230,7 @@
   document.getElementById('avatarInput').addEventListener('change', function(e){
     var file = e.target.files && e.target.files[0];
     if(!file) return;
+    if(!safeImageUpload(file,8*1024*1024)){alert('Use JPG, PNG, WEBP ou GIF de até 8 MB.');e.target.value='';return;}
     if(file.type==='image/gif' && !hasPro()){ alert('GIF na foto de perfil é exclusivo do Bingeo Pro.'); e.target.value=''; return; }
     readAndResizeImage(file).then(function(dataUrl){
       state.profile.photo = dataUrl;
@@ -234,8 +241,7 @@
   document.getElementById('bannerInput').addEventListener('change', function(e){
     var file=e.target.files&&e.target.files[0]; if(!file)return;
     if(!hasPro()){alert('Banner é exclusivo do Bingeo Pro.');e.target.value='';return;}
-    if(!file.type || file.type.indexOf('image/')!==0){alert('Selecione um arquivo de imagem.');e.target.value='';return;}
-    if(file.size>15*1024*1024){alert('Escolha uma imagem de até 15 MB. A imagem original será mantida sem compressão.');e.target.value='';return;}
+    if(!safeImageUpload(file,8*1024*1024)){alert('Use JPG, PNG, WEBP ou GIF de até 8 MB.');e.target.value='';return;}
     readImage(file).then(function(data){state.profile.banner=data;saveData();syncProfileToSupabase();render();}).catch(function(err){console.error('Erro ao processar banner',err);});
     e.target.value='';
   });
@@ -258,6 +264,7 @@
   document.getElementById('listCoverInput').addEventListener('change',function(e){
     var file=e.target.files&&e.target.files[0],list=state.lists.find(function(l){return l.id===state.listCoverTarget;});
     e.target.value='';if(!file||!list||!currentUserId)return;
+    if(!safeImageUpload(file,12*1024*1024)){alert('Use JPG, PNG, WEBP ou GIF de até 12 MB.');return;}
     resizeListCoverBlob(file).then(function(blob){
       var path=currentUserId+'/'+slugify(list.id)+'-'+Date.now()+'.jpg';
       return supabaseClient.storage.from('list-covers').upload(path,blob,{contentType:'image/jpeg',upsert:true}).then(function(result){
@@ -273,7 +280,7 @@
   }
   document.getElementById('listBannerInput').addEventListener('change',function(e){
     var file=e.target.files&&e.target.files[0],list=state.lists.find(function(l){return l.id===state.proListBannerTarget;});e.target.value='';
-    if(!file||!list||!currentUserId)return;if(!hasPro()){openProView('lista-banner');return;}if(!file.type||file.type.indexOf('image/')!==0){alert('Selecione uma imagem válida.');return;}if(file.size>15*1024*1024){alert('Escolha uma imagem de até 15 MB.');return;}
+    if(!file||!list||!currentUserId)return;if(!hasPro()){openProView('lista-banner');return;}if(!safeImageUpload(file,12*1024*1024)){alert('Use JPG, PNG, WEBP ou GIF de até 12 MB.');return;}
     resizeListBannerBlob(file).then(function(blob){var path=currentUserId+'/banner-'+slugify(list.id)+'-'+Date.now()+'.jpg';return supabaseClient.storage.from('list-covers').upload(path,blob,{contentType:'image/jpeg',upsert:true}).then(function(result){if(result.error)throw result.error;var pub=supabaseClient.storage.from('list-covers').getPublicUrl(path);ensureListProSettings(list).bannerUrl=pub.data.publicUrl;list.updatedAt=new Date().toISOString();saveData();return syncListToSupabase(list);});}).then(renderMainViewOnly).catch(function(err){alert(err.message||'Não foi possível enviar o banner.');});
   });
 
