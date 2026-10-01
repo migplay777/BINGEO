@@ -35,10 +35,11 @@
       <label class="auth-field"><span>E-mail</span><input id="authEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
       <label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="1" required placeholder="Sua senha"></label>
       <label class="auth-field" id="authConfirmField" style="display:none"><span>Confirmar senha</span><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Repita sua senha"></label>
+      <label class="auth-legal-consent" id="authLegalField" style="display:none"><input id="authLegalConsent" type="checkbox"><span>Ao criar minha conta, declaro que li e aceito os <a href="/legal/termos.html" target="_blank" rel="noopener">Termos de Uso</a> e a <a href="/legal/privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</span></label>
       <div class="auth-error" id="authError"></div>
       <button class="btn btn-primary auth-submit" type="submit" id="authSubmit">Entrar</button>
     </form>
-    <div class="auth-foot">Sua conta mantém seus dados separados e protegidos no Bingeo.</div>
+    <div class="auth-foot">Sua conta mantém seus dados separados e protegidos no Bingeo. <a href="/legal/termos.html" target="_blank" rel="noopener">Termos</a> · <a href="/legal/privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
   </div>
 </div>
 <div id="appShell" style="display:none">
@@ -93,6 +94,6 @@
   <span>Pagamentos Pro processados pelo Asaas</span>
 </footer>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="/js/app.bundle.js?v=20261001-asaas-v1"></script>
+<script src="/js/app.bundle.js?v=20261001-asaas-v2"></script>
 </body>
 </html>
