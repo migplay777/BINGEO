@@ -1,0 +1,29 @@
+/* Billing / checkout */
+.billing-notice{margin:0 0 14px;padding:12px 14px;border-radius:11px;border:1px solid rgba(74,222,128,.25);background:rgba(74,222,128,.07);color:var(--text);font-size:12px;line-height:1.5}
+.billing-notice.error{border-color:rgba(248,113,113,.28);background:rgba(248,113,113,.08)}
+.billing-purchase-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(260px,.72fr);gap:22px;align-items:start}
+.billing-purchase-card.active{grid-template-columns:minmax(0,1fr) auto}
+.billing-plan-copy h2{margin:3px 0 4px}
+.billing-price{display:flex;align-items:baseline;gap:7px;margin:8px 0}
+.billing-price strong{font:700 34px 'Space Grotesk',sans-serif;letter-spacing:-.045em}
+.billing-price span{color:var(--text-muted);font-size:12px}
+.billing-plan-copy>p{max-width:620px;color:var(--text-muted);font-size:12.5px;line-height:1.55}
+.billing-plan-copy>small{display:block;color:var(--text-dim);margin-top:6px}
+.billing-security-line{display:flex;gap:9px;align-items:flex-start;margin-top:14px;padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.billing-security-line>span{color:#7ee2a8;font-size:13px}.billing-security-line div{display:flex;flex-direction:column;gap:2px}
+.billing-security-line strong{font-size:11px}.billing-security-line small{font-size:9.5px;color:var(--text-muted);line-height:1.45}
+.billing-contract-summary{display:flex;flex-direction:column;gap:6px;padding:13px;border:1px solid rgba(139,92,246,.2);border-radius:11px;background:rgba(139,92,246,.05);font-size:10.5px;color:var(--text-muted)}
+.billing-contract-summary strong{color:var(--text);font:700 12px 'Space Grotesk',sans-serif;margin-bottom:2px}
+.billing-consents{grid-column:1/-1;display:grid;gap:7px;padding:12px 13px;border:1px solid var(--line);border-radius:11px;background:var(--panel-2)}
+.billing-consents label{display:flex;align-items:flex-start;gap:8px;font-size:10.5px;line-height:1.45;color:var(--text-muted);cursor:pointer}
+.billing-consents input{margin-top:2px;accent-color:var(--violet)}
+.billing-consents a,.billing-legal-links a{color:var(--violet);text-decoration:none}.billing-consents a:hover,.billing-legal-links a:hover{text-decoration:underline}
+.billing-checkout-btn{grid-column:1/-1;justify-self:start;min-width:230px}
+.billing-pending-note{grid-column:1/-1;font-size:10px;color:var(--text-dim);line-height:1.5}
+.billing-legal-links{grid-column:1/-1;display:flex;gap:12px;flex-wrap:wrap;padding-top:9px;border-top:1px solid var(--line);font-size:9.5px}
+.billing-manage-actions{display:flex;flex-direction:column;gap:8px;min-width:220px}
+.billing-status-chip{padding:8px 11px;border-radius:999px;border:1px solid rgba(74,222,128,.25);background:rgba(74,222,128,.06);font-size:10px;text-align:center}
+.billing-rights-note{grid-column:1/-1;font-size:10px;line-height:1.5;color:var(--text-muted);padding:10px 12px;border-left:2px solid var(--violet);background:rgba(139,92,246,.045)}
+.site-legal-footer{max-width:1180px;margin:0 auto;padding:0 28px 30px;display:flex;justify-content:center;gap:13px;flex-wrap:wrap;font-size:9.5px;color:var(--text-dim)}
+.site-legal-footer a{color:inherit;text-decoration:none}.site-legal-footer a:hover{color:var(--text);text-decoration:underline}
+@media(max-width:760px){.billing-purchase-card,.billing-purchase-card.active{grid-template-columns:1fr}.billing-manage-actions{min-width:0}.billing-checkout-btn{width:100%;justify-self:stretch}.billing-price strong{font-size:29px}}
