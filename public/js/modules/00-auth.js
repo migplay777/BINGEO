@@ -110,11 +110,17 @@
         loadOwnPeopleFavorites()
       ]);
       if(currentUserId!==nextUserId)return;
+      await refreshBillingEntitlement();
+      if(currentUserId!==nextUserId)return;
+      var billingSuccessReturn=handleBillingReturn();
       appBooted=true;
       render();
+      if(billingSuccessReturn)pollBillingConfirmation();
       setTimeout(indexCharactersFromLibrary,700);
-      if(!(await openSharedListTarget()))await openSharedProfileTarget();
+      if(!billingSuccessReturn&&!(await openSharedListTarget()))await openSharedProfileTarget();
     }else{
+      var billingSuccessExisting=handleBillingReturn();
+      if(billingSuccessExisting){render();pollBillingConfirmation();return;}
       if(!(await openSharedListTarget()))await openSharedProfileTarget();
     }
   }
