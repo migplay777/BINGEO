@@ -533,12 +533,10 @@
         await saveData();
       }
       var payload={
-        id:userId,
         username:state.profile.username||null,
         bio:state.profile.bio||'',
         avatar_url:/^https?:\/\//i.test(String(state.profile.photo||''))?state.profile.photo:null,
         banner_url:/^https?:\/\//i.test(String(state.profile.banner||''))?state.profile.banner:null,
-        plan:state.profile.plan==='pro'?'pro':'free',
         name_style:state.profile.nameStyle||{color:null,effect:'none'},
         social_links:Array.isArray(state.profile.socialLinks)?state.profile.socialLinks:[],
         top_five:(state.profile.topFive||[]).filter(Boolean).slice(0,5),
@@ -548,7 +546,7 @@
         updated_at:new Date().toISOString()
       };
       if(currentUserId!==userId)return;
-      var result=await supabaseClient.from('profiles').upsert(payload,{onConflict:'id'});
+      var result=await supabaseClient.from('profiles').update(payload).eq('id',userId);
       if(result.error)throw result.error;
     }catch(e){console.error('Erro ao sincronizar perfil com Supabase:',e);}
   }
