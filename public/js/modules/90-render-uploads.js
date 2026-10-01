@@ -19,7 +19,13 @@
     });
     var nameEl=document.getElementById('accountMenuUsername');if(nameEl)nameEl.textContent=username;
     var planEl=document.getElementById('accountMenuPlan');if(planEl)planEl.textContent=hasPro()?'✦ Bingeo Pro':'Plano gratuito';
-    var menuPro=document.getElementById('accountProCard');if(menuPro)menuPro.hidden=hasPro();
+    var menuPro=document.getElementById('accountProCard');
+    if(menuPro){
+      menuPro.hidden=false;
+      var proTitle=menuPro.querySelector('strong'),proCopy=menuPro.querySelector('small');
+      if(proTitle)proTitle.textContent=hasPro()?'Gerenciar Bingeo Pro':'Bingeo Pro';
+      if(proCopy)proCopy.textContent=hasPro()?'Assinatura, cancelamento, reembolso e benefícios.':'Perfis personalizados, listas ilimitadas, avaliações avançadas e Editals.';
+    }
   }
   function render(){
     renderHeaderAccount();
