@@ -72,7 +72,9 @@
     var price=billingMoney(cfg.price||14.90);
     if(active){
       var end=billingDate(status.current_period_end),canceled=!!status.cancel_at_period_end;
-      return billingNoticeHtml()+
+      var paymentIssue=status.subscription_status==='past_due'||status.latest_payment_status==='PAYMENT_OVERDUE'||status.latest_payment_status==='PAYMENT_CREDIT_CARD_CAPTURE_REFUSED';
+      var issueHtml=paymentIssue?'<div class="billing-notice error">Não conseguimos confirmar a cobrança mais recente. Seu acesso pode permanecer temporariamente durante o período de tolerância. Atualize o pagamento pelo checkout ou contate o suporte para evitar a perda do Pro.</div>':'';
+      return billingNoticeHtml()+issueHtml+
         '<section class="pro-purchase-card billing-purchase-card active">'+
           '<div class="billing-plan-copy"><span class="pro-purchase-eyebrow">SUA ASSINATURA</span><h2>Bingeo Pro</h2>'+
             '<div class="billing-price"><strong>'+price+'</strong><span>/ mês</span></div>'+
