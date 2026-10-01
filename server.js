@@ -11,6 +11,91 @@ let theTvdbToken = null;
 let theTvdbTokenExpiresAt = 0;
 
 app.disable('x-powered-by');
+app.set('trust proxy', 1);
+
+const securityHeaders = (_req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'DENY');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(self)');
+  res.setHeader(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "script-src 'self' https://cdn.jsdelivr.net",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: blob: https:",
+      "connect-src 'self' https://bazujvpppbxxiymxweiq.supabase.co wss://bazujvpppbxxiymxweiq.supabase.co",
+      'upgrade-insecure-requests'
+    ].join('; ')
+  );
+  if (process.env.NODE_ENV === 'production') {
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  next();
+};
+app.use(securityHeaders);
+
+const rateBuckets = new Map();
+const RATE_BUCKET_MAX_KEYS = 10000;
+function fixedWindowRateLimit({windowMs, max, prefix}) {
+  return (req, res, next) => {
+    const now = Date.now();
+    const key = prefix + ':' + (req.ip || req.socket.remoteAddress || 'unknown');
+    let bucket = rateBuckets.get(key);
+    if (!bucket || now >= bucket.resetAt) {
+      bucket = {count:0, resetAt:now + windowMs};
+      rateBuckets.set(key, bucket);
+    }
+    bucket.count += 1;
+    res.setHeader('RateLimit-Limit', String(max));
+    res.setHeader('RateLimit-Remaining', String(Math.max(0, max - bucket.count)));
+    res.setHeader('RateLimit-Reset', String(Math.ceil(bucket.resetAt / 1000)));
+    if (bucket.count > max) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((bucket.resetAt - now) / 1000))));
+      return res.status(429).json({error:'Muitas requisições. Tente novamente em instantes.'});
+    }
+    if (rateBuckets.size > RATE_BUCKET_MAX_KEYS) {
+      for (const [k, v] of rateBuckets) {
+        if (now >= v.resetAt) rateBuckets.delete(k);
+        if (rateBuckets.size <= RATE_BUCKET_MAX_KEYS) break;
+      }
+    }
+    next();
+  };
+}
+app.use('/api', fixedWindowRateLimit({windowMs:60 * 1000, max:180, prefix:'api'}));
+
+function safeProxyPath(raw) {
+  const value = String(raw || '');
+  if (!value || value.length > 240) return null;
+  if (value.includes('..') || value.includes('\\') || value.includes('?') || value.includes('#')) return null;
+  if (!/^[A-Za-z0-9._/-]+$/.test(value)) return null;
+  return value.replace(/^\/+/, '');
+}
+function safeProxyQuery(queryObject) {
+  const entries = Object.entries(queryObject || {});
+  if (entries.length > 24) return null;
+  const query = new URLSearchParams();
+  for (const [key, raw] of entries) {
+    if (!/^[A-Za-z0-9_.-]{1,80}$/.test(key)) return null;
+    const values = Array.isArray(raw) ? raw : [raw];
+    if (values.length > 12) return null;
+    for (const value of values) {
+      if (value == null) continue;
+      const text = String(value);
+      if (text.length > 500) return null;
+      query.append(key, text);
+    }
+  }
+  return query.toString().length <= 2200 ? query : null;
+}
+
 
 const APP_MODULE_FILES = [
   'js/modules/00-auth.js',
@@ -63,11 +148,10 @@ app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
     return res.status(500).json({ error: 'TMDB não configurado no servidor.' });
   }
 
-  const tmdbPath = req.params[0] || '';
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(req.query)) {
-    if (Array.isArray(value)) value.forEach(v => query.append(key, v));
-    else if (value != null) query.append(key, value);
+  const tmdbPath = safeProxyPath(req.params[0]);
+  const query = safeProxyQuery(req.query);
+  if (!tmdbPath || query === null) {
+    return res.status(400).json({error:'Requisição TMDB inválida.'});
   }
 
   const url = 'https://api.themoviedb.org/3/' + tmdbPath + (query.toString() ? '?' + query.toString() : '');
@@ -92,12 +176,10 @@ app.get(/^\/api\/tmdb\/(.*)/, async (req, res) => {
 });
 
 app.get(/^\/api\/tvmaze\/(.*)/, async (req, res) => {
-  const tvmazePath = req.params[0] || '';
-  const query = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(req.query)) {
-    if (Array.isArray(value)) value.forEach(v => query.append(key, v));
-    else if (value != null) query.append(key, value);
+  const tvmazePath = safeProxyPath(req.params[0]);
+  const query = safeProxyQuery(req.query);
+  if (!tvmazePath || query === null) {
+    return res.status(400).json({error:'Requisição TVmaze inválida.'});
   }
 
   const url = 'https://api.tvmaze.com/' + tvmazePath +
@@ -188,12 +270,10 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
     return res.status(503).json({ error: 'TheTVDB não configurado no servidor.' });
   }
 
-  const tvdbPath = req.params[0] || '';
-  const query = new URLSearchParams();
-
-  for (const [key, value] of Object.entries(req.query)) {
-    if (Array.isArray(value)) value.forEach(v => query.append(key, v));
-    else if (value != null) query.append(key, value);
+  const tvdbPath = safeProxyPath(req.params[0]);
+  const query = safeProxyQuery(req.query);
+  if (!tvdbPath || query === null) {
+    return res.status(400).json({error:'Requisição TheTVDB inválida.'});
   }
 
   const url = 'https://api4.thetvdb.com/v4/' + tvdbPath +
@@ -229,7 +309,7 @@ app.get(/^\/api\/thetvdb\/(.*)/, async (req, res) => {
 app.get('/api/anilist/search', async (req, res) => {
   const search = String(req.query.q || '').trim();
 
-  if (!search) {
+  if (!search || search.length > 120) {
     return res.status(400).json({ error: 'Título do anime é obrigatório.' });
   }
 
@@ -301,7 +381,7 @@ app.get('/api/anilist/search', async (req, res) => {
 
 app.get('/api/anilist/characters/search', async (req, res) => {
   const search = String(req.query.q || '').trim();
-  if (!search) return res.status(400).json({ error: 'Nome do personagem é obrigatório.' });
+  if (!search || search.length > 120) return res.status(400).json({ error: 'Nome do personagem inválido.' });
 
   const query = `
     query ($search: String) {
@@ -338,7 +418,7 @@ app.get('/api/anilist/characters/search', async (req, res) => {
 
 app.get('/api/jikan/characters/search', async (req, res) => {
   const search = String(req.query.q || '').trim();
-  if (!search) return res.status(400).json({ error: 'Nome do personagem é obrigatório.' });
+  if (!search || search.length > 120) return res.status(400).json({ error: 'Nome do personagem inválido.' });
 
   const params = new URLSearchParams({ q: search, limit: '10', order_by: 'favorites', sort: 'desc' });
   try {
