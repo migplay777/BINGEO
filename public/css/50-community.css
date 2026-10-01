@@ -246,3 +246,21 @@
     .list-visibility-options{grid-template-columns:1fr;}
     .list-create-head{flex-direction:column;}
   }
+
+
+/* ---- Resenhas Free x Editals dentro da série ---- */
+.community-section-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:14px 0 8px;flex-wrap:wrap}
+.community-section-heading .community-subtitle{margin:0}
+.community-section-note{font-size:9.5px;color:var(--text-dim);margin-top:3px;line-height:1.35}
+.community-editals-button{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(139,92,246,.36);background:rgba(139,92,246,.08);color:var(--text);border-radius:9px;padding:7px 10px;font:700 10.5px 'Space Grotesk',sans-serif;cursor:pointer}
+.community-editals-button:hover{border-color:var(--violet);background:rgba(139,92,246,.14)}
+.community-editals-button span{color:#e7deff}
+.community-editals-button b{min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:rgba(139,92,246,.18);color:#d9ccff;font-size:9px}
+.series-editals-view{background:linear-gradient(160deg,rgba(139,92,246,.12),rgba(76,124,240,.03))}
+.community-editals-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.community-editals-copy{font-size:10.5px;color:var(--text-muted);margin-top:3px}
+.community-editals-list{display:block}
+.community-editals-empty{padding:16px;border:1px dashed rgba(139,92,246,.34);border-radius:10px;background:rgba(139,92,246,.04);color:var(--text-muted);font-size:11px}
+.community-editals-empty strong{display:block;color:var(--text);font-size:12px;margin-bottom:4px}
+.community-editals-empty span{display:block;line-height:1.45}
+@media(max-width:640px){.community-section-heading{align-items:stretch}.community-editals-button{width:100%;justify-content:space-between}.community-editals-head .btn{width:100%}}
