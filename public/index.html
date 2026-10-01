@@ -32,8 +32,8 @@
     <form id="authForm">
       <label class="auth-field" id="authUsernameField" style="display:none"><span>Nome de usuário</span><input id="authUsername" autocomplete="username" maxlength="30" placeholder="seu_usuario"></label>
       <label class="auth-field"><span>E-mail</span><input id="authEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
-      <label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></label>
-      <label class="auth-field" id="authConfirmField" style="display:none"><span>Confirmar senha</span><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Repita sua senha"></label>
+      <label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="1" required placeholder="Sua senha"></label>
+      <label class="auth-field" id="authConfirmField" style="display:none"><span>Confirmar senha</span><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Repita sua senha"></label>
       <div class="auth-error" id="authError"></div>
       <button class="btn btn-primary auth-submit" type="submit" id="authSubmit">Entrar</button>
     </form>
@@ -85,6 +85,6 @@
 <input type="file" id="listBannerInput" accept="image/*" hidden>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/js/app.bundle.js?v=20260930-series-editals-v1"></script>
+<script src="/js/app.bundle.js?v=20260930-security-v1"></script>
 </body>
 </html>
