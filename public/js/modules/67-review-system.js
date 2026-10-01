@@ -216,7 +216,7 @@
     entry.spoilerSeason=row.spoiler_season;
     entry.spoilerEpisode=row.spoiler_episode;
     if(mode==='review')entry.review=text;
-    else entry.proReview=editalLegacyShape(edital);
+    else entry.proReview=normalizeProReview({});
     entry.dateUpdated=new Date().toISOString();
     saveData();syncEntryToSupabase(entry);
     bumpTrending(cid,'review');
