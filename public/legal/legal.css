@@ -1,0 +1,15 @@
+:root{color-scheme:dark;--bg:#0b0c11;--panel:#11131a;--panel2:#171922;--text:#f0eff6;--muted:#a3a5b2;--line:#282b37;--violet:#9b79ff;--green:#7ee2a8}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Manrope,Arial,sans-serif;line-height:1.65}
+a{color:var(--violet)}.legal-shell{max-width:900px;margin:0 auto;padding:34px 24px 70px}
+.legal-top{display:flex;justify-content:space-between;gap:16px;align-items:center;margin-bottom:32px}.legal-brand{font:700 24px 'Space Grotesk',sans-serif;text-decoration:none;color:var(--text)}.legal-brand span{color:var(--violet)}
+.legal-back{font-size:12px;text-decoration:none;color:var(--muted)}
+.legal-hero{padding:28px;border:1px solid var(--line);border-radius:18px;background:linear-gradient(145deg,rgba(139,92,246,.08),rgba(255,255,255,.018)),var(--panel);margin-bottom:22px}
+.legal-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--violet)}h1{font:700 34px 'Space Grotesk',sans-serif;letter-spacing:-.04em;margin:7px 0 8px}h2{font:700 19px 'Space Grotesk',sans-serif;margin:30px 0 9px}h3{font:700 14px 'Space Grotesk',sans-serif;margin:20px 0 6px}
+.legal-sub{color:var(--muted);font-size:13px}.legal-version{display:inline-flex;margin-top:12px;padding:5px 8px;border-radius:999px;border:1px solid var(--line);font-size:9px;color:var(--muted)}
+.legal-card{padding:20px 22px;border:1px solid var(--line);border-radius:14px;background:var(--panel);margin:13px 0}.legal-card p,.legal-card li{font-size:12.5px;color:var(--muted)}
+.legal-card strong{color:var(--text)}ul{padding-left:19px}.legal-highlight{border-color:rgba(126,226,168,.24);background:rgba(126,226,168,.045)}
+.legal-warning{border-color:rgba(251,191,36,.22);background:rgba(251,191,36,.045)}
+.supplier-grid{display:grid;grid-template-columns:160px 1fr;gap:7px 12px;font-size:12px}.supplier-grid b{color:var(--muted);font-weight:600}.supplier-grid span{word-break:break-word}
+.legal-nav{display:flex;gap:8px;flex-wrap:wrap;margin:20px 0}.legal-nav a{padding:7px 9px;border:1px solid var(--line);border-radius:8px;text-decoration:none;font-size:10px;color:var(--muted)}
+.legal-footer{margin-top:36px;padding-top:18px;border-top:1px solid var(--line);font-size:10px;color:var(--muted)}
+@media(max-width:620px){.legal-shell{padding:22px 16px 55px}.legal-hero{padding:20px}h1{font-size:28px}.supplier-grid{grid-template-columns:1fr}.supplier-grid b{margin-top:5px}}
