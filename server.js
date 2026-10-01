@@ -79,13 +79,10 @@ const API_TOKEN_CACHE_MAX = 5000;
 async function requireAuthenticatedApiUser(req, res, next) {
   if (req.path === '/health') return next();
 
-  const raw = String(req.get('authorization') || '');
-  const match = raw.match(/^Bearer\s+([^\s]+)$/i);
-  if (!match || match[1].length < 20 || match[1].length > 4096) {
+  const token = String(req.get('x-bingeo-session') || '');
+  if (token.length < 20 || token.length > 4096 || /\s/.test(token)) {
     return res.status(401).json({error:'Autenticação necessária.'});
   }
-
-  const token = match[1];
   const cacheKey = crypto.createHash('sha256').update(token).digest('hex');
   const now = Date.now();
   const cachedUntil = verifiedApiTokens.get(cacheKey) || 0;
