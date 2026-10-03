@@ -448,8 +448,8 @@
       return true;
     }
     if(action==='edital-create-new'){
-      state.view='descobrir';state.query='';render();
-      setTimeout(function(){var input=document.getElementById('searchInput');if(input){input.focus();input.placeholder='Busque a série para criar seu Edital…';}},0);
+      state.createEditalIntent=true;state.view='descobrir';state.query='';render();
+      setTimeout(function(){var input=document.getElementById('searchInput');if(input)input.focus();},0);
       return true;
     }
     if(action==='edital-manage-visibility'){
