@@ -270,6 +270,8 @@
 .edital-card>.edital-comments-panel{position:relative;z-index:3;margin:0;border-radius:0;border:0;border-top:1px solid rgba(255,255,255,.10);padding:11px 13px;background:rgba(7,8,13,.88);color:#fff}
 .edital-card:not(.has-art)>.edital-comments-panel{background:var(--panel-2);color:var(--text);border-top-color:var(--line)}
 .feed-original-author{width:100%;font-size:9px;color:var(--text-dim);margin-top:1px}
+.feed-original-author button{appearance:none;border:0;background:none;color:inherit;padding:0;font:inherit;cursor:pointer}
+.feed-original-author button:hover{color:var(--text);text-decoration:underline}
 .feed-reason-chip.repost{border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.08);color:var(--violet)}
 
 @media(max-width:640px){
