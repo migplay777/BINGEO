@@ -161,23 +161,34 @@
             tmdbSearchTimer=setTimeout(function(){
               var queryAtRequest=state.query.trim();
               var tvTask=tmdbConfigured()?tmdbSearchTV(queryAtRequest):Promise.resolve([]);
-              var peopleTask=tmdbConfigured()?tmdbSearchPeople(queryAtRequest):Promise.resolve([]);
-              var characterTask=searchBingeoCharacters(queryAtRequest);
-              Promise.allSettled([tvTask,peopleTask,characterTask,searchBingeoUsers(queryAtRequest)]).then(function(results){
+              var userTask=searchBingeoUsers(queryAtRequest);
+              function paintSearch(){
+                if(req!==state.tmdbSearchRequest||state.view!=='descobrir'||state.professionalOpen||state.userProfileOpen||state.characterOpen)return;
+                var searchRoot=document.getElementById('viewRoot');
+                searchRoot.innerHTML=viewDescobrir();
+                var ni=document.getElementById('searchInput');if(ni){ni.focus();ni.setSelectionRange(pos,pos);}
+              }
+              Promise.allSettled([tvTask,userTask]).then(function(primary){
                 if(req!==state.tmdbSearchRequest)return;
-                state.tmdbSearchResults=results[0].status==='fulfilled'?(results[0].value||[]):[];
-                state.tmdbPersonResults=results[1].status==='fulfilled'?(results[1].value||[]):[];
-                state.characterSearchResults=results[2].status==='fulfilled'?(results[2].value||[]):[];
-                state.userSearchResults=results[3].status==='fulfilled'?(results[3].value||[]):[];
-                hydrateCharacterSearchArtwork(state.characterSearchResults);
-                var failures=results.filter(function(x){return x.status==='rejected';});
-                state.tmdbSearchError=failures.length===results.length?(failures[0].reason&&failures[0].reason.message||'Erro ao buscar.'):'';
+                state.tmdbSearchResults=primary[0].status==='fulfilled'?(primary[0].value||[]):[];
+                state.userSearchResults=primary[1].status==='fulfilled'?(primary[1].value||[]):[];
                 state.tmdbSearchLoading=false;
-                if(state.view==='descobrir'&&!state.professionalOpen&&!state.userProfileOpen&&!state.characterOpen){
-                  var searchRoot=document.getElementById('viewRoot');
-                  searchRoot.innerHTML=viewDescobrir();
-                  var ni=document.getElementById('searchInput');if(ni){ni.focus();ni.setSelectionRange(pos,pos);}
-                }
+                var primaryFailures=primary.filter(function(x){return x.status==='rejected';});
+                state.tmdbSearchError=primaryFailures.length===primary.length?(primaryFailures[0].reason&&primaryFailures[0].reason.message||'Erro ao buscar.'):'';
+                paintSearch();
+
+                var characterTask=searchBingeoCharacters(queryAtRequest);
+                var peopleTask=tmdbConfigured()?tmdbSearchPeople(queryAtRequest):Promise.resolve([]);
+                Promise.allSettled([characterTask,peopleTask]).then(function(secondary){
+                  if(req!==state.tmdbSearchRequest)return;
+                  state.characterSearchResults=secondary[0].status==='fulfilled'?(secondary[0].value||[]):[];
+                  state.tmdbPersonResults=secondary[1].status==='fulfilled'?(secondary[1].value||[]):[];
+                  hydrateCharacterSearchArtwork(state.characterSearchResults);
+                  if(!state.tmdbSearchResults.length&&!state.userSearchResults.length&&secondary.every(function(x){return x.status==='rejected';})){
+                    state.tmdbSearchError=secondary[0].reason&&secondary[0].reason.message||'Erro ao buscar.';
+                  }
+                  paintSearch();
+                });
               });
             },350);
           }else{
