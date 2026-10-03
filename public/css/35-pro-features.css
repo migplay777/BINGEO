@@ -198,6 +198,13 @@
 .pro-page .pro-purchase-card{
   transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
 }
+.pro-page .pro-visual-compare,
+.pro-page .pro-benefits,
+.pro-page .pro-comparison,
+.pro-page .pro-purchase-card{
+  content-visibility:auto;
+  contain-intrinsic-size:1px 420px;
+}
 .pro-page .pro-benefit-card:hover,
 .pro-page .pro-profile-preview:hover{
   transform:translateY(-3px);
