@@ -108,7 +108,7 @@
   .header-profile-btn:focus-visible{outline:2px solid rgba(139,92,246,.38);outline-offset:2px;}
   .header-profile-avatar,.account-menu-avatar{background:var(--panel-2) center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:var(--text);font-family:'Space Grotesk',sans-serif;font-weight:700;}
   .header-profile-avatar{width:32px;height:32px;border-radius:50%;font-size:12px;}
-  .account-menu-panel{position:absolute;z-index:80;right:0;top:calc(100% + 10px);width:300px;padding:9px;border-radius:13px;border:1px solid var(--line);background:var(--panel);box-shadow:0 20px 55px rgba(0,0,0,.30);}
+  .account-menu-panel{position:absolute;z-index:220;right:0;top:calc(100% + 10px);width:300px;padding:9px;border-radius:13px;border:1px solid var(--line);background:var(--panel);box-shadow:0 20px 55px rgba(0,0,0,.30);}
   .account-menu-panel[hidden]{display:none;}
   .account-menu-summary{display:flex;align-items:center;gap:10px;padding:8px 9px;}
   .account-menu-avatar{width:42px;height:42px;border-radius:50%;flex:0 0 42px;font-size:14px;border:1px solid var(--line);}
@@ -139,3 +139,27 @@
   .account-menu-pro-arrow{font-size:20px;color:var(--text-dim);}
   .account-menu-logout{color:#f58a8a;}
   .account-menu-logout .account-menu-item-icon{background:rgba(241,101,101,.08);color:#f58a8a;}
+
+
+/* ---- layout collision guards ---- */
+html,body{max-width:100%;overflow-x:hidden}
+#appShell,#viewRoot,main,.section,.social-feed,.series-community,.pro-page{min-width:0}
+main{width:100%}
+.topbar>*{min-width:0}
+.nav{min-width:0}
+.search-wrap{flex:0 1 320px;max-width:100%}
+.section-head{gap:12px;flex-wrap:wrap}
+.inline-actions{flex-wrap:wrap}
+.site-legal-footer[hidden]{display:none!important}
+.discover-search-head{margin-top:28px}
+@media(max-width:760px){
+  .topbar{gap:10px;padding:12px 14px}
+  .brand-with-logo{flex:1 1 auto;min-width:0}
+  .account-area{margin-left:auto}
+  .nav{order:3;flex:1 0 100%;width:100%;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;padding-bottom:2px;scrollbar-width:none}
+  .nav::-webkit-scrollbar{display:none}
+  .nav-link{flex:0 0 auto;padding:7px 10px}
+  .search-wrap{order:4;flex:1 0 100%;width:100%;min-width:0}
+  main{padding:22px 14px 64px}
+  .account-menu-panel{right:0}
+}
