@@ -7,7 +7,7 @@
     return html+'</div>';
   }
   function viewHome(){
-    return trendingHomeHtml()+followingFeedHtml()+proHomeBannerHtml();
+    return trendingHomeHtml()+followingFeedHtml();
   }
   function discoverPopularCatalogs(){
     var ids=[
@@ -19,11 +19,12 @@
   }
   function viewDescobrir(){
     var q=state.query.trim();
+    var proBanner=proHomeBannerHtml();
     if(q){
-      return '<div class="section-head"><div><div class="section-title">Resultados da busca</div><div style="font-size:11px;color:var(--text-dim);margin-top:3px;">Séries, personagens, profissionais e usuários do Bingeo</div></div></div>'+tmdbSearchResultsHtml();
+      return proBanner+'<div class="section-head discover-search-head"><div><div class="section-title">Resultados da busca</div><div style="font-size:11px;color:var(--text-dim);margin-top:3px;">Séries primeiro, depois usuários e personagens; profissionais aparecem por último.</div></div></div>'+tmdbSearchResultsHtml();
     }
 
-    var html='';
+    var html=proBanner;
     var popular=discoverPopularCatalogs();
     html+='<section class="section discover-popular"><div class="section-head"><div><div class="section-title">Séries populares</div><div style="font-size:11px;color:var(--text-dim);margin-top:3px;">Algumas das séries mais conhecidas para começar a explorar o Bingeo</div></div></div>';
     html+=popular.length?'<div class="grid">'+popular.map(catalogCardHtml).join('')+'</div>':'<div class="empty">Não foi possível carregar as séries populares.</div>';
@@ -53,8 +54,7 @@
     if(filteredEntries().length===0){
       return '<div class="empty"><strong>Nada encontrado.</strong>Tente outro termo de busca.</div>';
     }
-    return proContextBannerHtml('Sua estante pode ir além','Com o Pro você personaliza seu perfil, libera avaliações avançadas e cria listas sem limite.','estante',true) +
-      sectionHtml('Assistindo', 'assistindo') +
+    return sectionHtml('Assistindo', 'assistindo') +
       sectionHtml('Quero assistir', 'quero-assistir') +
       sectionHtml('Completo', 'completo') +
       sectionHtml('Em pausa', 'pausado') +
