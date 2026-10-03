@@ -1438,7 +1438,7 @@
     var reason=isEdital&&payload.feed_reason==='interest'?'<span class="feed-reason-chip">Para você</span>':'';
     if(isRepost)reason='<span class="feed-reason-chip repost">Republicou</span>';
     var repostByline=isRepost&&payload.original_author_username
-      ?'<span class="feed-original-author">Edital original de @'+escapeHtml(payload.original_author_username)+'</span>':'';
+      ?'<span class="feed-original-author">Edital original de <button type="button" data-action="open-user-profile" data-user="'+escapeHtml(payload.original_author_id||'')+'">@'+escapeHtml(payload.original_author_username)+'</button></span>':'';
     var header='<div class="feed-review-userline">'+
       '<div class="diary-feed-avatar" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
       '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+(isRepost?'Republicação':(isEdital?'Edital':'Resenha'))+'</span>'+reason+repostByline+'</div>'+
