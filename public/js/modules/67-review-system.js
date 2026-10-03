@@ -17,7 +17,7 @@
     value=value&&typeof value==='object'?value:{};
     var artworkType=['poster','backdrop'].indexOf(value.artworkType||value.artwork_type)>-1?(value.artworkType||value.artwork_type):
       ((value.background==='poster')?'poster':'backdrop');
-    var visibility=(value.visibility==='followers'||value.visibility==='private')?'followers':'public';
+    var visibility=['public','followers','private'].indexOf(value.visibility)>-1?value.visibility:'public';
     return {
       enabled:true,
       title:String(value.title||'').slice(0,100),
@@ -150,7 +150,7 @@
         '<label><span>O que funciona <em>Cite decisões, personagens, roteiro, direção ou visual.</em></span><textarea id="editalPositive" maxlength="1800" placeholder="Explique por que esses elementos funcionam e dê exemplos sem apenas dizer que gostou.">'+escapeHtml(d.positive)+'</textarea></label>'+
         '<label><span>O que poderia ser melhor <em>Critique com contexto e proponha uma leitura.</em></span><textarea id="editalNegative" maxlength="1800" placeholder="Aponte problemas ou limitações e explique por que eles pesam na experiência.">'+escapeHtml(d.negative)+'</textarea></label>'+
         '<label class="edital-wide"><span>Conclusão <em>Feche a ideia sem repetir tudo.</em></span><textarea id="editalConclusion" maxlength="1200" placeholder="Resuma o que a série entrega e para quem essa experiência pode funcionar.">'+escapeHtml(d.conclusion)+'</textarea></label>'+
-        '<label><span>Quem pode ver</span><select id="editalVisibility"><option value="public" '+(d.visibility==='public'?'selected':'')+'>Público · pode aparecer para fãs da série</option><option value="followers" '+(d.visibility==='followers'?'selected':'')+'>Privado · somente seguidores</option></select></label>'+
+        '<label><span>Quem pode ver</span><select id="editalVisibility"><option value="public" '+(d.visibility==='public'?'selected':'')+'>Público · pode aparecer para fãs da série</option><option value="followers" '+(d.visibility==='followers'?'selected':'')+'>Seguidores · somente quem segue você</option><option value="private" '+(d.visibility==='private'?'selected':'')+'>Privado · somente você</option></select></label>'+
       '</div>'+
       editalArtworkPickerHtml(cat,d)+
     '</div>';
@@ -289,7 +289,7 @@
       '<button class="edital-rail-action '+(liked?'active':'')+'" data-action="toggle-edital-like" data-review-id="'+reviewId+'" title="'+(liked?'Remover curtida':'Curtir')+'"><span class="edital-rail-icon">'+(liked?'♥':'♡')+'</span><b>'+likes+'</b><small>Curtir</small></button>'+
       '<button class="edital-rail-action '+(state.editalCommentsOpen[reviewId]?'active':'')+'" data-action="toggle-edital-comments" data-review-id="'+reviewId+'" title="Comentários"><span class="edital-rail-icon">◌</span><b>'+comments+'</b><small>Comentar</small></button>'+
       '<button class="edital-rail-action '+(reposted?'active':'')+'" data-action="toggle-edital-repost" data-review-id="'+reviewId+'" '+((!publicPost||isOwn)?'disabled':'')+' title="'+(isOwn?'Seu próprio Edital':(!publicPost?'Somente Editals públicos podem ser republicados':(reposted?'Desfazer republicação':'Republicar')))+'"><span class="edital-rail-icon">↻</span><b>'+reposts+'</b><small>Republicar</small></button>'+
-      '<span class="edital-rail-visibility">'+((review.visibility||'public')==='followers'?'Seguidores':'Público')+'</span>'+
+      '<span class="edital-rail-visibility">'+((review.visibility||'public')==='private'?'Privado':((review.visibility||'public')==='followers'?'Seguidores':'Público'))+'</span>'+
     '</aside>';
   }
   function editalCardHtml(review,catalogId,top,tags,spoiler,withComments){
@@ -369,7 +369,7 @@
     else if(state.myEditalsError)body='<div class="edital-manager-empty">'+escapeHtml(state.myEditalsError)+'</div>';
     else if(!rows.length)body='<div class="edital-manager-empty">Você ainda não publicou nenhum Edital.</div>';
     else body='<div class="edital-manager-list">'+rows.map(function(item){
-      var e=normalizeEdital(item.edital||{}),archived=!!item.is_archived,visibility=item.visibility==='followers'?'followers':'public';
+      var e=normalizeEdital(item.edital||{}),archived=!!item.is_archived,visibility=['public','followers','private'].indexOf(item.visibility)>-1?item.visibility:'public';
       var poster=item.poster_path?tmdbImageUrl(item.poster_path,'w185'):'';
       return '<article class="edital-manager-row '+(archived?'archived':'')+'">'+
         '<div class="edital-manager-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div>'+
@@ -377,7 +377,7 @@
           '<div class="edital-manager-meta"><span>'+Number(item.like_count||0)+' curtidas</span><span>'+Number(item.comment_count||0)+' comentários</span><span>'+Number(item.repost_count||0)+' republicações</span></div>'+
         '</div>'+
         '<div class="edital-manager-controls">'+
-          '<button class="btn btn-ghost btn-sm" data-action="edital-manage-visibility" data-review-id="'+Number(item.review_id)+'" data-current="'+visibility+'">'+(visibility==='public'?'◉ Público':'◌ Seguidores')+'</button>'+
+          '<button class="btn btn-ghost btn-sm" data-action="edital-manage-visibility" data-review-id="'+Number(item.review_id)+'" data-current="'+visibility+'" title="Alternar visibilidade">'+(visibility==='private'?'● Privado':(visibility==='followers'?'◌ Seguidores':'◉ Público'))+'</button>'+
           '<button class="btn btn-ghost btn-sm" data-action="'+(archived?'edital-unarchive':'edital-archive')+'" data-review-id="'+Number(item.review_id)+'">'+(archived?'Desarquivar':'Arquivar')+'</button>'+
           '<button class="btn btn-danger btn-sm" data-action="edital-delete" data-review-id="'+Number(item.review_id)+'">Excluir</button>'+
         '</div>'+
@@ -451,7 +451,7 @@
       return true;
     }
     if(action==='edital-manage-visibility'){
-      var visId=Number(el.dataset.reviewId)||0,nextVis=el.dataset.current==='public'?'followers':'public';
+      var visId=Number(el.dataset.reviewId)||0,currentVis=el.dataset.current||'public',nextVis=currentVis==='public'?'followers':(currentVis==='followers'?'private':'public');
       el.disabled=true;manageMyEdital(visId,'visibility',nextVis).catch(function(e){alert(e.message||'Não foi possível alterar a visibilidade.');}).finally(function(){el.disabled=false;});
       return true;
     }
