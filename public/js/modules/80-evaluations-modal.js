@@ -153,7 +153,7 @@
     if(!unlocked){
       return '<div class="community-review">'+top+'<div class="spoiler-locked"><strong>'+escapeHtml(spoilerLabel(review))+'</strong><div style="margin:5px 0 8px;">Esta publicação está escondida porque passa do seu progresso registrado.</div><button class="btn btn-ghost btn-sm" data-action="reveal-spoiler" data-catalog="'+catalogId+'" data-review-index="'+index+'" data-review-collection="'+collection+'">Revelar mesmo assim</button></div></div>';
     }
-    if(isEdital)return editalCardHtml(review,catalogId,top,tags,spoilerLabel(review),false);
+    if(isEdital)return editalCardHtml(review,catalogId,top,tags,spoilerLabel(review),true);
     return '<div class="community-review">'+top+'<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">'+escapeHtml(spoilerLabel(review))+'</div><div class="community-review-text">'+escapeHtml(review.review||'')+'</div>'+tags+'</div>';
   }
   function seriesCommunityHtml(cat){
