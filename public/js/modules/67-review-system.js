@@ -237,8 +237,8 @@
     },3400);
   }
   function rerenderEditalSurfaces(){
+    if(state.modalCatalogId){renderModalPreserveScroll();return;}
     if(appBooted)renderMainViewOnly();
-    if(state.modalCatalogId)renderModalPreserveScroll();
   }
   function updateEditalEngagementState(reviewId,patch){
     reviewId=Number(reviewId)||0;if(!reviewId)return;
