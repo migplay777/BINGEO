@@ -413,3 +413,35 @@
     .poster-one{right:190px}.poster-two{right:128px}.poster-three{right:65px}.poster-four{right:3px}
     .pro-page-feature-pills{display:none;}
   }
+
+
+/* ---- Edital manager inside Pro profile editor ---- */
+.edital-manager{min-width:0}
+.edital-manager-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:13px}
+.edital-manager-head h3{margin:0!important}
+.edital-manager-head p{margin:4px 0 0;color:var(--text-muted);font-size:10.5px;line-height:1.45}
+.edital-manager-list{display:grid;gap:8px}
+.edital-manager-row{
+  display:grid;grid-template-columns:52px minmax(0,1fr) auto;align-items:center;gap:11px;
+  padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);min-width:0
+}
+.edital-manager-row.archived{opacity:.62}
+.edital-manager-row.archived .edital-manager-copy strong::after{content:" · arquivado";color:var(--text-dim);font-weight:500}
+.edital-manager-poster{width:52px;aspect-ratio:2/3;border-radius:7px;background:#0d0f16 center/cover no-repeat;border:1px solid var(--line)}
+.edital-manager-copy{display:flex;flex-direction:column;min-width:0}
+.edital-manager-copy>strong{font:700 11.5px 'Space Grotesk',sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edital-manager-copy>span{font-size:9.5px;color:var(--text-muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edital-manager-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;font-size:8.5px;color:var(--text-dim)}
+.edital-manager-controls{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;max-width:300px}
+.edital-manager-empty{padding:16px;border:1px dashed var(--line);border-radius:9px;color:var(--text-muted);font-size:10.5px;text-align:center;background:var(--panel)}
+@media(max-width:760px){
+  .profile-actions,.profile-editor-page-head,.profile-edit-banner-actions,.inline-actions{flex-wrap:wrap}
+  .edital-manager-row{grid-template-columns:46px minmax(0,1fr)}
+  .edital-manager-poster{width:46px}
+  .edital-manager-controls{grid-column:1/-1;justify-content:flex-start;max-width:none}
+}
+@media(max-width:520px){
+  .edital-manager-head{flex-direction:column}
+  .edital-manager-head>.btn{width:100%}
+  .edital-manager-controls .btn{flex:1 1 auto}
+}
