@@ -1255,7 +1255,7 @@
       var result=await supabaseClient.rpc('get_following_feed',{p_limit:40});
       if(result.error)throw result.error;
       if(currentUserId!==userId)return;
-      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a&&['diary_series','diary_episode','review','edital'].indexOf(a.event_type)>-1;});
+      state.socialFeed=(Array.isArray(result.data)?result.data:[]).filter(function(a){return a&&['diary_series','diary_episode','review','edital','edital_repost'].indexOf(a.event_type)>-1;});
       var feedCats=[];
       state.socialFeed.forEach(function(a){var cat=ensureRemoteUserCatalog(a);if(cat&&cat.tmdbId&&!cat.poster_path)feedCats.push(cat);});
       if(tmdbConfigured()&&feedCats.length){
@@ -1411,25 +1411,35 @@
     return progress.season>s||(progress.season===s&&progress.episode>=e);
   }
   function reviewFeedCardHtml(a){
-    var payload=a.payload||{},cat=ensureRemoteUserCatalog(a),isEdital=a.event_type==='edital'||payload.review_type==='edital';
+    var payload=a.payload||{},cat=ensureRemoteUserCatalog(a),isRepost=a.event_type==='edital_repost';
+    var isEdital=isRepost||a.event_type==='edital'||payload.review_type==='edital';
     var initials=(a.username||'?').charAt(0).toUpperCase();
     var avatar=a.avatar_url&&/^https?:\/\//i.test(a.avatar_url)?a.avatar_url:'';
     var ns=a.name_style||{},nameClass='diary-feed-username'+(a.plan==='pro'&&ns.effect==='glow'?' name-glow':'')+(a.plan==='pro'&&ns.effect==='animated'?' name-animated':'');
     var nameStyle=a.plan==='pro'&&ns.color?'color:'+escapeHtml(ns.color)+';':'';
     var review={
       review_id:Number(payload.review_id)||Number(a.id)||null,
-      username:a.username,plan:a.plan,rating:a.rating,review:String(payload.review||''),
+      username:isRepost?(payload.original_author_username||a.username):a.username,
+      plan:a.plan,rating:a.rating,review:String(payload.review||''),
       review_type:isEdital?'edital':'review',edital:payload.edital||{},
       visibility:payload.visibility||'public',comments_enabled:payload.comments_enabled!==false,
       comment_count:Number(payload.comment_count||0),
+      like_count:Number(payload.like_count||0),
+      repost_count:Number(payload.repost_count||0),
+      liked_by_me:!!payload.liked_by_me,
+      reposted_by_me:!!payload.reposted_by_me,
+      is_own:false,
       criteria_ratings:payload.criteria_ratings||{},
       badges:Array.isArray(payload.badges)?payload.badges:[],
       spoiler_level:payload.spoiler_level||'none',spoiler_season:payload.spoiler_season||null,spoiler_episode:payload.spoiler_episode||null
     };
     var reason=isEdital&&payload.feed_reason==='interest'?'<span class="feed-reason-chip">Para você</span>':'';
+    if(isRepost)reason='<span class="feed-reason-chip repost">Republicou</span>';
+    var repostByline=isRepost&&payload.original_author_username
+      ?'<span class="feed-original-author">Edital original de @'+escapeHtml(payload.original_author_username)+'</span>':'';
     var header='<div class="feed-review-userline">'+
       '<div class="diary-feed-avatar" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
-      '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+(isEdital?'Edital':'Resenha')+'</span>'+reason+'</div>'+
+      '<div class="diary-feed-usercopy"><span class="'+nameClass+'" style="'+nameStyle+'" data-action="open-user-profile" data-user="'+escapeHtml(a.user_id||'')+'">@'+escapeHtml(a.username||'usuário')+'</span><span class="diary-feed-label">'+(isRepost?'Republicação':(isEdital?'Edital':'Resenha'))+'</span>'+reason+repostByline+'</div>'+
       '<span class="diary-feed-time">'+activityTime(a.created_at)+'</span>'+
     '</div>';
     if(!canViewFeedReview(a)){
@@ -1451,7 +1461,7 @@
     '</article>';
   }
   function followingFeedItemHtml(a){
-    return a&&(a.event_type==='review'||a.event_type==='edital')?reviewFeedCardHtml(a):diaryFeedCardHtml(a);
+    return a&&['review','edital','edital_repost'].indexOf(a.event_type)>-1?reviewFeedCardHtml(a):diaryFeedCardHtml(a);
   }
   function followingFeedHtml(){
     if(state.socialFeedLoading)return '<section class="social-feed"><div class="section-head"><div class="section-title">Seu feed</div></div><div class="tmdb-loading">Carregando atividade…</div></section>';
