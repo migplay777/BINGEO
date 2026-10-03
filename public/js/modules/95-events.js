@@ -61,7 +61,16 @@
     if(handleProFeatureAction(action,el))return;
     if(handleEditalAction(action,el))return;
 
-    if(action==='open-show'){ state.modalCatalogId=el.dataset.catalog; var openedCat=getCatalog(state.modalCatalogId); renderModal(); loadSeriesCommunity(state.modalCatalogId); if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}); }
+    if(action==='open-show'){
+      state.modalCatalogId=el.dataset.catalog;
+      var openedCat=getCatalog(state.modalCatalogId);
+      var openAsEdital=!!(state.createEditalIntent&&hasPro());
+      if(openAsEdital){state.reviewComposerModes[state.modalCatalogId]='edital';state.createEditalIntent=false;}
+      renderModal();
+      loadSeriesCommunity(state.modalCatalogId);
+      if(openAsEdital&&openedCat)loadEditalArtworkOptions(openedCat);
+      if(openedCat&&tmdbConfigured())loadTmdbSeries(openedCat).then(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();}).catch(function(){if(state.modalCatalogId===openedCat.id)renderModalPreserveScroll();});
+    }
     else if(action==='share-own-profile'){
       if(!currentUserId)return;
       shareBingeoProfile(currentUserId,state.profile.username||'meu perfil');
