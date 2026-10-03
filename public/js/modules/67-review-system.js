@@ -226,6 +226,7 @@
     state.reviewSpoilerDrafts[cid]={level:'none',season:null,episode:null};
     state.reviewSaveNotice[cid]=mode==='edital'?'Edital publicado. Você já pode escrever outro.':'Resenha salva. Você já pode escrever outra.';
     await loadSeriesCommunity(cid,false);
+    if(mode==='edital')loadMyEditals().catch(function(){});
     return {id:result.data&&result.data.id,mode:mode};
   }
   function clearReviewSaveNoticeLater(catalogId){
@@ -235,40 +236,76 @@
       if(el)el.remove();
     },3400);
   }
+  function rerenderEditalSurfaces(){
+    if(appBooted)renderMainViewOnly();
+    if(state.modalCatalogId)renderModalPreserveScroll();
+  }
+  function updateEditalEngagementState(reviewId,patch){
+    reviewId=Number(reviewId)||0;if(!reviewId)return;
+    function apply(target){
+      if(!target||Number(target.review_id)!==reviewId)return;
+      Object.keys(patch||{}).forEach(function(k){target[k]=patch[k];});
+    }
+    (state.socialFeed||[]).forEach(function(item){
+      var payload=item&&item.payload||{};
+      if(Number(payload.review_id)===reviewId)Object.keys(patch||{}).forEach(function(k){payload[k]=patch[k];});
+    });
+    Object.keys(state.seriesCommunity||{}).forEach(function(cid){
+      var data=state.seriesCommunity[cid]||{};
+      (data.editals||[]).forEach(apply);
+    });
+    (state.myEditals||[]).forEach(apply);
+  }
+  function editalCommentsPanelHtml(reviewId){
+    reviewId=Number(reviewId)||0;if(!reviewId||!state.editalCommentsOpen[reviewId])return '';
+    var rows=state.editalComments[reviewId]||[],loading=!!state.editalCommentLoading[reviewId];
+    return '<div class="edital-comments-panel">'+
+      (loading?'<div class="edital-comment-empty">Carregando comentários…</div>':
+        (rows.length?rows.map(function(c){
+          return '<div class="edital-comment-row"><strong>@'+escapeHtml(c.username||'usuário')+'</strong><span>'+escapeHtml(c.body||'')+'</span></div>';
+        }).join(''):'<div class="edital-comment-empty">Seja a primeira pessoa a comentar.</div>'))+
+      '<div class="edital-comment-form"><input id="editalCommentInput-'+reviewId+'" maxlength="1200" placeholder="Escreva um comentário…"><button class="btn btn-primary btn-sm" data-action="add-edital-comment" data-review-id="'+reviewId+'">Comentar</button></div>'+
+    '</div>';
+  }
+  function editalActionRailHtml(review){
+    var reviewId=Number(review&&review.review_id)||0;if(!reviewId)return '';
+    var comments=Number(review.comment_count||0),likes=Number(review.like_count||0),reposts=Number(review.repost_count||0);
+    var liked=!!review.liked_by_me,reposted=!!review.reposted_by_me,isOwn=!!review.is_own;
+    var publicPost=(review.visibility||'public')==='public';
+    return '<aside class="edital-action-rail" aria-label="Interações do Edital">'+
+      '<button class="edital-rail-action '+(liked?'active':'')+'" data-action="toggle-edital-like" data-review-id="'+reviewId+'" title="'+(liked?'Remover curtida':'Curtir')+'"><span class="edital-rail-icon">'+(liked?'♥':'♡')+'</span><b>'+likes+'</b><small>Curtir</small></button>'+
+      '<button class="edital-rail-action '+(state.editalCommentsOpen[reviewId]?'active':'')+'" data-action="toggle-edital-comments" data-review-id="'+reviewId+'" title="Comentários"><span class="edital-rail-icon">◌</span><b>'+comments+'</b><small>Comentar</small></button>'+
+      '<button class="edital-rail-action '+(reposted?'active':'')+'" data-action="toggle-edital-repost" data-review-id="'+reviewId+'" '+((!publicPost||isOwn)?'disabled':'')+' title="'+(isOwn?'Seu próprio Edital':(!publicPost?'Somente Editals públicos podem ser republicados':(reposted?'Desfazer republicação':'Republicar')))+'"><span class="edital-rail-icon">↻</span><b>'+reposts+'</b><small>Republicar</small></button>'+
+      '<span class="edital-rail-visibility">'+((review.visibility||'public')==='followers'?'Seguidores':'Público')+'</span>'+
+    '</aside>';
+  }
   function editalCardHtml(review,catalogId,top,tags,spoiler,withComments){
     var e=normalizeEdital(review&&review.edital||review&&review.pro_review||{}),cat=getCatalog(catalogId),art=editalArtUrl(e,cat),style=art?'background-image:url(\''+art.replace(/'/g,'%27')+'\');':'';
-    var footer=withComments&&review&&review.review_id?editalCommentsFooterHtml(review.review_id,review.comment_count,review.visibility):'';
+    var reviewId=Number(review&&review.review_id)||0;
     return '<article class="community-review pro-review-card edital-card layout-editorial art-'+e.artworkType+(art?' has-art':'')+'" style="'+style+'">'+
-      '<div class="pro-review-shade"></div><div class="pro-review-inner">'+top+
+      '<div class="pro-review-shade"></div>'+
+      '<div class="edital-card-layout"><div class="pro-review-inner">'+top+
         '<div class="pro-review-spoiler-label">'+escapeHtml(spoiler||'Sem spoilers')+'</div>'+
         '<h3>'+escapeHtml(e.title||cat&&cat.title||'Edital')+'</h3>'+
         (e.lead?'<div class="edital-lead">'+escapeHtml(e.lead)+'</div>':'')+
         (e.positive?'<section class="pro-review-section"><h4>O que funciona</h4><p>'+escapeHtml(e.positive)+'</p></section>':'')+
         (e.negative?'<section class="pro-review-section"><h4>O que poderia ser melhor</h4><p>'+escapeHtml(e.negative)+'</p></section>':'')+
         (e.conclusion?'<section class="pro-review-section edital-conclusion"><h4>Conclusão</h4><p>'+escapeHtml(e.conclusion)+'</p></section>':'')+
-        tags+footer+
-      '</div></article>';
-  }
-  function editalCommentsFooterHtml(reviewId,count,visibility){
-    reviewId=Number(reviewId)||0;if(!reviewId)return '';
-    var open=!!state.editalCommentsOpen[reviewId],rows=state.editalComments[reviewId]||[],loading=!!state.editalCommentLoading[reviewId];
-    var html='<div class="edital-comments-footer"><div class="edital-card-actions"><button class="edital-comment-toggle" data-action="toggle-edital-comments" data-review-id="'+reviewId+'">💬 '+Number(count||rows.length||0)+' comentário'+(Number(count||rows.length||0)===1?'':'s')+'</button><span class="edital-visibility-chip">'+(visibility==='followers'?'Seguidores':'Público')+'</span></div>';
-    if(open){
-      html+='<div class="edital-comments-panel">'+(loading?'<div class="edital-comment-empty">Carregando comentários…</div>':(rows.length?rows.map(function(c){return '<div class="edital-comment-row"><strong>@'+escapeHtml(c.username||'usuário')+'</strong><span>'+escapeHtml(c.body||'')+'</span></div>';}).join(''):'<div class="edital-comment-empty">Seja a primeira pessoa a comentar.</div>'))+
-        '<div class="edital-comment-form"><input id="editalCommentInput-'+reviewId+'" maxlength="1200" placeholder="Escreva um comentário…"><button class="btn btn-primary btn-sm" data-action="add-edital-comment" data-review-id="'+reviewId+'">Comentar</button></div></div>';
-    }
-    return html+'</div>';
+        tags+
+      '</div>'+editalActionRailHtml(review)+'</div>'+
+      (reviewId?editalCommentsPanelHtml(reviewId):'')+
+    '</article>';
   }
   async function loadEditalComments(reviewId){
     reviewId=Number(reviewId)||0;if(!reviewId)return;
-    state.editalCommentLoading[reviewId]=true;renderMainViewOnly();
+    state.editalCommentLoading[reviewId]=true;rerenderEditalSurfaces();
     try{
       var r=await supabaseClient.rpc('get_edital_comments',{p_review_id:reviewId});
       if(r.error)throw r.error;
       state.editalComments[reviewId]=Array.isArray(r.data)?r.data:[];
     }finally{
       state.editalCommentLoading[reviewId]=false;
-      renderMainViewOnly();
+      rerenderEditalSurfaces();
     }
   }
   async function addEditalComment(reviewId,body){
@@ -276,11 +313,74 @@
     if(!reviewId||!body)return;
     var r=await supabaseClient.rpc('add_edital_comment',{p_review_id:reviewId,p_body:body});
     if(r.error)throw r.error;
+    updateEditalEngagementState(reviewId,{comment_count:(function(){
+      var count=0;
+      (state.socialFeed||[]).some(function(item){var p=item&&item.payload||{};if(Number(p.review_id)===reviewId){count=Number(p.comment_count||0);return true;}return false;});
+      return count+1;
+    })()});
     await loadEditalComments(reviewId);
-    state.socialFeed.forEach(function(item){
-      var p=item&&item.payload||{};
-      if(Number(p.review_id)===reviewId)p.comment_count=Number(p.comment_count||0)+1;
-    });
+  }
+  async function toggleEditalLike(reviewId){
+    reviewId=Number(reviewId)||0;if(!reviewId)return;
+    var r=await supabaseClient.rpc('toggle_edital_like',{p_review_id:reviewId});
+    if(r.error)throw r.error;
+    updateEditalEngagementState(reviewId,{liked_by_me:!!r.data.liked,like_count:Number(r.data.like_count||0)});
+    rerenderEditalSurfaces();
+  }
+  async function toggleEditalRepost(reviewId){
+    reviewId=Number(reviewId)||0;if(!reviewId)return;
+    var r=await supabaseClient.rpc('toggle_edital_repost',{p_review_id:reviewId});
+    if(r.error)throw r.error;
+    updateEditalEngagementState(reviewId,{reposted_by_me:!!r.data.reposted,repost_count:Number(r.data.repost_count||0)});
+    await loadFollowingFeed();
+    rerenderEditalSurfaces();
+  }
+  async function loadMyEditals(){
+    if(!currentUserId||!hasPro()){state.myEditals=[];state.myEditalsLoading=false;return [];}
+    state.myEditalsLoading=true;state.myEditalsError='';
+    if(appBooted&&state.view==='editar-perfil')renderMainViewOnly();
+    try{
+      var r=await supabaseClient.rpc('get_my_editals');
+      if(r.error)throw r.error;
+      state.myEditals=Array.isArray(r.data)?r.data:[];
+      return state.myEditals;
+    }catch(e){
+      state.myEditalsError=e.message||'Não foi possível carregar seus Editals.';
+      return [];
+    }finally{
+      state.myEditalsLoading=false;
+      if(appBooted&&state.view==='editar-perfil')renderMainViewOnly();
+    }
+  }
+  function editalManagementHtml(){
+    if(!hasPro())return '';
+    var rows=state.myEditals||[];
+    var body='';
+    if(state.myEditalsLoading)body='<div class="edital-manager-empty">Carregando seus Editals…</div>';
+    else if(state.myEditalsError)body='<div class="edital-manager-empty">'+escapeHtml(state.myEditalsError)+'</div>';
+    else if(!rows.length)body='<div class="edital-manager-empty">Você ainda não publicou nenhum Edital.</div>';
+    else body='<div class="edital-manager-list">'+rows.map(function(item){
+      var e=normalizeEdital(item.edital||{}),archived=!!item.is_archived,visibility=item.visibility==='followers'?'followers':'public';
+      var poster=item.poster_path?tmdbImageUrl(item.poster_path,'w185'):'';
+      return '<article class="edital-manager-row '+(archived?'archived':'')+'">'+
+        '<div class="edital-manager-poster" style="'+(poster?'background-image:url(\''+poster.replace(/'/g,'%27')+'\')':'')+'"></div>'+
+        '<div class="edital-manager-copy"><strong>'+escapeHtml(e.title||item.title||'Edital')+'</strong><span>'+escapeHtml(item.title||'Série')+'</span>'+
+          '<div class="edital-manager-meta"><span>'+Number(item.like_count||0)+' curtidas</span><span>'+Number(item.comment_count||0)+' comentários</span><span>'+Number(item.repost_count||0)+' republicações</span></div>'+
+        '</div>'+
+        '<div class="edital-manager-controls">'+
+          '<button class="btn btn-ghost btn-sm" data-action="edital-manage-visibility" data-review-id="'+Number(item.review_id)+'" data-current="'+visibility+'">'+(visibility==='public'?'◉ Público':'◌ Seguidores')+'</button>'+
+          '<button class="btn btn-ghost btn-sm" data-action="'+(archived?'edital-unarchive':'edital-archive')+'" data-review-id="'+Number(item.review_id)+'">'+(archived?'Desarquivar':'Arquivar')+'</button>'+
+          '<button class="btn btn-danger btn-sm" data-action="edital-delete" data-review-id="'+Number(item.review_id)+'">Excluir</button>'+
+        '</div>'+
+      '</article>';
+    }).join('')+'</div>';
+    return '<div class="profile-edit-section edital-manager"><div class="edital-manager-head"><div><h3>Controle dos Editals <span class="pro-badge">✦ PRO</span></h3><p>Gerencie visibilidade, arquivamento e exclusão das suas críticas.</p></div><button class="btn btn-primary btn-sm" data-action="edital-create-new">Criar Edital</button></div>'+body+'</div>';
+  }
+  async function manageMyEdital(reviewId,action,visibility){
+    var r=await supabaseClient.rpc('manage_my_edital',{p_review_id:Number(reviewId),p_action:action,p_visibility:visibility||null});
+    if(r.error)throw r.error;
+    state.seriesCommunity={};
+    await loadMyEditals();
   }
 
   function handleEditalAction(action,el){
@@ -324,6 +424,37 @@
       if(!reviewId||!input||!input.value.trim())return true;
       el.disabled=true;
       addEditalComment(reviewId,input.value).catch(function(e){alert(e.message||'Não foi possível comentar.');}).finally(function(){el.disabled=false;});
+      return true;
+    }
+    if(action==='toggle-edital-like'){
+      var likeId=Number(el.dataset.reviewId)||0;if(!likeId)return true;
+      el.disabled=true;toggleEditalLike(likeId).catch(function(e){alert(e.message||'Não foi possível curtir.');}).finally(function(){el.disabled=false;});
+      return true;
+    }
+    if(action==='toggle-edital-repost'){
+      var repostId=Number(el.dataset.reviewId)||0;if(!repostId)return true;
+      el.disabled=true;toggleEditalRepost(repostId).catch(function(e){alert(e.message||'Não foi possível republicar.');}).finally(function(){el.disabled=false;});
+      return true;
+    }
+    if(action==='edital-create-new'){
+      state.view='descobrir';state.query='';render();
+      setTimeout(function(){var input=document.getElementById('searchInput');if(input){input.focus();input.placeholder='Busque a série para criar seu Edital…';}},0);
+      return true;
+    }
+    if(action==='edital-manage-visibility'){
+      var visId=Number(el.dataset.reviewId)||0,nextVis=el.dataset.current==='public'?'followers':'public';
+      el.disabled=true;manageMyEdital(visId,'visibility',nextVis).catch(function(e){alert(e.message||'Não foi possível alterar a visibilidade.');}).finally(function(){el.disabled=false;});
+      return true;
+    }
+    if(action==='edital-archive'||action==='edital-unarchive'){
+      var archiveId=Number(el.dataset.reviewId)||0;
+      el.disabled=true;manageMyEdital(archiveId,action==='edital-archive'?'archive':'unarchive').catch(function(e){alert(e.message||'Não foi possível atualizar o Edital.');}).finally(function(){el.disabled=false;});
+      return true;
+    }
+    if(action==='edital-delete'){
+      var deleteId=Number(el.dataset.reviewId)||0;if(!deleteId)return true;
+      if(!confirm('Excluir este Edital permanentemente? Curtidas, comentários e republicações ligados a ele também serão removidos.'))return true;
+      el.disabled=true;manageMyEdital(deleteId,'delete').catch(function(e){alert(e.message||'Não foi possível excluir o Edital.');}).finally(function(){el.disabled=false;});
       return true;
     }
     return false;
