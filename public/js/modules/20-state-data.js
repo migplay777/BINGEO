@@ -1513,8 +1513,7 @@
     var html='<div class="user-view-page"><button class="btn btn-ghost btn-sm user-view-back" data-action="close-user-profile">← Voltar</button>'+
       (banner?'<div class="user-view-banner" style="background-image:url(\''+banner.replace(/'/g,'%27')+'\')"></div>':'')+
       '<div class="user-view-head'+(banner?' with-banner':'')+'"><div class="user-view-avatar '+proAvatarFrameClass(u)+'" style="'+(avatar?'background-image:url(\''+avatar.replace(/'/g,'%27')+'\')':'')+'">'+(avatar?'':escapeHtml(initials))+'</div>'+
-      '<div style="min-width:0;flex:1;"><div class="'+userNameClass(u)+'" style="'+userNameStyle(u)+'">@'+escapeHtml(u.username||'usuário')+'</div>'+proProfileBadgeHtml(u)+
-      '<div class="profile-plan"><span class="plan-pill '+(u.plan==='pro'?'pro':'')+'">'+(u.plan==='pro'?'✦ Bingeo Pro':'Plano gratuito')+'</span></div>'+
+      '<div style="min-width:0;flex:1;"><div class="user-view-name-row"><div class="'+userNameClass(u)+'" style="'+userNameStyle(u)+'">@'+escapeHtml(u.username||'usuário')+'</div>'+proProfileBadgeHtml(u)+'</div>'+
       '<div class="follow-stats"><span><strong>'+Number(u.follower_count||0)+'</strong> seguidores</span><span><strong>'+Number(u.following_count||0)+'</strong> seguindo</span><span><strong>'+Number(u.library_count||0)+'</strong> na estante</span></div>'+
       (u.bio?'<div class="user-view-bio">'+escapeHtml(u.bio)+'</div>':'')+
       '<div class="user-view-actions">'+(u.is_self?'<button class="btn btn-primary btn-sm" data-action="open-my-profile">Abrir meu perfil</button>':'<button class="btn '+(u.is_following?'btn-ghost':'btn-primary')+' btn-sm" data-action="toggle-follow-user" data-user="'+u.user_id+'" data-following="'+(u.is_following?'1':'0')+'">'+(u.is_following?'Seguindo ✓':'Seguir')+'</button>')+'</div>'+
