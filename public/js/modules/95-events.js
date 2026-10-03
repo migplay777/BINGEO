@@ -33,6 +33,7 @@
     var navBtn = e.target.closest('.nav-link');
     if(navBtn){
       state.view = navBtn.dataset.view;
+      if(state.view!=='descobrir')state.createEditalIntent=false;
       state.profile.editing=false;
       state.listOpen = null;
       state.listCreateOpen=false;
