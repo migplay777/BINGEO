@@ -323,7 +323,7 @@
   var tmdbCardPromises={};
   async function loadTmdbCardMeta(cat){
     if(!tmdbConfigured()||!cat)return null;
-    if(cat.poster_path&&cat.backdrop_path)return cat;
+    if(cat.tmdbCardLoaded||(cat.poster_path&&cat.backdrop_path))return cat;
     if(tmdbCardPromises[cat.id])return tmdbCardPromises[cat.id];
     tmdbCardPromises[cat.id]=(async function(){
       var found=null;
@@ -343,6 +343,7 @@
       cat.backdrop_path=data.backdrop_path||cat.backdrop_path||null;
       cat.overview=data.overview||cat.overview||'';
       if(!cat.year)cat.year=parseInt((data.first_air_date||'').slice(0,4),10)||null;
+      cat.tmdbCardLoaded=true;
       return cat;
     })().catch(function(err){
       console.warn('Não foi possível carregar arte rápida de '+(cat.title||cat.id)+':',err);
@@ -717,7 +718,7 @@
     if(!tmdbConfigured()||!cats||!cats.length)return;
     var seen={},pending=cats.filter(Boolean).filter(function(cat){
       if(seen[cat.id])return false;seen[cat.id]=1;
-      return !cat.tmdbLoaded&&!cat.tmdbError&&!tmdbHydrationPromises[cat.id];
+      return !cat.tmdbLoaded&&!cat.tmdbCardLoaded&&!cat.tmdbError&&!tmdbHydrationPromises[cat.id]&&!tmdbCardPromises[cat.id];
     });
     if(!pending.length)return;
     var chunks=[];for(var i=0;i<pending.length;i+=4)chunks.push(pending.slice(i,i+4));
