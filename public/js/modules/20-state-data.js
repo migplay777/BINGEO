@@ -66,6 +66,9 @@
     editalCommentsOpen:{},
     editalCommentLoading:{},
     seriesEditalsOpen:{},
+    myEditals:[],
+    myEditalsLoading:false,
+    myEditalsError:'',
     billingConfig:null,
     billingStatus:null,
     billingLoading:false,
@@ -245,6 +248,9 @@
     state.editalCommentsOpen={};
     state.editalCommentLoading={};
     state.seriesEditalsOpen={};
+    state.myEditals=[];
+    state.myEditalsLoading=false;
+    state.myEditalsError='';
     state.billingConfig=null;
     state.billingStatus=null;
     state.billingLoading=false;
