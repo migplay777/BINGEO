@@ -250,8 +250,7 @@
 .edital-card-layout .pro-review-inner{min-width:0}
 .edital-action-rail{
   position:relative;z-index:2;display:flex;flex-direction:column;align-items:stretch;gap:5px;
-  padding:13px 8px;background:rgba(111,114,124,.18);border-left:1px solid rgba(255,255,255,.09);
-  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
+  padding:13px 8px;background:rgba(58,60,70,.72);border-left:1px solid rgba(255,255,255,.09)
 }
 .edital-card:not(.has-art) .edital-action-rail{background:color-mix(in srgb,var(--panel-2) 88%,transparent);border-left-color:var(--line)}
 .edital-rail-action{
@@ -278,7 +277,6 @@
   .edital-card-layout{grid-template-columns:1fr}
   .edital-action-rail{
     flex-direction:row;align-items:stretch;padding:7px;border-left:0;border-top:1px solid rgba(255,255,255,.09);
-    backdrop-filter:none;-webkit-backdrop-filter:none
   }
   .edital-rail-action{flex:1;min-height:50px;padding:5px 3px}
   .edital-rail-visibility{margin:0;display:flex;align-items:center;padding:0 6px;border-top:0;border-left:1px solid rgba(255,255,255,.08)}
