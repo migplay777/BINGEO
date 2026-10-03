@@ -123,6 +123,7 @@
       var billingSuccessReturn=handleBillingReturn();
       appBooted=true;
       render();
+      scheduleDiscoverPopularPreload();
       if(billingSuccessReturn)pollBillingConfirmation();
       setTimeout(indexCharactersFromLibrary,700);
       if(!billingSuccessReturn&&!(await openSharedListTarget()))await openSharedProfileTarget();
