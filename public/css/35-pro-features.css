@@ -162,3 +162,74 @@
   .edital-card{min-height:0;}
   .edital-card .pro-review-inner{padding:16px;}
 }
+
+
+/* ---- Pro page motion: CSS-only, compositor-friendly ---- */
+.pro-page .pro-page-banner-content{
+  animation:proPageReveal .52s cubic-bezier(.2,.72,.2,1) both;
+}
+.pro-page .pro-page-banner-visual{
+  animation:proPageVisualReveal .62s cubic-bezier(.2,.72,.2,1) .06s both;
+}
+.pro-page .pro-page-brandmark{
+  animation:proBrandFloat 5.8s ease-in-out 1s infinite;
+  will-change:transform;
+}
+.pro-page .pro-page-poster{
+  animation:proPosterEnter .54s cubic-bezier(.2,.72,.2,1) both;
+  transform-origin:50% 100%;
+  will-change:transform,opacity;
+}
+.pro-page .poster-one{animation-delay:.08s;--pro-poster-rotate:-8deg}
+.pro-page .poster-two{animation-delay:.14s;--pro-poster-rotate:-3deg}
+.pro-page .poster-three{animation-delay:.20s;--pro-poster-rotate:3deg}
+.pro-page .poster-four{animation-delay:.26s;--pro-poster-rotate:8deg}
+.pro-page .pro-page-feature-pills span{
+  animation:proPillReveal .38s ease-out both;
+}
+.pro-page .pro-page-feature-pills span:nth-child(1){animation-delay:.24s}
+.pro-page .pro-page-feature-pills span:nth-child(2){animation-delay:.29s}
+.pro-page .pro-page-feature-pills span:nth-child(3){animation-delay:.34s}
+.pro-page .pro-page-feature-pills span:nth-child(4){animation-delay:.39s}
+.pro-page .pro-page-feature-pills span:nth-child(5){animation-delay:.44s}
+.pro-page .pro-benefit-card,
+.pro-page .pro-profile-preview,
+.pro-page .pro-comparison-table,
+.pro-page .pro-purchase-card{
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.pro-page .pro-benefit-card:hover,
+.pro-page .pro-profile-preview:hover{
+  transform:translateY(-3px);
+  border-color:rgba(139,92,246,.38);
+  box-shadow:0 14px 34px rgba(0,0,0,.10);
+}
+@keyframes proPageReveal{
+  from{opacity:0;transform:translate3d(0,14px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes proPageVisualReveal{
+  from{opacity:0;transform:translate3d(18px,0,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes proBrandFloat{
+  0%,100%{transform:translate3d(0,0,0)}
+  50%{transform:translate3d(0,-5px,0)}
+}
+@keyframes proPosterEnter{
+  from{opacity:0;transform:translate3d(0,18px,0) rotate(var(--pro-poster-rotate))}
+  to{opacity:1;transform:translate3d(0,0,0) rotate(var(--pro-poster-rotate))}
+}
+@keyframes proPillReveal{
+  from{opacity:0;transform:translate3d(0,7px,0)}
+  to{opacity:1;transform:translate3d(0,0,0)}
+}
+@media(prefers-reduced-motion:reduce){
+  .pro-page *,
+  .pro-page *::before,
+  .pro-page *::after{
+    animation:none!important;
+    transition-duration:.01ms!important;
+    scroll-behavior:auto!important;
+  }
+}
