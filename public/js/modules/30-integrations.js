@@ -722,12 +722,14 @@
     if(!pending.length)return;
     var chunks=[];for(var i=0;i<pending.length;i+=4)chunks.push(pending.slice(i,i+4));
     var chain=Promise.resolve();
-    chunks.forEach(function(batch){
-      chain=chain.then(function(){return Promise.allSettled(batch.map(function(cat){return loadTmdbCardMeta(cat);}));});
-    });
-    chain.then(function(){
+    function repaintHydratedCards(){
       if(state.view==='descobrir'||state.view==='estante'||state.view==='perfil')renderMainViewOnly();
       else if(state.modalCatalogId)renderModalPreserveScroll();
+    }
+    chunks.forEach(function(batch){
+      chain=chain
+        .then(function(){return Promise.allSettled(batch.map(function(cat){return loadTmdbCardMeta(cat);}));})
+        .then(repaintHydratedCards);
     });
   }
   function scheduleDiscoverPopularPreload(){
