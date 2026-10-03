@@ -1430,7 +1430,7 @@
       repost_count:Number(payload.repost_count||0),
       liked_by_me:!!payload.liked_by_me,
       reposted_by_me:!!payload.reposted_by_me,
-      is_own:false,
+      is_own:!!(isRepost&&payload.original_author_id&&String(payload.original_author_id)===String(currentUserId)),
       criteria_ratings:payload.criteria_ratings||{},
       badges:Array.isArray(payload.badges)?payload.badges:[],
       spoiler_level:payload.spoiler_level||'none',spoiler_season:payload.spoiler_season||null,spoiler_episode:payload.spoiler_episode||null
