@@ -243,3 +243,41 @@
 .edital-comment-form{display:flex;gap:6px;margin-top:8px}
 .edital-comment-form input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.13);border-radius:8px;background:rgba(8,9,16,.45);color:inherit;padding:7px 8px;font:inherit;font-size:9.5px;outline:none}
 .edital-comment-form input:focus{border-color:var(--violet)}
+
+
+/* ---- Edital interaction rail ---- */
+.edital-card-layout{position:relative;z-index:1;display:grid;grid-template-columns:minmax(0,1fr) 86px;min-width:0;min-height:inherit}
+.edital-card-layout .pro-review-inner{min-width:0}
+.edital-action-rail{
+  position:relative;z-index:2;display:flex;flex-direction:column;align-items:stretch;gap:5px;
+  padding:13px 8px;background:rgba(111,114,124,.18);border-left:1px solid rgba(255,255,255,.09);
+  backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)
+}
+.edital-card:not(.has-art) .edital-action-rail{background:color-mix(in srgb,var(--panel-2) 88%,transparent);border-left-color:var(--line)}
+.edital-rail-action{
+  appearance:none;border:1px solid transparent;background:transparent;color:inherit;border-radius:9px;
+  min-height:61px;padding:7px 4px;display:grid;grid-template-columns:1fr;place-items:center;align-content:center;gap:1px;
+  cursor:pointer;opacity:.76;transition:opacity .14s ease,background .14s ease,border-color .14s ease,transform .12s ease
+}
+.edital-rail-action:hover{opacity:1;background:rgba(255,255,255,.065);border-color:rgba(255,255,255,.08);transform:translateY(-1px)}
+.edital-card:not(.has-art) .edital-rail-action:hover{background:rgba(139,92,246,.07);border-color:rgba(139,92,246,.16)}
+.edital-rail-action.active{opacity:1;color:#d9c8ff;background:rgba(139,92,246,.13);border-color:rgba(139,92,246,.24)}
+.edital-rail-action:disabled{opacity:.28;cursor:not-allowed;transform:none;background:transparent}
+.edital-rail-icon{font:700 19px/1 'Space Grotesk',sans-serif}
+.edital-rail-action b{font:700 9.5px 'Space Grotesk',sans-serif}
+.edital-rail-action small{font-size:7.5px;line-height:1.15;opacity:.72}
+.edital-rail-visibility{margin-top:auto;padding:5px 3px;text-align:center;font-size:7.5px;line-height:1.2;opacity:.62;border-top:1px solid rgba(255,255,255,.08)}
+.edital-card>.edital-comments-panel{position:relative;z-index:3;margin:0;border-radius:0;border:0;border-top:1px solid rgba(255,255,255,.10);padding:11px 13px;background:rgba(7,8,13,.88);color:#fff}
+.edital-card:not(.has-art)>.edital-comments-panel{background:var(--panel-2);color:var(--text);border-top-color:var(--line)}
+.feed-original-author{width:100%;font-size:9px;color:var(--text-dim);margin-top:1px}
+.feed-reason-chip.repost{border-color:rgba(139,92,246,.3);background:rgba(139,92,246,.08);color:var(--violet)}
+
+@media(max-width:640px){
+  .edital-card-layout{grid-template-columns:1fr}
+  .edital-action-rail{
+    flex-direction:row;align-items:stretch;padding:7px;border-left:0;border-top:1px solid rgba(255,255,255,.09);
+    backdrop-filter:none;-webkit-backdrop-filter:none
+  }
+  .edital-rail-action{flex:1;min-height:50px;padding:5px 3px}
+  .edital-rail-visibility{margin:0;display:flex;align-items:center;padding:0 6px;border-top:0;border-left:1px solid rgba(255,255,255,.08)}
+}
