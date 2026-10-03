@@ -20,6 +20,9 @@ const BINGEO_PRO_MONTHLY_PRICE = Number(process.env.BINGEO_PRO_MONTHLY_PRICE || 
 const BINGEO_LEGAL_NAME = String(process.env.BINGEO_LEGAL_NAME || '').trim();
 const BINGEO_LEGAL_TAX_ID = String(process.env.BINGEO_LEGAL_TAX_ID || '').trim();
 const BINGEO_LEGAL_ADDRESS = String(process.env.BINGEO_LEGAL_ADDRESS || '').trim();
+const BINGEO_LEGAL_CITY = String(process.env.BINGEO_LEGAL_CITY || '').trim();
+const BINGEO_LEGAL_STATE = String(process.env.BINGEO_LEGAL_STATE || '').trim();
+const BINGEO_LEGAL_POSTAL_CODE = String(process.env.BINGEO_LEGAL_POSTAL_CODE || '').trim();
 const BINGEO_SUPPORT_EMAIL = String(process.env.BINGEO_SUPPORT_EMAIL || '').trim();
 const BINGEO_PRIVACY_EMAIL = String(process.env.BINGEO_PRIVACY_EMAIL || BINGEO_SUPPORT_EMAIL).trim();
 const BINGEO_AUDIT_SALT = String(process.env.BINGEO_AUDIT_SALT || '').trim();
@@ -148,8 +151,17 @@ async function requireAuthenticatedApiUser(req, res, next) {
 app.use('/api', requireAuthenticatedApiUser);
 
 function billingLegalConfig() {
-  const legalReady = !!(BINGEO_LEGAL_NAME && BINGEO_LEGAL_TAX_ID && BINGEO_LEGAL_ADDRESS && BINGEO_SUPPORT_EMAIL && BINGEO_PRIVACY_EMAIL);
+  const legalReady = !!(
+    BINGEO_LEGAL_NAME && BINGEO_LEGAL_TAX_ID && BINGEO_LEGAL_ADDRESS &&
+    BINGEO_LEGAL_CITY && BINGEO_LEGAL_STATE && BINGEO_LEGAL_POSTAL_CODE &&
+    BINGEO_SUPPORT_EMAIL && BINGEO_PRIVACY_EMAIL
+  );
   const technicalReady = !!(ASAAS_API_KEY && ASAAS_WEBHOOK_TOKEN && SUPABASE_SECRET_KEY && BINGEO_AUDIT_SALT);
+  const fullAddress = [
+    BINGEO_LEGAL_ADDRESS,
+    BINGEO_LEGAL_CITY && BINGEO_LEGAL_STATE ? BINGEO_LEGAL_CITY + ' - ' + BINGEO_LEGAL_STATE : '',
+    BINGEO_LEGAL_POSTAL_CODE ? 'CEP ' + BINGEO_LEGAL_POSTAL_CODE : ''
+  ].filter(Boolean).join(', ');
   return {
     provider:'asaas',
     environment:ASAAS_ENV,
@@ -162,7 +174,10 @@ function billingLegalConfig() {
     supplier:{
       legalName:BINGEO_LEGAL_NAME || null,
       taxId:BINGEO_LEGAL_TAX_ID || null,
-      address:BINGEO_LEGAL_ADDRESS || null,
+      address:fullAddress || null,
+      city:BINGEO_LEGAL_CITY || null,
+      state:BINGEO_LEGAL_STATE || null,
+      postalCode:BINGEO_LEGAL_POSTAL_CODE || null,
       supportEmail:BINGEO_SUPPORT_EMAIL || null,
       privacyEmail:BINGEO_PRIVACY_EMAIL || null
     },
@@ -242,7 +257,7 @@ const ASAAS_BILLING_EVENTS=[
 ];
 
 async function ensureAsaasWebhook() {
-  if(!ASAAS_API_KEY||!ASAAS_WEBHOOK_TOKEN||!BINGEO_SUPPORT_EMAIL)return {configured:false,reason:'missing_config'};
+  if(!billingLegalConfig().ready)return {configured:false,reason:'missing_config'};
   const targetUrl=BINGEO_BASE_URL+'/api/billing/webhooks/asaas';
   try{
     const list=await asaasRequest('GET','/webhooks?offset=0&limit=100');
