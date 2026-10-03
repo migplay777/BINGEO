@@ -665,7 +665,7 @@
   }
   function tmdbSearchResultsHtml(){
     if(!state.query.trim())return '';
-    if(state.tmdbSearchLoading)return '<div class="tmdb-loading">Buscando séries, personagens, profissionais e usuários no Bingeo…</div>';
+    if(state.tmdbSearchLoading)return '<div class="tmdb-loading">Buscando séries, usuários, personagens e profissionais no Bingeo…</div>';
     var users=userSearchResultsHtml();
     var characters=characterSearchResultsHtml();
     var people=tmdbConfigured()?tmdbPersonResultsHtml():'';
@@ -678,19 +678,36 @@
       }).join('')+'</div>';
     }
     if(!users&&!characters&&!people&&!series){
-      return '<div class="empty"><strong>Nada encontrado.</strong>Tente outro nome de série, personagem, profissional ou usuário.'+(state.tmdbSearchError?'<br><span style="font-size:11px;color:var(--text-dim);">'+escapeHtml(state.tmdbSearchError)+'</span>':'')+'</div>';
+      return '<div class="empty"><strong>Nada encontrado.</strong>Tente outro nome de série, usuário, personagem ou profissional.'+(state.tmdbSearchError?'<br><span style="font-size:11px;color:var(--text-dim);">'+escapeHtml(state.tmdbSearchError)+'</span>':'')+'</div>';
     }
-    return users+characters+people+series;
+    return series+users+characters+people;
   }
   function hydrateCatalogs(cats){
     if(!tmdbConfigured()||!cats||!cats.length)return;
-    var pending=cats.filter(Boolean).slice(0,8).filter(function(cat){return !cat.tmdbLoaded&&!cat.tmdbError&&!tmdbHydrationPromises[cat.id];});
+    var seen={},pending=cats.filter(Boolean).filter(function(cat){
+      if(seen[cat.id])return false;seen[cat.id]=1;
+      return !cat.tmdbLoaded&&!cat.tmdbError&&!tmdbHydrationPromises[cat.id];
+    });
     if(!pending.length)return;
-    Promise.allSettled(pending.map(function(cat){return loadTmdbSeries(cat);}))
-      .then(function(){
-        if(state.view==='descobrir'||state.view==='estante'||state.view==='perfil')render();
-        else if(state.modalCatalogId)renderModal();
-      });
+    var chunks=[];for(var i=0;i<pending.length;i+=4)chunks.push(pending.slice(i,i+4));
+    var chain=Promise.resolve();
+    chunks.forEach(function(batch){
+      chain=chain.then(function(){return Promise.allSettled(batch.map(function(cat){return loadTmdbSeries(cat);}));});
+    });
+    chain.then(function(){
+      if(state.view==='descobrir'||state.view==='estante'||state.view==='perfil')renderMainViewOnly();
+      else if(state.modalCatalogId)renderModalPreserveScroll();
+    });
+  }
+  function scheduleDiscoverPopularPreload(){
+    if(!tmdbConfigured())return;
+    var run=function(){
+      var cats=typeof discoverPopularCatalogs==='function'?discoverPopularCatalogs().filter(Boolean):[];
+      if(!cats.length)return;
+      hydrateCatalogs(cats);
+    };
+    if('requestIdleCallback' in window)window.requestIdleCallback(run,{timeout:1400});
+    else setTimeout(run,650);
   }
 
   
