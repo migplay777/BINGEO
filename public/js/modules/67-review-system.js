@@ -383,7 +383,7 @@
         '</div>'+
       '</article>';
     }).join('')+'</div>';
-    return '<div class="profile-edit-section edital-manager"><div class="edital-manager-head"><div><h3>Controle dos Editals <span class="pro-badge">✦ PRO</span></h3><p>Gerencie visibilidade, arquivamento e exclusão das suas críticas.</p></div><button class="btn btn-primary btn-sm" data-action="edital-create-new">Criar Edital</button></div>'+body+'</div>';
+    return '<div class="profile-edit-section edital-manager"><div class="edital-manager-head"><div><h3>Controle dos Editals <span class="pro-profile-badge">✦ PRO</span></h3><p>Gerencie visibilidade, arquivamento e exclusão das suas críticas.</p></div><button class="btn btn-primary btn-sm" data-action="edital-create-new">Criar Edital</button></div>'+body+'</div>';
   }
   async function manageMyEdital(reviewId,action,visibility){
     var r=await supabaseClient.rpc('manage_my_edital',{p_review_id:Number(reviewId),p_action:action,p_visibility:visibility||null});
