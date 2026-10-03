@@ -320,6 +320,37 @@
     tmdbCacheSet(key,results);
     return results;
   }
+  var tmdbCardPromises={};
+  async function loadTmdbCardMeta(cat){
+    if(!tmdbConfigured()||!cat)return null;
+    if(cat.poster_path&&cat.backdrop_path)return cat;
+    if(tmdbCardPromises[cat.id])return tmdbCardPromises[cat.id];
+    tmdbCardPromises[cat.id]=(async function(){
+      var found=null;
+      if(cat.tmdbId)found={id:Number(cat.tmdbId)};
+      else{
+        var sr=await tmdbSearchTV(cat.title);
+        found=chooseTmdbMatch(sr,cat);
+      }
+      if(!found||!found.id)return cat;
+      var key='card:'+found.id,data=tmdbCacheGet(key,86400000);
+      if(!data){
+        data=await tmdbFetch('/tv/'+found.id,{language:'pt-BR'});
+        tmdbCacheSet(key,data);
+      }
+      cat.tmdbId=Number(data.id||found.id);
+      cat.poster_path=data.poster_path||cat.poster_path||null;
+      cat.backdrop_path=data.backdrop_path||cat.backdrop_path||null;
+      cat.overview=data.overview||cat.overview||'';
+      if(!cat.year)cat.year=parseInt((data.first_air_date||'').slice(0,4),10)||null;
+      return cat;
+    })().catch(function(err){
+      console.warn('Não foi possível carregar arte rápida de '+(cat.title||cat.id)+':',err);
+      return cat;
+    }).finally(function(){delete tmdbCardPromises[cat.id];});
+    return tmdbCardPromises[cat.id];
+  }
+
   async function loadTmdbSeries(cat,force){if(!tmdbConfigured())return null;if(cat.tmdbLoaded&&!force)return cat.tmdbData;if(tmdbHydrationPromises[cat.id]&&!force)return tmdbHydrationPromises[cat.id];tmdbHydrationPromises[cat.id]=(async function(){var found;if(cat.tmdbId)found={id:cat.tmdbId};else{var sr=await tmdbSearchTV(cat.title);found=chooseTmdbMatch(sr,cat);if(!found)throw new Error('Série não encontrada na TMDB.');}var details=tmdbCacheGet('series:'+found.id,86400000);if(!details){details=await tmdbFetch('/tv/'+found.id,{language:'pt-BR',append_to_response:'aggregate_credits,external_ids'});tmdbCacheSet('series:'+found.id,details);}if(!details.external_ids){try{details.external_ids=await tmdbFetch('/tv/'+found.id+'/external_ids',{});tmdbCacheSet('series:'+found.id,details);}catch(ignore){}}cat.tmdbId=details.id;cat.tmdbData=details;cat.tmdbLoaded=true;cat.tmdbError='';cat.poster_path=details.poster_path||cat.poster_path||null;cat.backdrop_path=details.backdrop_path||cat.backdrop_path||null;cat.overview=details.overview||cat.overview||'';cat.tmdbData=details;cat.genre=(details.genres&&details.genres[0]&&details.genres[0].name)||cat.genre||'Série';cat.year=parseInt((details.first_air_date||'').slice(0,4),10)||cat.year||null;cat.platform=(details.networks&&details.networks[0]&&details.networks[0].name)||cat.platform||'';if(Array.isArray(details.seasons))cat.seasons=details.seasons.filter(function(se){return Number(se.season_number)>0;}).map(function(se){return Number(se.episode_count)||0;});cat.tmdbSeasons=cat.tmdbSeasons||{};indexSeriesCharacters(cat,details,!!force);return details;})().catch(function(err){cat.tmdbLoaded=false;cat.tmdbError=err.message||'Erro ao carregar TMDB';throw err;}).finally(function(){delete tmdbHydrationPromises[cat.id];});return tmdbHydrationPromises[cat.id];}
   async function loadTmdbSeason(cat,seasonNum){if(!tmdbConfigured()||!cat.tmdbId)return null;cat.tmdbSeasons=cat.tmdbSeasons||{};if(cat.tmdbSeasons[seasonNum])return cat.tmdbSeasons[seasonNum];var key='season:'+cat.tmdbId+':'+seasonNum,cached=tmdbCacheGet(key,86400000);if(cached){cat.tmdbSeasons[seasonNum]=cached;return cached;}var data=await tmdbFetch('/tv/'+cat.tmdbId+'/season/'+seasonNum,{language:'pt-BR'});cat.tmdbSeasons[seasonNum]=data;tmdbCacheSet(key,data);return data;}
   function professionalCreditFavoriteHtml(p,department){
@@ -692,7 +723,7 @@
     var chunks=[];for(var i=0;i<pending.length;i+=4)chunks.push(pending.slice(i,i+4));
     var chain=Promise.resolve();
     chunks.forEach(function(batch){
-      chain=chain.then(function(){return Promise.allSettled(batch.map(function(cat){return loadTmdbSeries(cat);}));});
+      chain=chain.then(function(){return Promise.allSettled(batch.map(function(cat){return loadTmdbCardMeta(cat);}));});
     });
     chain.then(function(){
       if(state.view==='descobrir'||state.view==='estante'||state.view==='perfil')renderMainViewOnly();
