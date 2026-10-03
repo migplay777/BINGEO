@@ -69,6 +69,7 @@
     myEditals:[],
     myEditalsLoading:false,
     myEditalsError:'',
+    createEditalIntent:false,
     billingConfig:null,
     billingStatus:null,
     billingLoading:false,
@@ -251,6 +252,7 @@
     state.myEditals=[];
     state.myEditalsLoading=false;
     state.myEditalsError='';
+    state.createEditalIntent=false;
     state.billingConfig=null;
     state.billingStatus=null;
     state.billingLoading=false;
