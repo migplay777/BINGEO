@@ -256,6 +256,19 @@
     });
     (state.myEditals||[]).forEach(apply);
   }
+  function currentEditalMetric(reviewId,key){
+    reviewId=Number(reviewId)||0;var value=0;
+    (state.socialFeed||[]).forEach(function(item){
+      var p=item&&item.payload||{};
+      if(Number(p.review_id)===reviewId)value=Math.max(value,Number(p[key]||0));
+    });
+    Object.keys(state.seriesCommunity||{}).forEach(function(cid){
+      var rows=(state.seriesCommunity[cid]&&state.seriesCommunity[cid].editals)||[];
+      rows.forEach(function(item){if(Number(item.review_id)===reviewId)value=Math.max(value,Number(item[key]||0));});
+    });
+    (state.myEditals||[]).forEach(function(item){if(Number(item.review_id)===reviewId)value=Math.max(value,Number(item[key]||0));});
+    return value;
+  }
   function editalCommentsPanelHtml(reviewId){
     reviewId=Number(reviewId)||0;if(!reviewId||!state.editalCommentsOpen[reviewId])return '';
     var rows=state.editalComments[reviewId]||[],loading=!!state.editalCommentLoading[reviewId];
@@ -313,11 +326,7 @@
     if(!reviewId||!body)return;
     var r=await supabaseClient.rpc('add_edital_comment',{p_review_id:reviewId,p_body:body});
     if(r.error)throw r.error;
-    updateEditalEngagementState(reviewId,{comment_count:(function(){
-      var count=0;
-      (state.socialFeed||[]).some(function(item){var p=item&&item.payload||{};if(Number(p.review_id)===reviewId){count=Number(p.comment_count||0);return true;}return false;});
-      return count+1;
-    })()});
+    updateEditalEngagementState(reviewId,{comment_count:currentEditalMetric(reviewId,'comment_count')+1});
     await loadEditalComments(reviewId);
   }
   async function toggleEditalLike(reviewId){
