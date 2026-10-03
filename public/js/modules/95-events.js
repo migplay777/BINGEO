@@ -250,7 +250,9 @@
       renderModalPreserveScroll();
     }
 else if(action==='edit-profile'){
-      state.userProfileOpen=null;state.userProfileData=null;state.professionalOpen=null;state.characterOpen=null;state.modalCatalogId=null;state.query='';state.profile.editing=false;state.view='editar-perfil';render();
+      state.userProfileOpen=null;state.userProfileData=null;state.professionalOpen=null;state.characterOpen=null;state.modalCatalogId=null;state.query='';state.profile.editing=false;state.view='editar-perfil';
+      if(hasPro())state.myEditalsLoading=true;
+      render();
       if(hasPro())loadMyEditals().catch(function(e){console.error('Erro ao carregar Editals:',e);});
     }
     else if(action==='back-to-profile'){state.profile.editing=false;state.view='perfil';render();}
