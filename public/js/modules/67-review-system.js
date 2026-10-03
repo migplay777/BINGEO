@@ -429,7 +429,9 @@
       return true;
     }
     if(action==='add-edital-comment'){
-      var reviewId=Number(el.dataset.reviewId)||0,input=document.getElementById('editalCommentInput-'+reviewId);
+      var reviewId=Number(el.dataset.reviewId)||0,card=el.closest('.edital-card');
+      var input=card&&card.querySelector('.edital-comment-form input');
+      if(!input)input=document.getElementById('editalCommentInput-'+reviewId);
       if(!reviewId||!input||!input.value.trim())return true;
       el.disabled=true;
       addEditalComment(reviewId,input.value).catch(function(e){alert(e.message||'Não foi possível comentar.');}).finally(function(){el.disabled=false;});
