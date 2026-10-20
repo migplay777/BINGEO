@@ -275,7 +275,7 @@
         await sendLoginOtp(email,'login');
       }
     }catch(ex){
-      if(authMode==='login')clearAuthFlow();
+      clearAuthFlow();
       showAuthCredentials();
       err.style.color='#ff8f8f';
       err.textContent=ex.message||'Não foi possível autenticar.';
