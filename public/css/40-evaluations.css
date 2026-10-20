@@ -55,6 +55,9 @@
   .auth-tabs button.active{background:linear-gradient(135deg,rgba(139,92,246,.95),rgba(76,124,240,.95));color:#fff;box-shadow:0 5px 18px rgba(76,124,240,.18)}
   .auth-field{display:block;margin-bottom:13px}.auth-field span{display:block;color:var(--text-muted);font-size:12px;font-weight:600;margin-bottom:7px}
   .auth-field input{width:100%;background:#12141c;border:1px solid var(--line);border-radius:10px;color:var(--text);padding:12px 13px;outline:none;transition:border-color .15s ease,box-shadow .15s ease}.auth-field input:focus{border-color:var(--violet);box-shadow:0 0 0 3px rgba(139,92,246,.10)}
+  .auth-forgot-link{display:inline-block;margin:-5px 0 11px auto;float:right;appearance:none;border:0;background:transparent;color:#bca8ff;font:600 10.5px 'Manrope',sans-serif;padding:2px 0;cursor:pointer}
+  .auth-forgot-link:hover{text-decoration:underline}
+  .auth-forgot-link::after{content:"";display:block;clear:both}
   .auth-error{min-height:20px;color:#ff8f8f;font-size:12px;line-height:1.4;margin:8px 0}.auth-submit{width:100%;margin-top:4px;padding:11px 15px}
   .auth-choice{display:flex;align-items:flex-start;gap:9px;margin:9px 0;color:var(--text-muted);font-size:11.5px;line-height:1.45;cursor:pointer}
   .auth-choice input{margin-top:2px;accent-color:var(--violet);flex:0 0 auto}
@@ -91,3 +94,12 @@
   .pro-dna-berries{font-size:17px;letter-spacing:3px;filter:saturate(.75);}
   .pro-medal-preview{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;}
   .pro-medal-preview span{font-size:9px;padding:5px 7px;border:1px solid rgba(139,92,246,.22);border-radius:999px;color:var(--text-muted);background:rgba(139,92,246,.05);}
+
+  #authRecoveryStep .auth-field,#authNewPasswordStep .auth-field{margin-bottom:12px}
+  #authRecoveryStep .auth-submit,#authNewPasswordStep .auth-submit{margin-top:3px}
+  .auth-security-hint{font-size:9.5px;color:var(--text-dim);line-height:1.45;margin-top:8px}
+  @media(max-width:520px){
+    .auth-gate{padding:16px}
+    .auth-card{padding:22px;border-radius:18px}
+    .auth-logo{width:76px;height:76px}
+  }
