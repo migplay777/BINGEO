@@ -17,7 +17,7 @@
 <link rel="stylesheet" href="/css/30-profile.css?v=20261003-profile-badge-v2">
 <link rel="stylesheet" href="/css/35-pro-features.css?v=20261002-pro-motion-v1">
 <link rel="stylesheet" href="/css/36-billing.css?v=20261001-asaas-v1">
-<link rel="stylesheet" href="/css/40-evaluations.css?v=20261003-auth-security-v1">
+<link rel="stylesheet" href="/css/40-evaluations.css?v=20261020-password-recovery-v1">
 <link rel="stylesheet" href="/css/50-community.css?v=20261003-profile-badge-v1">
 <link rel="stylesheet" href="/css/60-social.css?v=20261002-edital-actions-v1">
 </head>
@@ -37,6 +37,7 @@
         <label class="auth-field" id="authUsernameField" style="display:none"><span>Nome de usuário</span><input id="authUsername" autocomplete="username" maxlength="30" placeholder="seu_usuario"></label>
         <label class="auth-field"><span>E-mail</span><input id="authEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
         <label class="auth-field"><span>Senha</span><input id="authPassword" type="password" autocomplete="current-password" minlength="1" required placeholder="Sua senha"></label>
+        <button type="button" class="auth-forgot-link" id="authForgotPassword">Esqueci minha senha</button>
         <label class="auth-field" id="authConfirmField" style="display:none"><span>Confirmar senha</span><input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="8" placeholder="Repita sua senha"></label>
 
         <label class="auth-choice" id="authRememberField">
@@ -62,18 +63,42 @@
 
     <div class="auth-otp-step" id="authOtpStep" hidden>
       <div class="auth-otp-icon" aria-hidden="true">✉</div>
-      <h2>Verifique seu e-mail</h2>
-      <p id="authOtpMessage">Enviamos uma verificação para o seu e-mail.</p>
+      <h2 id="authOtpTitle">Verifique seu e-mail</h2>
+      <p id="authOtpMessage">Enviamos um código para o seu e-mail.</p>
       <form id="authOtpForm">
         <label class="auth-field"><span>Código de verificação</span><input id="authOtpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{6,8}" placeholder="000000"></label>
         <div class="auth-error" id="authOtpError"></div>
         <button class="btn btn-primary auth-submit" type="submit" id="authOtpSubmit">Verificar código</button>
       </form>
       <div class="auth-otp-actions">
-        <button type="button" class="auth-link-button" id="authOtpResend">Reenviar verificação</button>
-        <button type="button" class="auth-link-button" id="authOtpBack">Usar outro e-mail</button>
+        <button type="button" class="auth-link-button" id="authOtpResend">Reenviar código</button>
+        <button type="button" class="auth-link-button" id="authOtpBack">Voltar</button>
       </div>
-      <div class="auth-otp-note">Se o e-mail do Supabase chegar como link de acesso em vez de código, abrir esse link também conclui esta etapa.</div>
+      <div class="auth-otp-note" id="authOtpNote">Digite o código temporário enviado pela Supabase. O Bingeo nunca pede esse código fora desta tela.</div>
+    </div>
+
+    <div class="auth-otp-step" id="authRecoveryStep" hidden>
+      <div class="auth-otp-icon" aria-hidden="true">↺</div>
+      <h2>Redefinir senha</h2>
+      <p>Informe o e-mail da sua conta. Enviaremos um código de recuperação.</p>
+      <form id="authRecoveryForm">
+        <label class="auth-field"><span>E-mail</span><input id="authRecoveryEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
+        <div class="auth-error" id="authRecoveryError"></div>
+        <button class="btn btn-primary auth-submit" type="submit" id="authRecoverySubmit">Enviar código</button>
+      </form>
+      <div class="auth-otp-actions"><button type="button" class="auth-link-button" id="authRecoveryBack">Voltar ao login</button></div>
+    </div>
+
+    <div class="auth-otp-step" id="authNewPasswordStep" hidden>
+      <div class="auth-otp-icon" aria-hidden="true">✓</div>
+      <h2>Crie uma nova senha</h2>
+      <p id="authNewPasswordMessage">O código foi confirmado. Agora escolha uma nova senha para sua conta.</p>
+      <form id="authNewPasswordForm">
+        <label class="auth-field"><span>Nova senha</span><input id="authNewPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="Pelo menos 8 caracteres"></label>
+        <label class="auth-field"><span>Confirmar nova senha</span><input id="authNewPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repita a nova senha"></label>
+        <div class="auth-error" id="authNewPasswordError"></div>
+        <button class="btn btn-primary auth-submit" type="submit" id="authNewPasswordSubmit">Salvar nova senha</button>
+      </form>
     </div>
     <div class="auth-foot">Sua conta mantém seus dados separados e protegidos no Bingeo. <a href="/legal/termos.html" target="_blank" rel="noopener">Termos</a> · <a href="/legal/privacidade.html" target="_blank" rel="noopener">Privacidade</a></div>
   </div>
@@ -130,6 +155,6 @@
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="/js/app.bundle.js?v=20261003-auth-security-v1"></script>
+<script src="/js/app.bundle.js?v=20261020-password-recovery-v1"></script>
 </body>
 </html>
