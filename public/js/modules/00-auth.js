@@ -234,7 +234,7 @@
 
     // A sessão criada pelo link do próprio e-mail já comprova a segunda etapa.
     // Antes, o Bingeo mantinha o fluxo em "email_sent" e devolvia o usuário
-    // para a tela de código mesmo depois de um Magic Link válido.
+    // para a tela de confirmação mesmo depois de um Magic Link válido.
     if(!authCallbackConsumed&&emailCallbackCanComplete(flow)){
       authCallbackConsumed=true;
       if(flow.purpose==='recovery'){
