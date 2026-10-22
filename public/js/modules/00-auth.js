@@ -23,7 +23,7 @@
   var SUPABASE_URL='https://bazujvpppbxxiymxweiq.supabase.co';
   var SUPABASE_PUBLISHABLE_KEY='sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
   var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
-    auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
+    auth:{detectSessionInUrl:false,persistSession:true,autoRefreshToken:true}
   });
 
   var AUTH_REMEMBER_EMAIL_KEY='bingeo.rememberEmail.v1';
@@ -202,7 +202,7 @@
     writeAuthFlow(p,email,'sending',{method:'email_otp'});
     var result=await supabaseClient.auth.signInWithOtp({
       email:String(email||'').trim().toLowerCase(),
-      options:{shouldCreateUser:false,emailRedirectTo:authRedirectUrl()}
+      options:{shouldCreateUser:false}
     });
     if(result.error){clearAuthFlow();throw result.error;}
     var flow=writeAuthFlow(p,email,'email_sent',{method:'email_otp'});
@@ -216,10 +216,10 @@
       result=await supabaseClient.auth.resend({
         type:'signup',
         email:flow.email,
-        options:{emailRedirectTo:authRedirectUrl()}
+        
       });
     }else if(flow.purpose==='recovery'){
-      result=await supabaseClient.auth.resetPasswordForEmail(flow.email,{redirectTo:authRedirectUrl()});
+      result=await supabaseClient.auth.resetPasswordForEmail(flow.email);
     }else{
       result=await supabaseClient.auth.signInWithOtp({
         email:flow.email,
@@ -308,8 +308,7 @@
               terms_version:'2026-10-01',
               privacy_version:'2026-10-01',
               signup_source:'bingeo_web'
-            },
-            emailRedirectTo:authRedirectUrl()
+            }
           }
         });
         if(result.error)throw result.error;
@@ -350,7 +349,7 @@
     btn.disabled=true;btn.textContent='Enviando…';
     try{
       writeAuthFlow('recovery',email,'sending',{method:'recovery'});
-      var result=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});
+      var result=await supabaseClient.auth.resetPasswordForEmail(email);
       if(result.error)throw result.error;
       writeAuthFlow('recovery',email,'email_sent',{method:'recovery'});
       showOtpStep('recovery',email);
