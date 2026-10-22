@@ -64,27 +64,23 @@
     <div class="auth-otp-step" id="authOtpStep" hidden>
       <div class="auth-otp-icon" aria-hidden="true">✉</div>
       <h2 id="authOtpTitle">Verifique seu e-mail</h2>
-      <p id="authOtpMessage">Enviamos um código para o seu e-mail.</p>
-      <form id="authOtpForm">
-        <label class="auth-field"><span>Código de verificação</span><input id="authOtpCode" inputmode="numeric" autocomplete="one-time-code" maxlength="8" pattern="[0-9]{6,8}" placeholder="000000"></label>
-        <div class="auth-error" id="authOtpError"></div>
-        <button class="btn btn-primary auth-submit" type="submit" id="authOtpSubmit">Verificar código</button>
-      </form>
+      <p id="authOtpMessage">Enviamos um link para o seu e-mail.</p>
+      <div class="auth-error" id="authOtpError"></div>
       <div class="auth-otp-actions">
-        <button type="button" class="auth-link-button" id="authOtpResend">Reenviar código</button>
+        <button type="button" class="auth-link-button" id="authOtpResend">Reenviar link</button>
         <button type="button" class="auth-link-button" id="authOtpBack">Voltar</button>
       </div>
-      <div class="auth-otp-note" id="authOtpNote">Digite o código temporário enviado para o seu e-mail. O Bingeo nunca pede esse código fora desta tela.</div>
+      <div class="auth-otp-note" id="authOtpNote">Clique no link enviado pelo Supabase para continuar. O login será concluído automaticamente ao voltar ao Bingeo.</div>
     </div>
 
     <div class="auth-otp-step" id="authRecoveryStep" hidden>
       <div class="auth-otp-icon" aria-hidden="true">↺</div>
       <h2>Redefinir senha</h2>
-      <p>Informe o e-mail da sua conta. Enviaremos um código de recuperação.</p>
+      <p>Informe o e-mail da sua conta. Enviaremos um link de recuperação.</p>
       <form id="authRecoveryForm">
         <label class="auth-field"><span>E-mail</span><input id="authRecoveryEmail" type="email" autocomplete="email" required placeholder="voce@email.com"></label>
         <div class="auth-error" id="authRecoveryError"></div>
-        <button class="btn btn-primary auth-submit" type="submit" id="authRecoverySubmit">Enviar código</button>
+        <button class="btn btn-primary auth-submit" type="submit" id="authRecoverySubmit">Enviar link</button>
       </form>
       <div class="auth-otp-actions"><button type="button" class="auth-link-button" id="authRecoveryBack">Voltar ao login</button></div>
     </div>
@@ -92,7 +88,7 @@
     <div class="auth-otp-step" id="authNewPasswordStep" hidden>
       <div class="auth-otp-icon" aria-hidden="true">✓</div>
       <h2>Crie uma nova senha</h2>
-      <p id="authNewPasswordMessage">O código foi confirmado. Agora escolha uma nova senha para sua conta.</p>
+      <p id="authNewPasswordMessage">O link foi confirmado. Agora escolha uma nova senha para sua conta.</p>
       <form id="authNewPasswordForm">
         <label class="auth-field"><span>Nova senha</span><input id="authNewPassword" type="password" autocomplete="new-password" minlength="8" required placeholder="Pelo menos 8 caracteres"></label>
         <label class="auth-field"><span>Confirmar nova senha</span><input id="authNewPasswordConfirm" type="password" autocomplete="new-password" minlength="8" required placeholder="Repita a nova senha"></label>
@@ -155,6 +151,6 @@
 </footer>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2"></script>
-<script src="/js/app.bundle.js?v=20261022-auth-otp-only-v1"></script>
+<script src="/js/app.bundle.js?v=20261022-auth-email-link-v1"></script>
 </body>
 </html>
