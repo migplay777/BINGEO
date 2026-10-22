@@ -1,3 +1,25 @@
+  var authInitialCallback=(function(){
+    try{
+      var hash=new URLSearchParams(String(window.location.hash||'').replace(/^#/,''));
+      var query=new URLSearchParams(String(window.location.search||'').replace(/^\?/,''));
+      var type=String(hash.get('type')||query.get('type')||'').toLowerCase();
+      var error=hash.get('error')||query.get('error')||'';
+      var errorCode=hash.get('error_code')||query.get('error_code')||'';
+      var errorDescription=hash.get('error_description')||query.get('error_description')||'';
+      return {
+        type:type,
+        error:String(error||''),
+        errorCode:String(errorCode||''),
+        errorDescription:String(errorDescription||'').replace(/\+/g,' '),
+        hasAuthPayload:!!(hash.get('access_token')||hash.get('refresh_token')||query.get('code')||type),
+        fromEmail:['magiclink','signup','recovery','email'].indexOf(type)>-1
+      };
+    }catch(_e){
+      return {type:'',error:'',errorCode:'',errorDescription:'',hasAuthPayload:false,fromEmail:false};
+    }
+  })();
+  var authCallbackConsumed=false;
+
   var SUPABASE_URL='https://bazujvpppbxxiymxweiq.supabase.co';
   var SUPABASE_PUBLISHABLE_KEY='sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
   var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
@@ -51,6 +73,23 @@
     return row;
   }
   function clearAuthFlow(){authStorageSet(AUTH_FLOW_KEY,'');}
+  function cleanAuthCallbackUrl(){
+    try{
+      if(!window.history||!window.history.replaceState)return;
+      var url=new URL(window.location.href);
+      ['code','type','error','error_code','error_description'].forEach(function(key){url.searchParams.delete(key);});
+      url.hash='';
+      window.history.replaceState({},document.title,url.pathname+(url.searchParams.toString()?'?'+url.searchParams.toString():''));
+    }catch(_e){}
+  }
+  function emailCallbackCanComplete(flow){
+    if(!flow||!authInitialCallback.hasAuthPayload||authInitialCallback.error)return false;
+    var type=authInitialCallback.type;
+    if(flow.purpose==='recovery')return type==='recovery';
+    if(flow.purpose==='signup')return type==='signup'||type==='magiclink'||type==='email';
+    if(flow.purpose==='login')return type==='magiclink'||type==='email'||(!type&&authInitialCallback.hasAuthPayload);
+    return false;
+  }
   function hideAuthSteps(){
     ['authCredentialsStep','authOtpStep','authRecoveryStep','authNewPasswordStep'].forEach(function(id){
       var el=document.getElementById(id);if(el)el.hidden=true;
@@ -197,6 +236,23 @@
     if(!flow||!session||!session.user)return false;
     var sessionEmail=String(session.user.email||'').trim().toLowerCase();
     if(!flow.email||flow.email!==sessionEmail)return false;
+
+    // A sessão criada pelo link do próprio e-mail já comprova a segunda etapa.
+    // Antes, o Bingeo mantinha o fluxo em "email_sent" e devolvia o usuário
+    // para a tela de código mesmo depois de um Magic Link válido.
+    if(!authCallbackConsumed&&emailCallbackCanComplete(flow)){
+      authCallbackConsumed=true;
+      if(flow.purpose==='recovery'){
+        writeAuthFlow('recovery',flow.email,'password_change',{method:'recovery'});
+        cleanAuthCallbackUrl();
+        showNewPasswordStep(flow.email);
+        return true;
+      }
+      clearAuthFlow();
+      cleanAuthCallbackUrl();
+      return false;
+    }
+
     if(flow.purpose==='recovery'&&flow.stage==='password_change'){
       showNewPasswordStep(flow.email);
       return true;
@@ -384,7 +440,28 @@
   // Remove chaves antigas do fluxo anterior para evitar estados presos após a atualização.
   authStorageSet('bingeo.emailSecondStep.v1','');
   authStorageSet('bingeo.signupConfirm.v1','');
-  if(!restorePendingAuthUi())setAuthMode('login');
+
+  var restoredPendingUi=restorePendingAuthUi();
+  if(!restoredPendingUi)setAuthMode('login');
+  if(authInitialCallback.error){
+    var callbackFlow=readAuthFlow();
+    if(callbackFlow&&callbackFlow.email){
+      showOtpStep(callbackFlow.purpose,callbackFlow.email);
+      var callbackErr=document.getElementById('authOtpError');
+      if(callbackErr){
+        callbackErr.style.color='#ffb36b';
+        callbackErr.textContent='Esse link já foi usado ou expirou. Digite o código recebido no e-mail ou toque em Reenviar código.';
+      }
+    }else{
+      setAuthMode('login');
+      var loginCallbackErr=document.getElementById('authError');
+      if(loginCallbackErr){
+        loginCallbackErr.style.color='#ffb36b';
+        loginCallbackErr.textContent='Esse link de acesso já foi usado ou expirou. Faça login novamente para receber um novo código.';
+      }
+    }
+    cleanAuthCallbackUrl();
+  }
 
   document.getElementById('logoutBtn').onclick=async function(){
     clearAuthFlow();
