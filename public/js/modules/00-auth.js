@@ -23,7 +23,7 @@
   var SUPABASE_URL='https://bazujvpppbxxiymxweiq.supabase.co';
   var SUPABASE_PUBLISHABLE_KEY='sb_publishable_y6uiZr53J-ZtPCWDRNEvjw_x-ZGU-mi';
   var supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{
-    auth:{detectSessionInUrl:false,persistSession:true,autoRefreshToken:true}
+    auth:{detectSessionInUrl:true,persistSession:true,autoRefreshToken:true}
   });
 
   var AUTH_REMEMBER_EMAIL_KEY='bingeo.rememberEmail.v1';
@@ -112,21 +112,18 @@
   function otpCopyFor(purpose){
     if(purpose==='signup')return {
       title:'Confirme sua conta',
-      message:'Enviamos um código de confirmação para ',
-      note:'Digite o código temporário para confirmar seu e-mail e ativar sua conta no Bingeo.',
-      submit:'Confirmar conta'
+      message:'Enviamos um link de confirmação para ',
+      note:'Abra o e-mail e clique no link para confirmar sua conta. Ao voltar ao Bingeo, o acesso será liberado automaticamente.'
     };
     if(purpose==='recovery')return {
-      title:'Código de recuperação',
-      message:'Enviamos um código para ',
-      note:'Depois de confirmar o código, você poderá criar uma nova senha.',
-      submit:'Continuar'
+      title:'Confira seu e-mail',
+      message:'Enviamos um link de recuperação para ',
+      note:'Clique no link do e-mail para voltar ao Bingeo e criar uma nova senha.'
     };
     return {
-      title:'Verifique seu login',
-      message:'Enviamos um código de segurança para ',
-      note:'Digite o código temporário para concluir o login. Nunca compartilhe este código.',
-      submit:'Verificar código'
+      title:'Confirme seu acesso',
+      message:'Enviamos um link de acesso para ',
+      note:'Abra o e-mail e clique no link. O Bingeo concluirá o login automaticamente.'
     };
   }
   function showOtpStep(purpose,email){
@@ -137,15 +134,13 @@
     var title=document.getElementById('authOtpTitle');if(title)title.textContent=copy.title;
     var message=document.getElementById('authOtpMessage');if(message)message.textContent=copy.message+String(email||'').trim()+'.';
     var note=document.getElementById('authOtpNote');if(note)note.textContent=copy.note;
-    var submit=document.getElementById('authOtpSubmit');if(submit)submit.textContent=copy.submit;
-    var code=document.getElementById('authOtpCode');if(code){code.value='';setTimeout(function(){code.focus();},0);}
     var error=document.getElementById('authOtpError');if(error){error.textContent='';error.style.color='#ff8f8f';}
   }
   function showNewPasswordStep(email){
     hideAuthSteps();
     var step=document.getElementById('authNewPasswordStep');if(step)step.hidden=false;
     var msg=document.getElementById('authNewPasswordMessage');
-    if(msg)msg.textContent='Código confirmado para '+String(email||'seu e-mail')+'. Agora escolha uma nova senha.';
+    if(msg)msg.textContent='Link confirmado para '+String(email||'seu e-mail')+'. Agora escolha uma nova senha.';
     var a=document.getElementById('authNewPassword'),b=document.getElementById('authNewPasswordConfirm');
     if(a)a.value='';if(b)b.value='';
     var err=document.getElementById('authNewPasswordError');if(err){err.textContent='';err.style.color='#ff8f8f';}
@@ -172,8 +167,8 @@
     document.getElementById('authLoginTab').classList.toggle('active',!signup);
     document.getElementById('authSignupTab').classList.toggle('active',signup);
     document.getElementById('authSubtitle').textContent=signup
-      ?'Crie sua conta e confirme seu e-mail com um código para começar.'
-      :'Entre com sua senha e confirme o acesso pelo código enviado ao seu e-mail.';
+      ?'Crie sua conta e confirme seu e-mail pelo link enviado pelo Supabase.'
+      :'Entre com sua senha e confirme o acesso pelo link enviado ao seu e-mail.';
     var err=document.getElementById('authError');err.style.color='#ff8f8f';err.textContent='';
   }
   function restoreRememberedEmail(){
@@ -192,20 +187,20 @@
       var btn=document.getElementById('authOtpResend');if(!btn)return;
       var left=Math.max(0,Math.ceil((otpCooldownUntil-Date.now())/1000));
       btn.disabled=left>0;
-      btn.textContent=left>0?'Reenviar em '+left+'s':'Reenviar código';
+      btn.textContent=left>0?'Reenviar em '+left+'s':'Reenviar link';
       if(left<=0&&otpCooldownTimer){clearInterval(otpCooldownTimer);otpCooldownTimer=null;}
     }
     paint();otpCooldownTimer=setInterval(paint,1000);
   }
   async function sendLoginOtp(email,purpose){
     var p=purpose||'login';
-    writeAuthFlow(p,email,'sending',{method:'email_otp'});
+    writeAuthFlow(p,email,'sending',{method:'magic_link'});
     var result=await supabaseClient.auth.signInWithOtp({
       email:String(email||'').trim().toLowerCase(),
-      options:{shouldCreateUser:false}
+      options:{shouldCreateUser:false,emailRedirectTo:authRedirectUrl()}
     });
     if(result.error){clearAuthFlow();throw result.error;}
-    var flow=writeAuthFlow(p,email,'email_sent',{method:'email_otp'});
+    var flow=writeAuthFlow(p,email,'email_sent',{method:'magic_link'});
     showOtpStep(p,flow.email);
     startOtpCooldown(60);
   }
@@ -216,14 +211,14 @@
       result=await supabaseClient.auth.resend({
         type:'signup',
         email:flow.email,
-        
+        options:{emailRedirectTo:authRedirectUrl()}
       });
     }else if(flow.purpose==='recovery'){
-      result=await supabaseClient.auth.resetPasswordForEmail(flow.email);
+      result=await supabaseClient.auth.resetPasswordForEmail(flow.email,{redirectTo:authRedirectUrl()});
     }else{
       result=await supabaseClient.auth.signInWithOtp({
         email:flow.email,
-        options:{shouldCreateUser:false}
+        options:{shouldCreateUser:false,emailRedirectTo:authRedirectUrl()}
       });
     }
     if(result&&result.error)throw result.error;
@@ -308,13 +303,14 @@
               terms_version:'2026-10-01',
               privacy_version:'2026-10-01',
               signup_source:'bingeo_web'
-            }
+            },
+            emailRedirectTo:authRedirectUrl()
           }
         });
         if(result.error)throw result.error;
         if(result.data&&result.data.session){
-          await supabaseClient.auth.signOut({scope:'local'});
-          await sendLoginOtp(email,'signup');
+          clearAuthFlow();
+          await applySession(result.data.session);
         }else{
           writeAuthFlow('signup',email,'email_sent',{method:'signup_confirmation'});
           showOtpStep('signup',email);
@@ -322,7 +318,7 @@
         }
       }else{
         persistRememberedEmail(email);
-        writeAuthFlow('login',email,'password_check',{method:'email_otp'});
+        writeAuthFlow('login',email,'password_check',{method:'magic_link'});
         result=await supabaseClient.auth.signInWithPassword({email:email,password:password});
         if(result.error)throw result.error;
         if(!result.data||!result.data.session)throw new Error('Não foi possível validar a senha.');
@@ -349,46 +345,16 @@
     btn.disabled=true;btn.textContent='Enviando…';
     try{
       writeAuthFlow('recovery',email,'sending',{method:'recovery'});
-      var result=await supabaseClient.auth.resetPasswordForEmail(email);
+      var result=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:authRedirectUrl()});
       if(result.error)throw result.error;
       writeAuthFlow('recovery',email,'email_sent',{method:'recovery'});
       showOtpStep('recovery',email);
       startOtpCooldown(60);
     }catch(ex){
       clearAuthFlow();
-      err.textContent=ex.message||'Não foi possível enviar o código de recuperação.';
+      err.textContent=ex.message||'Não foi possível enviar o link de recuperação.';
     }finally{
-      btn.disabled=false;btn.textContent='Enviar código';
-    }
-  });
-
-  document.getElementById('authOtpForm').addEventListener('submit',async function(e){
-    e.preventDefault();
-    var flow=readAuthFlow(),input=document.getElementById('authOtpCode'),err=document.getElementById('authOtpError'),btn=document.getElementById('authOtpSubmit');
-    var code=String(input&&input.value||'').replace(/\D/g,'');
-    err.style.color='#ff8f8f';err.textContent='';
-    if(!flow||flow.stage!=='email_sent'){err.textContent='Esta verificação expirou. Inicie novamente.';return;}
-    if(code.length<6||code.length>8){err.textContent='Digite o código recebido no e-mail.';return;}
-    btn.disabled=true;btn.textContent='Verificando…';
-    try{
-      var otpType='email';
-      if(flow.purpose==='recovery')otpType='recovery';
-      var result=await supabaseClient.auth.verifyOtp({email:flow.email,token:code,type:otpType});
-      if(result.error)throw result.error;
-
-      if(flow.purpose==='recovery'){
-        writeAuthFlow('recovery',flow.email,'password_change',{method:'recovery'});
-        showNewPasswordStep(flow.email);
-        return;
-      }
-
-      clearAuthFlow();
-      if(result.data&&result.data.session)await applySession(result.data.session);
-    }catch(ex){
-      err.textContent=ex.message||'Código inválido ou expirado.';
-    }finally{
-      btn.disabled=false;
-      btn.textContent=otpCopyFor(flow&&flow.purpose||authOtpPurpose).submit;
+      btn.disabled=false;btn.textContent='Enviar link';
     }
   });
 
@@ -398,7 +364,7 @@
     if(Date.now()<otpCooldownUntil)return;
     btn.disabled=true;err.textContent='';
     try{await resendCurrentOtp(flow);}
-    catch(ex){err.textContent=ex.message||'Não foi possível reenviar o código.';btn.disabled=false;}
+    catch(ex){err.textContent=ex.message||'Não foi possível reenviar o link.';btn.disabled=false;}
   };
   document.getElementById('authOtpBack').onclick=async function(){
     var flow=readAuthFlow();
@@ -413,7 +379,7 @@
     var flow=readAuthFlow(),password=document.getElementById('authNewPassword').value,confirmPassword=document.getElementById('authNewPasswordConfirm').value;
     var err=document.getElementById('authNewPasswordError'),btn=document.getElementById('authNewPasswordSubmit');
     err.style.color='#ff8f8f';err.textContent='';
-    if(!flow||flow.purpose!=='recovery'||flow.stage!=='password_change'){err.textContent='A recuperação expirou. Solicite um novo código.';return;}
+    if(!flow||flow.purpose!=='recovery'||flow.stage!=='password_change'){err.textContent='A recuperação expirou. Solicite um novo link.';return;}
     if(password.length<8){err.textContent='A nova senha precisa ter pelo menos 8 caracteres.';return;}
     if(password!==confirmPassword){err.textContent='As senhas não coincidem.';return;}
     btn.disabled=true;btn.textContent='Salvando…';
@@ -448,14 +414,14 @@
       var callbackErr=document.getElementById('authOtpError');
       if(callbackErr){
         callbackErr.style.color='#ffb36b';
-        callbackErr.textContent='Esse link já foi usado ou expirou. Digite o código recebido no e-mail ou toque em Reenviar código.';
+        callbackErr.textContent='Esse link já foi usado ou expirou. Toque em Reenviar link para receber um novo.';
       }
     }else{
       setAuthMode('login');
       var loginCallbackErr=document.getElementById('authError');
       if(loginCallbackErr){
         loginCallbackErr.style.color='#ffb36b';
-        loginCallbackErr.textContent='Esse link de acesso já foi usado ou expirou. Faça login novamente para receber um novo código.';
+        loginCallbackErr.textContent='Esse link de acesso já foi usado ou expirou. Faça login novamente para receber um novo link.';
       }
     }
     cleanAuthCallbackUrl();
