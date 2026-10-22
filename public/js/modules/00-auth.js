@@ -223,7 +223,7 @@
     }else{
       result=await supabaseClient.auth.signInWithOtp({
         email:flow.email,
-        options:{shouldCreateUser:false,emailRedirectTo:authRedirectUrl()}
+        options:{shouldCreateUser:false}
       });
     }
     if(result&&result.error)throw result.error;
