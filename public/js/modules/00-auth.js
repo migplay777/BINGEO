@@ -372,7 +372,6 @@
     btn.disabled=true;btn.textContent='Verificando…';
     try{
       var otpType='email';
-      if(flow.purpose==='signup'&&flow.method==='signup_confirmation')otpType='signup';
       if(flow.purpose==='recovery')otpType='recovery';
       var result=await supabaseClient.auth.verifyOtp({email:flow.email,token:code,type:otpType});
       if(result.error)throw result.error;
