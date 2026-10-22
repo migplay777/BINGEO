@@ -1,15 +1,19 @@
-# Templates de autenticação do Bingeo
+# Autenticação por e-mail do Bingeo
 
-Estes templates foram preparados para o fluxo OTP do Bingeo e não contêm links de autenticação.
+## Fluxo ativo em produção
 
-- `confirmation.html`: **Confirm signup**
-- `magic-link.html`: **Magic Link / OTP**
-- `recovery.html`: **Reset password**
+Enquanto o Bingeo usa o serviço padrão de e-mail do Supabase, a autenticação funciona por **links enviados pelo próprio Supabase**:
 
-Todos usam `{{ .Token }}` e foram feitos para o frontend em `public/js/modules/00-auth.js`.
+- Cadastro: link de confirmação de conta.
+- Login: Magic Link após a etapa de login do Bingeo.
+- Recuperação: link de recuperação que volta ao Bingeo para definir uma nova senha.
 
-## Projeto hospedado no Supabase
+O frontend ativo está em `public/js/modules/00-auth.js` e usa `detectSessionInUrl: true` para consumir a sessão retornada pelo link.
 
-No projeto hospedado, os templates precisam ser aplicados em **Authentication > Email Templates** após habilitar um SMTP próprio.
+Os redirects de cadastro, Magic Link e recuperação apontam para a origem do Bingeo por meio de `authRedirectUrl()`.
 
-Projetos Free criados após a mudança de junho de 2026 não podem personalizar templates usando o SMTP padrão do Supabase. Portanto, o SMTP próprio precisa estar configurado antes de colar estes conteúdos no Dashboard.
+## Templates OTP arquivados
+
+Os arquivos HTML deste diretório com `{{ .Token }}` foram preparados para um possível fluxo OTP futuro. Eles **não devem ser aplicados enquanto o projeto estiver usando o SMTP padrão do Supabase**.
+
+Quando houver SMTP próprio e a personalização de templates estiver disponível, esses arquivos poderão ser revisados e usados para migrar novamente para código OTP.
